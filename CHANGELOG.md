@@ -1,5 +1,45 @@
 # Scout Plugin — CHANGELOG
 
+## [0.2.0] — 2026-06-22
+
+### Massive Framework-Erkennung — 30 → 732 Technologien
+
+#### YAML-Rule-Engine (P1)
+- **Neues YAML-Rule-System:** `shared/yaml_rule_loader.py` + `data/rules/*.yaml`
+- Dynamischer Loader: `data/rules/` rekursiv scannen, validieren, cachen
+- 38 manuelle YAML-Rules (alle 36 Python-Detectors migriert + 2 neue)
+- YamlRuleLoader als Singleton + Detector-Cache für Performance
+- 41 neue Tests
+
+#### specfy/stack-analyser Konverter (P2) — +689 Technologien
+- `scripts/convert_specfy_rules.py` — parst 700+ TypeScript-Rules automatisch
+- 9 Kategorien: backend (188), database (87), frontend (62), infra (273),
+  language (32), testing (10), ui_library (32), ci (34), package_manager (14)
+- Deduplizierung: 26 Überschneidungen zu bestehenden Rules erkannt
+- 17 Regeln ohne brauchbare Marker korrekt übersprungen
+
+#### Package-Manager Auto-Discovery (P3)
+- **GenericDependencyDetector** — parst automatisch package.json, go.mod,
+  requirements.txt, Cargo.toml
+- 85 bekannte npm-Packages, 55 PyPI, 50 Go-Module, 45 Cargo-Crates
+- 46 Prefix-Matcher für @scoped/ Pakete
+- Unbekannte Dependencies → `category: other` mit low confidence
+- 28 neue Tests
+
+#### dotenv + Docker Scanning (P4)
+- **dotenv-Detection:** `.env.example`/`.env` KEY_PREFIX erkennen
+  (SENTRY_, STRIPE_, OTEL_, GOOGLE_, AWS_, DATABASE_, REDIS_, etc.)
+- **Docker-Detection:** docker-compose.yml Services + Dockerfile FROM
+- 42 neue Tests + Integration in detect()
+
+#### Performance: 29x schneller (P5)
+- **_FileIndex** — einmal os.walk() statt 1500× rglob()
+- **Glob-Cache** — Regex-Kompilierung einmalig pro Pattern
+- **YAML-Detector-Cache** — type()-Aufrufe einmalig
+- detect(): 2.9s → 0.049s | detect_fast(): 2.5s → 0.191s
+- 17 Performance-Tests
+- **Version:** 0.1.4 → 0.2.0 (Feature-Release)
+
 ## [0.1.4] — 2026-06-22
 
 ### Framework Skill + Pattern-Discovery Integration

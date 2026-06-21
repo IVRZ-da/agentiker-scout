@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "agentiker-scout-plugin"
-version = "0.1.4"
+version = "0.2.0"
 description = "Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline for Hermes Agent"
 authors = [
     {name = "Johannes Lettner"},
@@ -37,7 +37,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["F", "E", "T", "W", "I"]
-ignore = ["E501", "F403", "F405"]
+ignore = ["E501", "F403", "F405", "T201"]
 
 [tool.coverage.run]
 source = ["scout"]
