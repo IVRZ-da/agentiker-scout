@@ -17,7 +17,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger("analysis.ui_discovery")
 
@@ -169,26 +169,26 @@ def _parse_nextjs_route(rel_path: str) -> Dict[str, Any]:
     """
     # Entferne app/ prefix und page.tsx suffix
     route = rel_path.replace("page.tsx", "").rstrip("/")
-    
+
     # Entferne route groups ((name))  — sie ändern den Pfad nicht
     groups = re.findall(r"\(([^)]+)\)", route)
     route_clean = re.sub(r"/\([^)]+\)", "", route)
-    
+
     # Extrahiere Parameter ([name])
     params = re.findall(r"\[([^\]]+)\]", route_clean)
-    
+
     # Bestimme Auth-Status
     auth_status = "public"
     if "(protected)" in route:
         auth_status = "protected"
     elif "(guest)" in route:
         auth_status = "guest"
-    
+
     # Bestimme Route-Typ
     route_type = "page"
     if "[id]" in params or len([p for p in params if p != "locale"]) > 0:
         route_type = "detail"
-    
+
     return {
         "path": route_clean,
         "full_path": route,
@@ -209,7 +209,7 @@ def _parse_medusa_admin_route(rel_path: str) -> Dict[str, Any]:
     """
     # Entferne routes/ prefix und page.tsx suffix
     route = rel_path.replace("routes/", "").replace("/page.tsx", "")
-    
+
     return {
         "path": "/" + route,
         "full_path": "/" + route,
@@ -226,10 +226,10 @@ def _parse_api_route(rel_path: str) -> Dict[str, Any]:
       api/store/products/route.ts → GET /api/store/products
     """
     route = rel_path.replace("/route.ts", "").replace("/route.js", "")
-    
+
     # Extrahiere Parameter
     params = re.findall(r"\[([^\]]+)\]", route)
-    
+
     return {
         "path": "/" + route,
         "full_path": "/" + route,
@@ -517,4 +517,3 @@ if __name__ == "__main__":
     import sys
     root = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     layers = discover_uis(root)
-    print(summarize_ui_layers(layers))

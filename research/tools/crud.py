@@ -9,11 +9,20 @@ import urllib.request
 import uuid
 from datetime import datetime, timedelta
 
-from .base import (
-    _now, _now_dt, _read_json, _write_json, _validate_research_id,
-    PLANS_DIR, RESULTS_DIR, _ok, _err, _try_create_plan_follow_plan,
-)
 from scout.research.research_hooks import reset_tracker
+
+from .base import (
+    PLANS_DIR,
+    RESULTS_DIR,
+    _err,
+    _now,
+    _now_dt,
+    _ok,
+    _read_json,
+    _try_create_plan_follow_plan,
+    _validate_research_id,
+    _write_json,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -369,10 +378,8 @@ def research_tag(args: dict, **kwargs) -> str:
     plan_path = PLANS_DIR / f"{research_id}.json"
 
     data = _read_json(result_path)
-    is_plan = False
     if not data:
         data = _read_json(plan_path)
-        is_plan = True
     if not data:
         return _err(f"Keine Recherche mit ID '{research_id}' gefunden.")
 
@@ -418,7 +425,7 @@ def research_update(args: dict, **kwargs) -> str:
         return _err(err)
 
     result_path = RESULTS_DIR / f"{research_id}.json"
-    plan_path = PLANS_DIR / f"{research_id}.json"
+    PLANS_DIR / f"{research_id}.json"
 
     # Nur gespeicherte Ergebnisse updatebar
     if not result_path.exists():

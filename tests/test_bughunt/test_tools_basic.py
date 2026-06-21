@@ -2,15 +2,15 @@
 
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pytest
+from unittest.mock import MagicMock
 
 # Modul für Handler-Import
 from scout.bughunt.bughunt_tools import (
-    bug_hunt_start, bug_hunt_finding, bug_hunt_list, bug_hunt_close,
+    bug_hunt_close,
+    bug_hunt_finding,
+    bug_hunt_list,
+    bug_hunt_start,
 )
-
 
 # ======================================================================
 # Helper: Mock-Setup für Handler-Tests
@@ -134,7 +134,7 @@ class TestBugHuntFinding:
     """bug_hunt_finding: Finding zu Session hinzufügen."""
 
     def test_finding_minimal(self, monkeypatch, tmp_path):
-        mt = _mock_core(monkeypatch, tmp_path)
+        _mock_core(monkeypatch, tmp_path)
         # Session anlegen
         from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
@@ -151,9 +151,9 @@ class TestBugHuntFinding:
         assert result["total_findings"] == 1
 
     def test_finding_all_params(self, monkeypatch, tmp_path):
-        mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
+        _mock_core(monkeypatch, tmp_path)
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
 
@@ -189,8 +189,8 @@ class TestBugHuntFinding:
 
     def test_finding_empty_title(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_finding({"session_id": s.session_id, "title": ""}))
@@ -198,8 +198,8 @@ class TestBugHuntFinding:
 
     def test_finding_invalid_severity(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_finding({"session_id": s.session_id, "title": "T", "severity": "P5"}))
@@ -207,17 +207,17 @@ class TestBugHuntFinding:
 
     def test_finding_invalid_category(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_finding({"session_id": s.session_id, "title": "T", "category": "xyz"}))
         assert result["status"] == "error"
 
     def test_finding_p0_includes_instruction(self, monkeypatch, tmp_path):
-        mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
+        _mock_core(monkeypatch, tmp_path)
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_finding({"session_id": s.session_id, "title": "Critical", "severity": "P0"}))
@@ -227,11 +227,11 @@ class TestBugHuntFinding:
 
     def test_finding_tracks_file(self, monkeypatch, tmp_path):
         mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
-        result = _ok(bug_hunt_finding({
+        _ok(bug_hunt_finding({
             "session_id": s.session_id, "title": "Bug", "file": "src/bug.ts"
         }))
         assert mt.track_file.called
@@ -246,8 +246,8 @@ class TestBugHuntList:
 
     def test_list_empty(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_list({"session_id": s.session_id}))
@@ -257,8 +257,8 @@ class TestBugHuntList:
 
     def test_list_with_findings(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession, Finding
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession, Finding
         s = BugHuntSession(project="/test")
         s.add_finding(Finding(title="P0 Finding", severity="P0"))
         s.add_finding(Finding(title="P2 Finding", severity="P2"))
@@ -270,8 +270,8 @@ class TestBugHuntList:
 
     def test_list_filter_severity(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession, Finding
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession, Finding
         s = BugHuntSession(project="/test")
         s.add_finding(Finding(title="P0", severity="P0"))
         s.add_finding(Finding(title="P1", severity="P1"))
@@ -299,9 +299,9 @@ class TestBugHuntClose:
     """bug_hunt_close: Session abschliessen."""
 
     def test_close_session(self, monkeypatch, tmp_path):
-        mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
+        _mock_core(monkeypatch, tmp_path)
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
 
@@ -315,8 +315,8 @@ class TestBugHuntClose:
 
     def test_close_resets_tracker(self, monkeypatch, tmp_path):
         mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         bug_hunt_close({"session_id": s.session_id})
@@ -324,8 +324,8 @@ class TestBugHuntClose:
 
     def test_close_without_summary(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
         import bughunt_core as bc
+        from bughunt_core import BugHuntSession
         s = BugHuntSession(project="/test")
         bc.save_session(s)
         result = _ok(bug_hunt_close({"session_id": s.session_id}))
@@ -351,8 +351,7 @@ class TestWorkflow:
     """Integration über alle 4 Basic Tools."""
 
     def test_full_workflow(self, monkeypatch, tmp_path):
-        mt = _mock_core(monkeypatch, tmp_path)
-        from bughunt_core import BugHuntSession
+        _mock_core(monkeypatch, tmp_path)
         import bughunt_core as bc
 
         # 1. Start

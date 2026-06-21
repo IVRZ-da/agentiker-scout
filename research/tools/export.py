@@ -6,13 +6,18 @@ import json
 import re
 from collections import Counter
 
-from scout._fmt import fmt_ok, fmt_err, fmt_markdown, fmt_code
-from .base import (
-    _read_json, _validate_research_id,
-    PLANS_DIR, RESULTS_DIR,
-    _err, _now, _write_json, _list_results,
-)
+from scout._fmt import fmt_code, fmt_markdown, fmt_ok
 
+from .base import (
+    PLANS_DIR,
+    RESULTS_DIR,
+    _err,
+    _list_results,
+    _now,
+    _read_json,
+    _validate_research_id,
+    _write_json,
+)
 
 # ---------------------------------------------------------------------------
 # research_export

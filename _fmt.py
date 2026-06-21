@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+
 def fmt_ok(data: dict[str, Any] | str, message: str | None = None) -> str:
     """Success response with green status."""
     if isinstance(data, str):

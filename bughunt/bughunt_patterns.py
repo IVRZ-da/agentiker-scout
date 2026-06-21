@@ -17,8 +17,8 @@ Import:
   Wird von bughunt_core.py beim Start geladen.
 """
 
-from typing import Optional
 from datetime import datetime, timezone
+from typing import Optional
 
 # Prefix für benutzerdefinierte Patterns (nicht löschbar via delete-Custom)
 CUSTOM_PREFIX = "CUSTOM_"
@@ -48,7 +48,9 @@ class BugPattern:
                  source_session: str = "", source_project: str = "",
                  source_finding_id: str = "",
                  match_count: int = 0, tags: Optional[list[str]] = None,
-                 created_at: str = "", updated_at: str = ""):
+                 created_at: str = "", updated_at: str = "",
+                 frameworks: Optional[list[str]] = None,
+                 frameworks_required: bool = False):
         self.pattern_id = pattern_id
         self.name = name
         self.category = category
@@ -69,6 +71,8 @@ class BugPattern:
         now = datetime.now(timezone.utc).isoformat()
         self.created_at = created_at or now
         self.updated_at = updated_at or now
+        self.frameworks = frameworks or []
+        self.frameworks_required = frameworks_required
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -665,6 +669,110 @@ PATTERNS_BY_ID: dict[str, BugPattern] = {p.pattern_id: p for p in ALL_PATTERNS}
 PATTERNS_BY_CATEGORY: dict[str, list[BugPattern]] = {}
 for p in ALL_PATTERNS:
     PATTERNS_BY_CATEGORY.setdefault(p.category, []).append(p)
+
+# ─── Framework-Zuordnung basierend auf Kategorie ──────────────────────
+# Patterns ohne explizites frameworks-Feld bekommen eine Default-Zuordnung.
+# Generische Patterns (security, code-quality) gelten für alle Frameworks.
+# Spezifische Patterns werden nur bei passendem Framework geladen.
+FRAMEWORK_MAP: dict[str, list[str]] = {
+    "security": ["*"],
+    "code-quality": ["*"],
+    "typescript": ["typescript"],
+    "go": ["go"],
+    "rust": ["rust"],
+    "react-next": ["react", "nextjs"],
+    "medusa-admin-ui": ["medusa"],
+}
+
+for p in ALL_PATTERNS:
+    if not p.frameworks:
+        p.frameworks = FRAMEWORK_MAP.get(p.category, ["*"])
+    # frameworks_required nur bei spezifischen Frameworks automatisch setzen
+    if not p.frameworks_required and p.frameworks != ["*"]:
+        p.frameworks_required = True
+
+# ─── Framework Presets ────────────────────────────────────────────────
+# Presets sind benannte Pattern-Sets für bestimmte Tech-Stacks.
+# Jedes Preset enthält: Kategorien, Pattern-IDs oder Framework-Namen.
+# Wird von bug_hunt_scan(preset=...) und bug_hunt_preset() genutzt.
+PRESETS: dict[str, dict] = {
+    "medusa-full": {
+        "description": "Kompletter Medusa-Stack (Backend + Admin UI)",
+        "categories": ["security", "code-quality", "typescript", "medusa-admin-ui"],
+    },
+    "medusa-admin": {
+        "description": "Nur Medusa Admin UI spezifisch",
+        "categories": ["medusa-admin-ui"],
+    },
+    "medusa-backend": {
+        "description": "Medusa Backend + generische Sicherheit",
+        "categories": ["security", "code-quality", "typescript"],
+    },
+    "nextjs-storefront": {
+        "description": "Next.js Frontend + React Patterns",
+        "categories": ["security", "code-quality", "react-next"],
+    },
+    "go-backend": {
+        "description": "Go Backend + generische Sicherheit",
+        "categories": ["security", "code-quality", "go"],
+    },
+    "python-backend": {
+        "description": "Python Backend + generische Sicherheit",
+        "categories": ["security", "code-quality"],
+        "frameworks": ["python", "fastapi", "django"],
+    },
+    "typescript-generic": {
+        "description": "Allgemeine TypeScript Patterns",
+        "categories": ["typescript", "code-quality", "security"],
+    },
+    "all": {
+        "description": "Alle Patterns (Vollscan)",
+        "categories": list(PATTERNS_BY_CATEGORY.keys()),
+    },
+}
+
+
+def resolve_preset(preset_name: str) -> list[str]:
+    """Löst ein Preset in Pattern-IDs auf.
+
+    Args:
+        preset_name: Name des Presets (z.B. 'medusa-full').
+
+    Returns:
+        Liste von Pattern-IDs (z.B. ['A001', 'A002', 'S001', ...]).
+    """
+    preset = PRESETS.get(preset_name)
+    if not preset:
+        raise ValueError(
+            f"Unbekanntes Preset: {preset_name}. "
+            f"Verfügbar: {', '.join(sorted(PRESETS.keys()))}"
+        )
+
+    pattern_ids: list[str] = []
+    seen: set[str] = set()
+
+    # 1. Kategorien auflösen
+    for cat in preset.get("categories", []):
+        for p in PATTERNS_BY_CATEGORY.get(cat, []):
+            if p.pattern_id not in seen:
+                pattern_ids.append(p.pattern_id)
+                seen.add(p.pattern_id)
+
+    return pattern_ids
+
+
+def list_presets() -> list[dict]:
+    """Listet alle verfügbaren Presets mit Beschreibung und Pattern-Count."""
+    result = []
+    for name, data in sorted(PRESETS.items()):
+        ids = resolve_preset(name)
+        result.append({
+            "name": name,
+            "description": data["description"],
+            "pattern_count": len(ids),
+            "categories": data.get("categories", []),
+        })
+    return result
 
 
 def get_pattern(pattern_id: str) -> Optional[BugPattern]:

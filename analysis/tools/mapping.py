@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from .ui_discovery import UiLayer, discover_uis
 
@@ -133,7 +133,6 @@ def _analyze_layers(layers: List[UiLayer], project_root: str) -> CoverageMatrix:
     admin_layer = None
     storefront_layer = None
     api_layer = None
-    go_layer = None
 
     for layer in layers:
         if layer.ui_type == "medusa-admin":
@@ -143,7 +142,7 @@ def _analyze_layers(layers: List[UiLayer], project_root: str) -> CoverageMatrix:
         elif layer.ui_type == "medusa-api":
             api_layer = layer
         elif layer.ui_type == "go-handler":
-            go_layer = layer
+            pass
 
         # Sammle Module aus allen Layern
         for m in layer.modules:
@@ -390,4 +389,3 @@ if __name__ == "__main__":
     import sys
     root = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     matrix = build_coverage_matrix(root)
-    print(format_coverage_report(matrix))

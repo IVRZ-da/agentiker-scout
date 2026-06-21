@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ======================================================================
 # Modul-Import
 # ======================================================================
@@ -252,7 +251,7 @@ class TestPatternImport:
     def test_from_dict_overwrite(self, init_pats):
         """from_dict überschreibt per setattr — auch unbekannte Felder."""
         from scout.bughunt import bughunt_patterns as bp
-        p = bp.BugPattern()
+        bp.BugPattern()
         p2 = bp.BugPattern.from_dict({"pattern_id": "Y001", "custom_field": 42})
         assert p2.pattern_id == "Y001"
         assert hasattr(p2, "custom_field")
@@ -304,7 +303,7 @@ class TestRegexSyntax:
                     if any(esc in p.scan_query for esc in posix_only_escapes):
                         continue  # POSIX-Escape, von grep unterstützt
                     invalid.append(f"{p.pattern_id}: {msg}")
-        assert not invalid, f"Ungültige Regex-Patterns:\n" + "\n".join(invalid)
+        assert not invalid, "Ungültige Regex-Patterns:\n" + "\n".join(invalid)
 
     def test_all_grep_queries_have_content(self, init_pats):
         """Jeder grep scan_query darf nicht leer sein."""

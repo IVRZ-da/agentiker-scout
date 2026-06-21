@@ -49,7 +49,7 @@ def build_fix_prompt(finding: dict, pattern: Optional[dict] = None) -> str:
     if file_path.endswith(".py"):
         verify_cmd = f"python3 -c \"compile(open('{file_path}').read(), '{file_path}', 'exec')\""
     elif file_path.endswith((".ts", ".tsx")):
-        verify_cmd = f"npx tsc --noEmit --pretty 2>&1 | head -20"
+        verify_cmd = "npx tsc --noEmit --pretty 2>&1 | head -20"
     else:
         verify_cmd = "Prüfe die Änderung manuell"
 

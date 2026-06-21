@@ -14,12 +14,11 @@ Bietet:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger("analysis")
 
@@ -103,6 +102,7 @@ _HONCHO_CACHE_TTL = 60  # Sekunden
 
 # Cache-Datei für Cross-Session-Persistenz
 from pathlib import Path
+
 _HONCHO_CACHE_FILE = str(Path(__file__).resolve().parent / ".honcho_cache.json")
 
 # Cache für _query_honcho_analysis_history

@@ -8,7 +8,6 @@ zusammen. Vermeidet 3× Hook-Overhead + dedupliziert Keywords.
 from __future__ import annotations
 
 import logging
-import re
 import time
 from typing import Any, Optional
 
@@ -53,6 +52,12 @@ INTENT_MAP: dict[str, set[str]] = {
     "web": {
         "api", "docs", "dokumentation", "dokumentation",
         "website", "homepage", "url", "endpoint",
+    },
+    "framework": {
+        "framework", "techstack", "stack", "technologie",
+        "technologie-stack", "technology", "erkenne", "detect",
+        "welche technologien", "was wird verwendet",
+        "project profile", "project analysis",
     },
 }
 
@@ -106,12 +111,18 @@ _INTENT_CONTEXTS: dict[str, str] = {
         "- firecrawl_scrape(url) — Seite extrahieren\n"
         "- firecrawl_extract(urls, prompt) — Strukturierte Extraktion"
     ),
+    "framework": (
+        "[SCOUT] Framework-Analyse-Intent erkannt. Verfügbare Tools:\n"
+        "- analysis_framework(path) — Framework-Profil anzeigen\n"
+        "- bug_hunt_scan(patterns, frameworks=...) — Framework-spezifischer Scan\n"
+        "- bug_hunt_scan(preset='medusa-full') — Preset-Scan für erkannten Stack"
+    ),
 }
 
 # ─── Intent Detection (Single pre_llm_call) ──────────────────────────────
 
-_DOMAIN_PRIORITY = ["bug", "research", "db", "web", "code"]
-_DOMAIN_PRIORITY_WEIGHTS = {"bug": 10, "research": 8, "db": 6, "web": 4, "code": 2}
+_DOMAIN_PRIORITY = ["bug", "research", "framework", "db", "web", "code"]
+_DOMAIN_PRIORITY_WEIGHTS = {"bug": 10, "research": 8, "framework": 7, "db": 6, "web": 4, "code": 2}
 
 def _detect_intent(message: str) -> str | None:
     """Detect which domain(s) a message belongs to. Returns most specific domain.

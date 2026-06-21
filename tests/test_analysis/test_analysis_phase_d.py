@@ -8,7 +8,6 @@ from __future__ import annotations
 import os
 import sys
 import types
-import json
 
 import pytest
 
@@ -23,6 +22,7 @@ _delegate_mock.DEFAULT_TOOLSETS = ["terminal", "file"]
 _delegate_mock._build_child_system_prompt = lambda *a, **kw: "base prompt"
 sys.modules["tools.delegate_tool"] = _delegate_mock
 from tools import delegate_tool as delegate_mock
+
 
 class MockEntry:
     """Mock für einen Registry-Eintrag."""
@@ -183,7 +183,7 @@ class TestSteeringHints:
 
     def test_steering_hints_in_plugin_init(self):
         """_register_steering aus __init__ sollte nicht crashen.
-        
+
         Ruft direkt die steering-Funktionen auf statt __init__ zu verwenden,
         da __init__ Module-level Imports hat die in Tests nicht verfügbar sind.
         """

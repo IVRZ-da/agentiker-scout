@@ -10,8 +10,7 @@ import json
 from pathlib import Path
 
 # sys.modules Mocks werden von conftest.py gesetzt
-from scout.analysis.tools.extractors import nextjs, medusa_admin, medusa_api, go_handler
-
+from scout.analysis.tools.extractors import go_handler, medusa_admin, medusa_api, nextjs
 
 # ===================================================================
 # TestNextJsExtractor

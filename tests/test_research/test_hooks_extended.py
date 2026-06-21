@@ -7,8 +7,6 @@ Deckt die pre_llm_call Hook und interne Helfer ab.
 import json
 from pathlib import Path
 
-import pytest
-
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -19,7 +17,7 @@ PLUGIN_DIR = Path(__file__).resolve().parent.parent
 class TestPreLlmCall:
     def test_returns_none_without_tracker(self):
         """pre_llm_call gibt None zurueck wenn kein Context da ist."""
-        from scout.research.research_hooks import on_pre_llm_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_pre_llm_call
 
         _tool_call_tracker["research_started"] = None
         result = on_pre_llm_call()
@@ -27,7 +25,7 @@ class TestPreLlmCall:
 
     def test_shows_active_research(self):
         """Zeigt aktive Research-Session im Context."""
-        from scout.research.research_hooks import on_pre_llm_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_pre_llm_call
 
         _tool_call_tracker["research_started"] = "abc123"
         _tool_call_tracker["firecrawl_calls"] = [
@@ -41,7 +39,7 @@ class TestPreLlmCall:
 
     def test_shows_saved_research(self):
         """Zeigt gespeicherte Research-Session."""
-        from scout.research.research_hooks import on_pre_llm_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_pre_llm_call
 
         _tool_call_tracker["research_started"] = "abc456"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -53,7 +51,7 @@ class TestPreLlmCall:
 
     def test_no_firecrawl_calls_hint(self):
         """Warnt wenn research gestartet aber keine Firecrawl-Calls."""
-        from scout.research.research_hooks import on_pre_llm_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_pre_llm_call
 
         _tool_call_tracker["research_started"] = "abc789"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -84,7 +82,7 @@ class TestPreLlmCall:
 class TestPostToolCallExtended:
     def test_tracks_agent_calls(self):
         """Trackt auch firecrawl_agent calls."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = "test"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -94,7 +92,7 @@ class TestPostToolCallExtended:
 
     def test_tracks_extract_calls(self):
         """Trackt auch firecrawl_extract calls."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = "test"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -104,7 +102,7 @@ class TestPostToolCallExtended:
 
     def test_ignores_empty_tool_name(self):
         """Kein Crash bei leerem tool_name."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = "test"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -209,8 +207,8 @@ class TestGetUserInput:
 
 class TestLoadAllResults:
     def test_returns_empty_if_no_dir(self, tmp_path):
-        from scout.research.research_hooks import _load_all_results
         from scout.research import research_hooks as rh
+        from scout.research.research_hooks import _load_all_results
 
         old_dir = rh.RESULTS_DIR
         try:
@@ -221,8 +219,8 @@ class TestLoadAllResults:
             rh.RESULTS_DIR = old_dir
 
     def test_loads_results_from_dir(self, tmp_path):
-        from scout.research.research_hooks import _load_all_results
         from scout.research import research_hooks as rh
+        from scout.research.research_hooks import _load_all_results
 
         old_dir = rh.RESULTS_DIR
         try:
@@ -252,8 +250,8 @@ class TestLoadAllResults:
 class TestOnSessionEndExtended:
     def test_no_crash_on_missing_plan_file(self, tmp_path):
         """on_session_end crasht nicht wenn Plan-Datei fehlt."""
-        from scout.research.research_hooks import on_session_end, _tool_call_tracker
         from scout.research import research_hooks as rh
+        from scout.research.research_hooks import _tool_call_tracker, on_session_end
 
         _tool_call_tracker["research_started"] = "missing_plan"
         _tool_call_tracker["research_saved"] = False
@@ -268,8 +266,8 @@ class TestOnSessionEndExtended:
 
     def test_no_crash_on_corrupt_plan(self, tmp_path):
         """on_session_end crasht nicht bei korrupter Plan-Datei."""
-        from scout.research.research_hooks import on_session_end, _tool_call_tracker
         from scout.research import research_hooks as rh
+        from scout.research.research_hooks import _tool_call_tracker, on_session_end
 
         _tool_call_tracker["research_started"] = "corrupt"
         _tool_call_tracker["research_saved"] = False

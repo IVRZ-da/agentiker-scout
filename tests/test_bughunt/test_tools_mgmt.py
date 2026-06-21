@@ -1,12 +1,12 @@
 """Test: Management Tools — bug_hunt_export, bug_hunt_history, bug_hunt_pattern, bug_hunt_stats."""
 
 import json
-from unittest.mock import MagicMock
-
-import pytest
 
 from scout.bughunt.bughunt_tools import (
-    bug_hunt_export, bug_hunt_history, bug_hunt_pattern, bug_hunt_stats,
+    bug_hunt_export,
+    bug_hunt_history,
+    bug_hunt_pattern,
+    bug_hunt_stats,
 )
 
 

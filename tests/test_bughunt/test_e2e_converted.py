@@ -32,7 +32,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ─── Fixtures (für künftige Tests bereit, wenn neue hinzukommen) ─────
 
 @pytest.fixture
@@ -69,7 +68,7 @@ class TestBughuntFindingEdgeCases:
 
     def test_finding_empty_title(self, tmp_project):
         """bug_hunt_finding mit leerem Titel."""
-        from scout.bughunt.bughunt_tools import bug_hunt_start, bug_hunt_finding, bug_hunt_close
+        from scout.bughunt.bughunt_tools import bug_hunt_close, bug_hunt_finding, bug_hunt_start
         json.loads(bug_hunt_start({"project": str(tmp_project), "scope": "quick"}))
         r = json.loads(bug_hunt_finding({"title": ""}))
         assert r.get("status") == "error"

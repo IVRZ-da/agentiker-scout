@@ -7,6 +7,7 @@ Alle Tests nutzen tmp_path um die Plugin-Datenverzeichnisse zu simulieren.
 
 import json
 import sys
+
 import pytest
 
 # ---------------------------------------------------------------------------

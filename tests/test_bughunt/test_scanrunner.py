@@ -1,9 +1,5 @@
 """Tests for bughunt_scanrunner — grep-basierte automatische Scans."""
-import json
-import subprocess
-from pathlib import Path
 
-import pytest
 
 
 # ═══════════════════════════════════════════════════════════════════════

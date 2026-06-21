@@ -18,30 +18,17 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from scout.analysis.analysis_intent import (
     ANALYSIS_TOOLS,
-    DEFAULT_ANALYSIS_KEYWORDS,
-    _ai_intent_cache,
-    _ai_detect_intent,
     _build_tool_recommendations,
     _detect_intent,
     _extract_file_refs,
     _is_analysis_query,
-    _load_honcho_cache,
     _query_honcho_analysis_history,
-    _save_honcho_cache,
-    _MAX_CONTEXT_FILES,
 )
-from .analysis_profiles import (
-    ANALYSIS_PROFILES,
-    get_active_analysis_profile,
-    get_profile_tools,
-    inject_steering_hints,
-    inject_subagent_steering,
-    patch_delegate_task,
-)
+
 from .analysis_session import (
     AnalysisSession,
     _analysis_session,

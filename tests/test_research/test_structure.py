@@ -185,11 +185,10 @@ def test_data_directories_created_on_import():
     Prüft dass die data/-Verzeichnisse beim Import angelegt werden.
     Dazu importieren wir research_tools in Isolation.
     """
-    import importlib.util
     import tempfile
 
     # In temporärem Verzeichnis arbeiten
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory():
         # Prüfe dass mkdir calls in tools/base.py existieren
         base_path = RESEARCH_DIR / "tools" / "base.py"
         code = base_path.read_text()

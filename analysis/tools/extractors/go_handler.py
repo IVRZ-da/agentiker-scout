@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger("analysis.extractors.go_handler")
 
@@ -124,7 +124,7 @@ def _parse_route_patterns(content: str, source: str) -> List[Dict[str, Any]]:
 def extract(path: str) -> List[Dict[str, Any]]:
     """Findet alle Go HTTP-Routen und Module."""
     # Finde Module
-    modules = get_modules(path)
+    get_modules(path)
 
     # Finde Routen
     routes = []

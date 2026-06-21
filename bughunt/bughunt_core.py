@@ -5,12 +5,17 @@ BugHuntSession: Ein Scan-Durchlauf (findings, status, project)
 BugHuntTracker: In-Memory Tracker für aktive Session (für Hooks)
 """
 
-import json, re, time, uuid, logging, hashlib
+import hashlib
+import json
+import logging
+import re
+import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from scout._fmt import fmt_ok, fmt_err
+from scout._fmt import fmt_err, fmt_ok
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +226,7 @@ def _validate_custom_pattern(data: dict) -> Optional[str]:
         return "name ist erforderlich"
     scan_type = data.get("scan_type", "")
     if scan_type not in ("grep", "code_search", "code_diagnostics"):
-        return f"scan_type muss eine sein von: grep, code_search, code_diagnostics"
+        return "scan_type muss eine sein von: grep, code_search, code_diagnostics"
     if scan_type in ("grep", "code_search") and not data.get("scan_query", "").strip():
         return "scan_query ist erforderlich für grep/code_search"
     sev = data.get("severity", "P2").upper()
@@ -678,9 +683,9 @@ def init_patterns() -> None:
     from data/patterns/custom_patterns.json.
     """
     try:
-        from . import bughunt_patterns as bp      # Hermes Runtime (Package)
+        from . import bughunt_patterns as bp  # Hermes Runtime (Package)
     except ImportError:
-        import bughunt_patterns as bp              # pytest (top-level Import)
+        import bughunt_patterns as bp  # pytest (top-level Import)
     PATTERNS_BY_ID.clear()
     PATTERNS_BY_ID.update(bp.PATTERNS_BY_ID)
     PATTERNS_BY_CATEGORY.clear()

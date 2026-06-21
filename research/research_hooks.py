@@ -144,7 +144,7 @@ def on_post_tool_call(**kwargs) -> None:
     und aggregiert sie im In-Memory-Tracker.
     """
     tool_name = kwargs.get("tool_name", "")
-    result = kwargs.get("result", "")
+    kwargs.get("result", "")
 
     # research_save erkennen + Auto-Synthese anregen
     if tool_name == "research_save" and _tool_call_tracker["research_started"]:

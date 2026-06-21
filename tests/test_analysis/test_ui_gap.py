@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# sys.modules Mocks werden von conftest.py gesetzt
-from scout.analysis.tools.ui_gap import (
-    analysis_ui_gap_tool,
-    _clean_matrix,
-    _generate_mermaid,
-    _generate_summary,
-)
 from scout.analysis.tools.mapping import build_coverage_matrix
 from scout.analysis.tools.ui_discovery import discover_uis
 
+# sys.modules Mocks werden von conftest.py gesetzt
+from scout.analysis.tools.ui_gap import (
+    _clean_matrix,
+    _generate_mermaid,
+    _generate_summary,
+    analysis_ui_gap_tool,
+)
 
 # ---------------------------------------------------------------------------
 # Helper: minimale detectbare Projektstruktur

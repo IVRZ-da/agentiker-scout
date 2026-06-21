@@ -8,6 +8,7 @@ KEIN E2E_TEST Gate mehr — läuft immer, aber als 'integration' markiert.
 """
 
 import json
+
 import pytest
 
 pytestmark = pytest.mark.integration
@@ -45,7 +46,7 @@ class Calculator:
 
     def test_security_then_report(self, tmp_path):
         """analysis_security → analysis_report."""
-        from scout.analysis.analysis_tools import analysis_security_tool, analysis_report_tool
+        from scout.analysis.analysis_tools import analysis_report_tool, analysis_security_tool
 
         # Security scan
         sec_result = json.loads(analysis_security_tool({"path": str(tmp_path), "kinds": ["errors"]}))

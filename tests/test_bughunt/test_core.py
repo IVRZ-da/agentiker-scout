@@ -1,10 +1,7 @@
 """Test: Core State Management — Datenmodelle, Persistenz, Tracker, Path-Validation."""
 
-import json, time
-from datetime import datetime, timezone
-
-import pytest
-
+import json
+from datetime import datetime
 
 # ======================================================================
 # Finding Tests
@@ -69,7 +66,6 @@ class TestFinding:
 
     def test_finding_timestamps(self, sample_finding):
         # created_at und updated_at sollten ISO-Format haben
-        from datetime import datetime
         dt = datetime.fromisoformat(sample_finding.created_at)
         assert dt.tzinfo is not None  # timezone-aware
 
@@ -116,7 +112,6 @@ class TestBugHuntSession:
 
     def test_session_add_finding_no_duplicate_diff_line(self, bh):
         """Andere Zeile → kein Duplikat."""
-        from bughunt_core import Finding
         session = bh.BugHuntSession(project="/test")
         f1 = bh.Finding(title="Bug A", file="x.ts", line=10, pattern_id="S001")
         f2 = bh.Finding(title="Bug B", file="x.ts", line=20, pattern_id="S001")

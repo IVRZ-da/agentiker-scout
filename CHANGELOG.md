@@ -1,5 +1,30 @@
 # Scout Plugin — CHANGELOG
 
+## [0.1.3] — 2026-06-22
+
+### Framework Auto-Detection + Framework-spezifische Patterns
+- **Neue Datei:** `shared/framework_detector.py` — Framework Detection Engine
+  - Erkennt 30+ Technologien: Medusa-v2, Next.js, React, Vue, Svelte, Go Chi/Fiber, FastAPI/Django, PostgreSQL/Redis, Docker/systemd/nginx, GitHub/Forgejo Actions, npm/yarn/pnpm
+  - Evidence-Tracking pro Framework mit Confidence-Scoring
+  - zwei Modi: `detect()` (voll) + `detect_fast()` (nur High-Confidence-Marker)
+  - `FrameworkDetector` Klasse + `detect_frameworks()` Convenience-API
+  - Inspiriert von specfy/stack-analyser (+700 Technologien)
+- **Neue Felder in BugPattern:** `frameworks: List[str]` + `frameworks_required: bool`
+  - Alle 43 Patterns automatisch annotiert (Kategorie-basiert)
+  - 23 generische Patterns (["*"]), 20 frameworks-spezifisch
+- **Framework-basierte Pattern-Filterung:** `bug_hunt_scan()` erkennt automatisch den Tech-Stack und filtert Patterns
+  - Parameter `frameworks=[]` für manuelle Überschreibung
+  - Framework-Kontext in Scan-Ergebnissen
+- **Framework-Presets:** 8 vordefinierte Presets
+  - `medusa-full` (31), `medusa-admin` (5), `medusa-backend` (26), `nextjs-storefront` (26)
+  - `go-backend` (28), `python-backend` (23), `typescript-generic` (26), `all` (43)
+  - `resolve_preset()` + `list_presets()` API
+- **Neues Tool:** `analysis_framework(path, fast)` — zeigt Framework-Profil
+- **Intent-Erkennung:** Neue Domain `framework` in shared/intent.py
+  - Priority: bug > research > framework > db > web > code
+- **38 Unit-Tests** für Framework Detection Engine (0 failed, 0.16s)
+- **Version:** 0.1.2 → 0.1.3
+
 ## [0.1.2] — 2026-06-22
 
 ### Repo-Setup

@@ -5,8 +5,11 @@ Testet: save_custom_pattern, load_custom_patterns, delete_custom_pattern,
          Auto-ID, Validation, 500er-Limit, JSON-Corruption-Recovery.
 """
 
-import json, sys, types, importlib.util
+import importlib.util
+import sys
+import types
 from pathlib import Path
+
 import pytest
 
 # ── Helper: bughunt_core laden wie conftest.py ──────────────────────

@@ -7,7 +7,6 @@ aber __init__.py registriert dieses Modul via sys.modules.
 
 from __future__ import annotations
 
-import json
 from typing import Any, Callable
 
 

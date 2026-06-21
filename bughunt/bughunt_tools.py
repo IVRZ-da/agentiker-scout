@@ -4,7 +4,9 @@ Jeder Handler folgt dem Hermes Dispatch Contract:
     (args: dict, **kwargs) -> str
 """
 
-import json, importlib.util, sys
+import importlib.util
+import json
+import sys
 from pathlib import Path
 
 # Lazy-load bughunt_core via importlib (avoid relative import issues in tool dispatch)
@@ -278,29 +280,67 @@ def bug_hunt_scan(args: dict, **kwargs) -> str:
     if not session:
         return _err(f"Session {session_id} nicht gefunden")
     pattern_ids = args.get("patterns", [])
-    if not pattern_ids:
-        return _err("patterns ist erforderlich — Pattern-IDs oder Kategorien")
+    preset_name = args.get("preset", "")
     scan_path = args.get("path", session.project)
     auto_add = args.get("auto_add_findings", True)
+
+    # Preset auflösen wenn angegeben (überschreibt patterns)
+    if preset_name:
+        try:
+            from .bughunt_patterns import resolve_preset
+            pattern_ids = resolve_preset(preset_name)
+        except (ImportError, ValueError) as e:
+            return _err(str(e))
+
+    if not pattern_ids:
+        return _err("patterns oder preset ist erforderlich")
+
+    # ── Framework Auto-Detection ───────────────────────────────────
+    fw_profile = None
+    fw_list = args.get("frameworks", [])
+    if not fw_list:
+        # Auto-Detection via FrameworkDetector
+        try:
+            from shared.framework_detector import FrameworkDetector
+            detector = FrameworkDetector(scan_path)
+            fw_profile = detector.detect_fast().to_dict()
+            fw_frameworks = fw_profile.get("frameworks", {})
+            # Extrahiere alle erkannten Framework-Namen
+            fw_list = []
+            for cat_list in fw_frameworks.values():
+                for fw in cat_list:
+                    n = fw.get("name", "")
+                    if n:
+                        fw_list.append(n)
+        except Exception:
+            fw_profile = None
 
     # Patterns auflösen
     resolved = []
     for p in pattern_ids:
         pat = core.get_pattern(p)
         if pat:
+            # Framework-Filter: Nur Patterns die zum Stack passen
+            if fw_list and pat.frameworks and pat.frameworks != ["*"]:
+                if not any(fw in fw_list for fw in pat.frameworks):
+                    continue  # Pattern überspringen — Framework nicht erkannt
             resolved.append(pat)
         else:
             pats = core.get_patterns_by_category(p)
             if pats:
-                resolved.extend(pats)
+                for pat in pats:
+                    if fw_list and pat.frameworks and pat.frameworks != ["*"]:
+                        if not any(fw in fw_list for fw in pat.frameworks):
+                            continue
+                    resolved.append(pat)
     if not resolved:
         return _err(f"Keine Patterns gefunden für: {pattern_ids}")
 
     # Scan-Runner für grep-basierte Patterns
     try:
-        from . import bughunt_scanrunner as runner      # Hermes Runtime
+        from . import bughunt_scanrunner as runner  # Hermes Runtime
     except ImportError:
-        import bughunt_scanrunner as runner              # pytest
+        import bughunt_scanrunner as runner  # pytest
 
     pattern_dicts = [p.to_dict() if hasattr(p, 'to_dict') else p.__dict__ for p in resolved]
     scan_result = runner.batch_grep_scans(pattern_dicts, scan_path)
@@ -330,12 +370,12 @@ def bug_hunt_scan(args: dict, **kwargs) -> str:
     # Summary
     summary = runner.get_scan_summary(scan_result)
 
-    return _ok({
+    result = {
         "session_id": session_id,
         "patterns_requested": pattern_ids,
         "patterns_resolved": [p.pattern_id if hasattr(p, 'pattern_id') else p.get('pattern_id') for p in resolved],
         "auto_findings_count": len(added_findings),
-        "auto_findings": scan_result["auto_findings"][:20],  # Erste 20 Treffer
+        "auto_findings": scan_result["auto_findings"][:20],
         "manual_scan_instructions": scan_result["manual_instructions"],
         "summary": summary,
         "instruction": (
@@ -343,7 +383,21 @@ def bug_hunt_scan(args: dict, **kwargs) -> str:
             f"Manuelle Scans: {len(scan_result['manual_instructions'])} offen.\n"
             f"Nutze bug_hunt_list(session_id='{session_id}') für Details."
         ),
-    })
+    }
+
+    # Framework-Kontext anhängen wenn verfügbar
+    if fw_profile:
+        resolved_fw = list(fw_list) if isinstance(fw_list, list) else []
+        result["frameworks"] = {
+            cat: [fw["name"] for fw in fws]
+            for cat, fws in fw_profile.get("frameworks", {}).items()
+        }
+        result["framework_warning"] = (
+            f"{len(result['patterns_resolved'])} Patterns aktiv für erkannten Stack"
+            if resolved_fw else "Kein Framework erkannt — alle generischen Patterns geladen"
+        )
+
+    return _ok(result)
 
 
 def bug_hunt_triage(args: dict, **kwargs) -> str:

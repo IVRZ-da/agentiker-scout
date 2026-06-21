@@ -3,17 +3,17 @@
 import json
 from unittest.mock import MagicMock
 
-import pytest
-
 from scout.bughunt.bughunt_tools import (
-    bug_hunt_scan, bug_hunt_triage, bug_hunt_verify, bug_hunt_report,
+    bug_hunt_report,
+    bug_hunt_scan,
+    bug_hunt_triage,
+    bug_hunt_verify,
 )
 
 
 def _mock_core(monkeypatch, tmp_path):
     """Mock bughunt_core for handler tests — includes patterns."""
     from scout.bughunt.bughunt_core import BugHuntSession, Finding
-    from scout.bughunt.bughunt_patterns import BugPattern
 
     sessions = {}
 
@@ -475,7 +475,7 @@ class TestAdvancedWorkflow:
         s = BugHuntSession(project="/myapp", scope="quick")
         f1 = s.add_finding(Finding(title="execSync", severity="P0",
                                     pattern_id="S001", file="src/stt.ts"))
-        f2 = s.add_finding(Finding(title="Silent Catch", severity="P1",
+        s.add_finding(Finding(title="Silent Catch", severity="P1",
                                     pattern_id="C001", file="src/api.ts"))
         sessions[s.session_id] = s.to_dict()
         sid = s.session_id

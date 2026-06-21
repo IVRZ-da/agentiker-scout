@@ -7,10 +7,10 @@ Plan-Follow-Integration als lose gekoppelte Module bereit.
 
 import json
 import typing
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 
-from scout._fmt import fmt_ok, fmt_err
+from scout._fmt import fmt_err, fmt_ok
 
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = PLUGIN_DIR / "data"

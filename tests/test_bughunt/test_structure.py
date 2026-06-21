@@ -3,7 +3,10 @@
 Phase 0 — muss fehlerfrei laufen bevor andere Phasen beginnen.
 """
 
-import ast, importlib.util, json, sys
+import ast
+import importlib.util
+import json
+import sys
 from pathlib import Path
 
 import pytest

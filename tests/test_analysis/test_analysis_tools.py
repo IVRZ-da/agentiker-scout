@@ -17,6 +17,7 @@ import pytest
 from scout.analysis import analysis_tools as tools
 from scout.analysis.tools import base as tools_base
 
+
 # MockPluginContext — weil scout/tests/conftest.py nur Fixtures (keine Klasse) bietet
 class MockPluginContext:
     """Mock für PluginContext der Hermes Plugin-API."""
@@ -49,7 +50,7 @@ class TestToolRegistration:
     """Prüft ob Tools korrekt registriert werden."""
 
     def test_all_tools_in_handler_registry(self):
-        """Alle 12 Tools müssen in TOOL_HANDLERS registriert sein."""
+        """Alle 13 Tools müssen in TOOL_HANDLERS registriert sein."""
         expected = {
             "analysis_inspect", "analysis_report",
             "analysis_architecture", "analysis_deadcode",
@@ -59,6 +60,7 @@ class TestToolRegistration:
             "analysis_watch", "analysis_graph",
             "analysis_ui_gap",
             "analysis_pattern_discover",
+            "analysis_framework",
         }
         registered = set(tools.TOOL_HANDLERS.keys())
         missing = expected - registered
@@ -783,8 +785,9 @@ class TestPlanFollowIntegration:
 
     def test_with_plan_follow_mock(self):
         """_try_create_plan_follow_plan erzeugt Plan wenn plan_follow verfügbar."""
-        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
 
         # plan_follow Handler im Registry mocken
         def mock_plan_create(args):
@@ -808,8 +811,9 @@ class TestPlanFollowIntegration:
 
     def test_plan_follow_error_graceful(self):
         """Fehler im plan_follow Handler crashen die Analyse nicht."""
-        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
 
         def broken_handler(args):
             raise RuntimeError("Simulierter Fehler")
@@ -842,8 +846,9 @@ class TestBughuntIntegration:
 
     def test_bughunt_with_mock(self):
         """_try_create_bughunt_finding dispatches Finding mit Mock."""
-        from scout.analysis.analysis_tools import _try_create_bughunt_finding
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_bughunt_finding
 
         def mock_finding(args):
             return json.dumps({"status": "created", "id": "bh_test"})
@@ -862,8 +867,9 @@ class TestBughuntIntegration:
 
     def test_bughunt_error_graceful(self):
         """Fehler im bughunt Handler crashen die Analyse nicht."""
-        from scout.analysis.analysis_tools import _try_create_bughunt_finding
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_bughunt_finding
 
         def broken_handler(args):
             raise RuntimeError("Broken")
@@ -880,8 +886,9 @@ class TestBughuntIntegration:
 
     def test_deadcode_wires_bughunt(self):
         """analysis_deadcode_tool ruft _try_create_bughunt_finding auf wenn Findings existieren."""
-        from scout.analysis.analysis_tools import _try_create_bughunt_finding
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_bughunt_finding
 
         called = []
 
@@ -1716,7 +1723,7 @@ class TestPlanFollowEdgeCases:
         from scout.analysis.analysis_tools import _try_create_plan_follow_plan
 
         # Simuliere ImportError durch monkeypatching
-        orig_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else None
+        __builtins__.__import__ if hasattr(__builtins__, '__import__') else None
         # Besser: Wir nutzen den ImportError-Pfad direkt:
         # Wenn registry.get_entry None zurückgibt, wird ImportError nicht geworfen
         # Der ImportError in der except-Klausel kommt vom from tools.registry import registry
@@ -1726,8 +1733,9 @@ class TestPlanFollowEdgeCases:
 
     def test_plan_follow_non_callable_handler(self):
         """Nicht-callbarer Handler wird graceful abgefangen."""
-        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_plan_follow_plan
 
         entry = type("MockEntry", (), {})()
         entry.handler = "not_callable"
@@ -1756,8 +1764,9 @@ class TestBughuntEdgeCases:
 
     def test_bughunt_non_callable_handler(self):
         """Nicht-callbarer Handler wird graceful abgefangen."""
-        from scout.analysis.analysis_tools import _try_create_bughunt_finding
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_bughunt_finding
 
         entry = type("MockEntry", (), {})()
         entry.handler = "not_callable"
@@ -1771,8 +1780,9 @@ class TestBughuntEdgeCases:
 
     def test_bughunt_no_entry_returns_none(self):
         """Kein Registry-Eintrag -> None."""
-        from scout.analysis.analysis_tools import _try_create_bughunt_finding
         from tools.registry import registry
+
+        from scout.analysis.analysis_tools import _try_create_bughunt_finding
 
         registry.entries.pop("bug_hunt_finding", None)
         result = _try_create_bughunt_finding("high", "Test", {"path": "/tmp"})

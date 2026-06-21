@@ -6,7 +6,6 @@ Testet: post_tool_call Tracking, on_session_end Auto-Persist.
 
 import json
 
-
 # ---------------------------------------------------------------------------
 # post_tool_call Tracking
 # ---------------------------------------------------------------------------
@@ -14,7 +13,7 @@ import json
 class TestPostToolCall:
     def test_tracks_firecrawl_calls(self):
         """post_tool_call trackt firecrawl_* Aufrufe."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         # Tracker initialisieren
         _tool_call_tracker["research_started"] = "test123"
@@ -32,7 +31,7 @@ class TestPostToolCall:
 
     def test_ignores_non_firecrawl(self):
         """Nicht-Firecrawl-Tools werden ignoriert."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = "test456"
         _tool_call_tracker["firecrawl_calls"] = []
@@ -42,7 +41,7 @@ class TestPostToolCall:
 
     def test_detects_research_save(self):
         """post_tool_call erkennt research_save."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = "test789"
         _tool_call_tracker["research_saved"] = False
@@ -52,7 +51,7 @@ class TestPostToolCall:
 
     def test_no_tracking_without_start(self):
         """Kein Tracking wenn research_started None ist."""
-        from scout.research.research_hooks import on_post_tool_call, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_post_tool_call
 
         _tool_call_tracker["research_started"] = None
         _tool_call_tracker["firecrawl_calls"] = []
@@ -68,7 +67,7 @@ class TestPostToolCall:
 class TestResetTracker:
     def test_reset_sets_research_id(self):
         """reset_tracker setzt research_started."""
-        from scout.research.research_hooks import reset_tracker, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, reset_tracker
 
         reset_tracker("abc123")
         assert _tool_call_tracker["research_started"] == "abc123"
@@ -85,7 +84,7 @@ class TestOnSessionEnd:
         """
         on_session_end erzeugt auto-save wenn research_save vergessen wurde.
         """
-        from scout.research.research_hooks import on_session_end, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_session_end
 
         # Simuliere: research_start aufgerufen aber kein save
         _tool_call_tracker["research_started"] = "auto_save_test"
@@ -127,7 +126,7 @@ class TestOnSessionEnd:
 
     def test_no_save_if_already_saved(self, tmp_path):
         """Kein auto-save wenn research_save bereits aufgerufen wurde."""
-        from scout.research.research_hooks import on_session_end, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_session_end
 
         _tool_call_tracker["research_started"] = "already_saved"
         _tool_call_tracker["research_saved"] = True
@@ -144,7 +143,7 @@ class TestOnSessionEnd:
 
     def test_no_save_if_no_start(self):
         """Kein auto-save wenn nie research_start aufgerufen wurde."""
-        from scout.research.research_hooks import on_session_end, _tool_call_tracker
+        from scout.research.research_hooks import _tool_call_tracker, on_session_end
 
         _tool_call_tracker["research_started"] = None
         # Sollte nicht crashen

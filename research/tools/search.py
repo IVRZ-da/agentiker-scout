@@ -2,19 +2,21 @@
 tools/search.py — Suche und Status: research_search, research_status, research_stats.
 """
 
-import json
 import math
 import re
 from collections import Counter
 from datetime import datetime, timezone
 
-from scout._fmt import fmt_research_status, fmt_ok, fmt_err
-from .base import (
-    _read_json, _validate_research_id,
-    PLANS_DIR, RESULTS_DIR,
-    _list_results, _list_orphan_plans,
-)
+from scout._fmt import fmt_err, fmt_ok, fmt_research_status
 
+from .base import (
+    PLANS_DIR,
+    RESULTS_DIR,
+    _list_orphan_plans,
+    _list_results,
+    _read_json,
+    _validate_research_id,
+)
 
 # ---------------------------------------------------------------------------
 # BM25-ähnliche Volltextsuche (keine externen Dependencies)

@@ -5,9 +5,6 @@ Nutzt das _mock_core Pattern aus test_tools_basic.py für Tool-Integration-Tests
 import json
 from unittest.mock import MagicMock
 
-import pytest
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # build_fix_prompt (reine Logik, kein Mock nötig)
 # ═══════════════════════════════════════════════════════════════════════
@@ -137,8 +134,8 @@ class TestBugHuntFixTool:
 
     def test_fix_generates_prompt(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from scout.bughunt.bughunt_tools import bug_hunt_fix
         from scout.bughunt.bughunt_core import BugHuntSession, Finding
+        from scout.bughunt.bughunt_tools import bug_hunt_fix
 
         s = BugHuntSession(project="/test")
         f = Finding(title="execSync", severity="P0", pattern_id="S001",
@@ -166,16 +163,16 @@ class TestBugHuntFixTool:
 
     def test_fix_missing_finding(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from scout.bughunt.bughunt_tools import bug_hunt_fix
         from scout.bughunt.bughunt_core import BugHuntSession
+        from scout.bughunt.bughunt_tools import bug_hunt_fix
         s = BugHuntSession(project="/test")
         result = _ok(bug_hunt_fix({"session_id": s.session_id, "finding_id": ""}))
         assert result["status"] == "error"
 
     def test_fix_nonexistent_finding(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from scout.bughunt.bughunt_tools import bug_hunt_fix
         from scout.bughunt.bughunt_core import BugHuntSession
+        from scout.bughunt.bughunt_tools import bug_hunt_fix
         s = BugHuntSession(project="/test")
         result = _ok(bug_hunt_fix({
             "session_id": s.session_id,
@@ -185,8 +182,8 @@ class TestBugHuntFixTool:
 
     def test_fix_with_override(self, monkeypatch, tmp_path):
         _mock_core(monkeypatch, tmp_path)
-        from scout.bughunt.bughunt_tools import bug_hunt_fix
         from scout.bughunt.bughunt_core import BugHuntSession, Finding, save_session
+        from scout.bughunt.bughunt_tools import bug_hunt_fix
 
         s = BugHuntSession(project="/test")
         f = Finding(title="Silent Catch", severity="P1",
@@ -210,8 +207,8 @@ class TestBugHuntFixTool:
         import scout.bughunt.bughunt_core as core
         core.init_patterns()
 
-        from scout.bughunt.bughunt_tools import bug_hunt_fix
         from scout.bughunt.bughunt_core import BugHuntSession, Finding, save_session
+        from scout.bughunt.bughunt_tools import bug_hunt_fix
 
         s = BugHuntSession(project="/test")
         f = Finding(title="execSync", severity="P0", pattern_id="S001",

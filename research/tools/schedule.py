@@ -5,8 +5,8 @@ tools/schedule.py — Periodische Recherchen: research_schedule.
 import uuid
 
 from scout._fmt import fmt_ok
-from .base import _err
 
+from .base import _err
 
 # ---------------------------------------------------------------------------
 # research_schedule

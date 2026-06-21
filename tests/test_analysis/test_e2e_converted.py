@@ -19,14 +19,13 @@ import os
 
 # sys.modules Mocks werden von tests/conftest.py gesetzt
 from scout.analysis.analysis_tools import (
-    analysis_inspect_tool,
-    analysis_deadcode_tool,
     analysis_architecture_tool,
-    analysis_performance_tool,
     analysis_ask_tool,
+    analysis_deadcode_tool,
     analysis_graph_tool,
+    analysis_inspect_tool,
+    analysis_performance_tool,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper: sample project anlegen

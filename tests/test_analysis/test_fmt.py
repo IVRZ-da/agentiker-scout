@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import textwrap
 import tempfile
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -119,9 +119,9 @@ def test_fmt_all():
         stderr = result.stderr
 
         if stdout:
-            print(stdout)
+            pass
         if stderr:
-            print("STDERR:", stderr, file=sys.stderr)
+            pass
 
         assert result.returncode == 0, (
             f"_fmt tests failed (exit={result.returncode}). "

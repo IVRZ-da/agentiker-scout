@@ -12,7 +12,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger("scout.patterns")
 
@@ -117,6 +117,47 @@ def get_patterns_for_analysis(scan_language: str = "") -> list[dict]:
         if p.get("scan_language") == scan_language
         or _glob_matches_language(p.get("scan_file_glob", ""), valid_exts)
     ]
+
+
+def get_patterns_for_frameworks(
+    frameworks: dict,
+    scan_language: str = "",
+) -> list[dict]:
+    """Get patterns applicable for specific frameworks.
+
+    Filters shared patterns based on detected frameworks.
+    Patterns without framework metadata are treated as generic ("*").
+
+    Args:
+        frameworks: Framework dict from FrameworkDetector.detect().frameworks
+                    e.g. { "backend": [{"name": "medusa-v2"}, ...] }
+        scan_language: Optional additional language filter.
+
+    Returns:
+        Filtered list of pattern dicts.
+    """
+    patterns = get_patterns_for_analysis(scan_language)
+    if not patterns:
+        return []
+
+    # Extrahiere Framework-Namen aus dem Profil
+    detected_names: set[str] = {"*"}  # "*" = generische Patterns immer laden
+    for fw_list in frameworks.values():
+        for fw in fw_list:
+            if isinstance(fw, dict):
+                detected_names.add(fw.get("name", ""))
+            else:
+                detected_names.add(getattr(fw, "name", ""))
+
+    filtered: list[dict] = []
+    for p in patterns:
+        p_frameworks = p.get("frameworks", ["*"])
+        # Pattern gilt wenn: "*" in p_frameworks (generisch) ODER
+        # eins der Pattern-Frameworks im detected Namespace
+        if "*" in p_frameworks or any(fw in detected_names for fw in p_frameworks):
+            filtered.append(p)
+
+    return filtered
 
 
 def _glob_matches_language(glob: str, valid_exts: set[str]) -> bool:

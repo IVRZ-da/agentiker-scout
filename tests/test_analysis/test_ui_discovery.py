@@ -7,20 +7,19 @@ from pathlib import Path
 # sys.modules Mocks werden von conftest.py gesetzt
 from scout.analysis.tools.ui_discovery import (
     UiLayer,
-    _detect_nextjs,
+    _detect_go_handler,
     _detect_medusa_admin,
     _detect_medusa_api,
-    _detect_go_handler,
+    _detect_nextjs,
     _detect_vite,
-    discover_uis,
-    _get_nextjs_routes,
+    _get_go_modules,
     _get_medusa_admin_routes,
     _get_medusa_api_routes,
     _get_medusa_modules,
-    _get_go_modules,
+    _get_nextjs_routes,
+    discover_uis,
     summarize_ui_layers,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper: minimale detectbare Projektstrukturen

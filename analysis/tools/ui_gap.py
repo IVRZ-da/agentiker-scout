@@ -6,12 +6,12 @@ Output als formatierter Text, JSON oder Mermaid-Diagramm.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from scout._fmt import fmt_ok, fmt_err, fmt_warn
+from scout._fmt import fmt_err, fmt_ok, fmt_warn
+
 from .mapping import build_coverage_matrix, format_coverage_report
 from .ui_discovery import discover_uis
 
@@ -28,7 +28,7 @@ def _try_generate_plan_from_gaps(project_root: str, gaps: List[Dict]) -> Optiona
 
     Silent skip wenn plan_follow nicht geladen ist.
     """
-    task_count = min(len(gaps), 10)  # Max 10 Tasks pro Plan
+    min(len(gaps), 10)  # Max 10 Tasks pro Plan
     critical = [g for g in gaps if g["type"] == "🔴"][:3]
     warnings = [g for g in gaps if g["type"] in ("🟡", "🟠", "🔵")][:4]
     infos = [g for g in gaps if g["type"] == "🟢"][:3]
@@ -91,8 +91,8 @@ def analysis_ui_gap_tool(args: dict, **kwargs) -> str:
     """
     path = args.get("path", "")
     output_format = args.get("format", "text")
-    include_storefront = args.get("include_storefront", True)
-    include_admin = args.get("include_admin", True)
+    args.get("include_storefront", True)
+    args.get("include_admin", True)
 
     if not path:
         return fmt_err("Path is required")
@@ -198,7 +198,7 @@ def _generate_mermaid(matrix: dict, project_root: str) -> str:
             "    subgraph Gaps[Gefundene Lücken]",
         ])
         for i, gap in enumerate(gaps[:5]):
-            gap_label = gap["module"].replace("-", "_").replace(" ", "_")
+            gap["module"].replace("-", "_").replace(" ", "_")
             gap_type = gap["type"]
             lines.append(f'        G{i}["{gap_type} {gap["module"]}"]')
         lines.append("    end")

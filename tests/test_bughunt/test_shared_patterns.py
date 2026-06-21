@@ -6,7 +6,6 @@ Enthält CRUD-Tests für save_pattern, get_pattern, delete_pattern
 sowie list_research_patterns (aus scout/shared/patterns_research.py).
 """
 
-import pytest
 
 # ---------------------------------------------------------------------------
 # shared.patterns CRUD
@@ -18,7 +17,7 @@ class TestSharedPatterns:
 
     def test_pattern_save_and_retrieve(self):
         """Pattern speichern und via get_pattern/delete_pattern abrufen/löschen."""
-        from scout.shared.patterns import save_pattern, get_pattern, delete_pattern
+        from scout.shared.patterns import delete_pattern, get_pattern, save_pattern
 
         pid = save_pattern({
             "name": "Test Pattern",

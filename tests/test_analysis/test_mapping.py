@@ -6,16 +6,13 @@ from pathlib import Path
 
 # sys.modules Mocks werden von conftest.py gesetzt
 from scout.analysis.tools.mapping import (
+    GAP_CRITICAL,
+    GAP_WARNING,
     _module_to_route_segments,
     _route_matches_module,
     build_coverage_matrix,
     format_coverage_report,
-    GAP_CRITICAL,
-    GAP_WARNING,
-    GAP_ORPHAN,
-    GAP_MISSING_DETAIL,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper: minimale detectbare Projektstrukturen

@@ -93,6 +93,7 @@ sys.modules["bughunt"] = _bl
 
 # Load bughunt_core via importlib
 import importlib.util
+
 _cp = _bd / "bughunt_core.py"
 _spc = importlib.util.spec_from_file_location("scout.bughunt.bughunt_core", _cp)
 _cm = importlib.util.module_from_spec(_spc)

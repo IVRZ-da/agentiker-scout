@@ -5,10 +5,13 @@ post_tool_call: Tracks code_*/bug_hunt_* tool calls for active session.
 on_session_end: Auto-persists active session to Honcho + auto-deduce shared patterns.
 """
 
-import json, re, time, unicodedata
-from typing import Any, Optional, List
-
+import json
 import logging
+import re
+import time
+import unicodedata
+from typing import Any, List, Optional
+
 logger = logging.getLogger(__name__)
 
 # ---- Cache for pre_llm_call ----
@@ -77,7 +80,7 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[str]:
     try:
         from . import bughunt_core as core  # Hermes Runtime (Package)
     except ImportError:
-        import bughunt_core as core          # pytest (top-level Import)
+        import bughunt_core as core  # pytest (top-level Import)
     tracker = core.get_tracker()
     if tracker.is_active():
         ts = tracker.summary()
@@ -116,7 +119,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
     try:
         from . import bughunt_core as core  # Hermes Runtime (Package)
     except ImportError:
-        import bughunt_core as core          # pytest (top-level Import)
+        import bughunt_core as core  # pytest (top-level Import)
     tracker = core.get_tracker()
     if not tracker.is_active():
         return
@@ -285,7 +288,7 @@ def _auto_deduce_patterns(session) -> List[str]:
     Returns:
         Liste der gespeicherten Pattern-IDs
     """
-    from scout.shared.patterns import save_pattern, get_pattern
+    from scout.shared.patterns import save_pattern
 
     created_patterns = []
 
@@ -302,7 +305,7 @@ def _auto_deduce_patterns(session) -> List[str]:
         title = f.get("title") or f.get("name", "")
         evidence = f.get("evidence") or f.get("match", "")
         file_path = f.get("file") or f.get("file_path", "")
-        pattern_id = f.get("pattern_id", "")
+        f.get("pattern_id", "")
         severity = f.get("severity", "P2")
         category = f.get("category", "")
         description = f.get("description", "")
@@ -375,7 +378,7 @@ def on_session_end(**kwargs: Any) -> None:
     try:
         from . import bughunt_core as core  # Hermes Runtime (Package)
     except ImportError:
-        import bughunt_core as core          # pytest (top-level Import)
+        import bughunt_core as core  # pytest (top-level Import)
     tracker = core.get_tracker()
     if not tracker.is_active():
         return

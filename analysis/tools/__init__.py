@@ -4,30 +4,30 @@ Exportiert Basis-Funktionen für die Tool-Handler.
 """
 
 from .base import (
-    _validate_path,
-    _validate_and_resolve_path,
     _call_tool,
-    _parallel_dispatch,
     _clear_symbol_line_cache,
     _find_symbol_line,
+    _parallel_dispatch,
     _persist_analysis,
+    _validate_and_resolve_path,
+    _validate_path,
 )
-from .ui_discovery import discover_uis
 from .mapping import build_coverage_matrix, format_coverage_report
 from .schemas import (
-    ANALYSIS_INSPECT_SCHEMA,
-    ANALYSIS_REPORT_SCHEMA,
     ANALYSIS_ARCHITECTURE_SCHEMA,
-    ANALYSIS_DEADCODE_SCHEMA,
-    ANALYSIS_PERFORMANCE_SCHEMA,
-    ANALYSIS_SECURITY_SCHEMA,
     ANALYSIS_ASK_SCHEMA,
+    ANALYSIS_DEADCODE_SCHEMA,
     ANALYSIS_DIFF_SCHEMA,
-    ANALYSIS_TREND_SCHEMA,
-    ANALYSIS_WATCH_SCHEMA,
     ANALYSIS_GRAPH_SCHEMA,
+    ANALYSIS_INSPECT_SCHEMA,
+    ANALYSIS_PERFORMANCE_SCHEMA,
+    ANALYSIS_REPORT_SCHEMA,
+    ANALYSIS_SECURITY_SCHEMA,
+    ANALYSIS_TREND_SCHEMA,
     ANALYSIS_UI_GAP_SCHEMA,
+    ANALYSIS_WATCH_SCHEMA,
 )
+from .ui_discovery import discover_uis
 
 # analysis_ui_gap_tool wird nicht direkt von tools.* exportiert,
 # da ui_gap.py relative imports (from .._fmt) verwendet, die nur

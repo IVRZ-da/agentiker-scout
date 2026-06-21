@@ -1,12 +1,13 @@
 """Test: Hooks — pre_llm_call, post_tool_call, on_session_end."""
 
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from scout.bughunt.bughunt_hooks import (
-    on_pre_llm_call, on_post_tool_call, on_session_end,
-    _is_bughunt_related, _hook_cache,
+    _hook_cache,
+    _is_bughunt_related,
+    on_post_tool_call,
+    on_pre_llm_call,
+    on_session_end,
 )
 
 
@@ -97,7 +98,7 @@ class TestPreLlmCall:
     def test_cached_recent_sessions(self):
         clear_cache()
         # Erster Aufruf ohne aktive Session
-        result1 = on_pre_llm_call(messages=[
+        on_pre_llm_call(messages=[
             {"role": "user", "content": "Bug-Hunt starten"}
         ])
         # Cache sollte jetzt gefüllt sein

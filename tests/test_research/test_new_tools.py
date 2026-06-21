@@ -8,8 +8,8 @@ research_save (native Arrays).
 """
 
 import json
-import pytest
 
+import pytest
 from conftest import make_research_tools
 
 
@@ -84,7 +84,7 @@ class TestResearchCleanup:
         start = json.loads(rt.research_start({"query": "Fresh"}))
         rid = start["research_id"]
 
-        result = json.loads(rt.research_cleanup({
+        json.loads(rt.research_cleanup({
             "action": "plans", "older_than_days": 30,
         }))
         # Der frische Plan sollte nicht gelöscht werden

@@ -25,32 +25,32 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List
 
-from scout._fmt import fmt_ok, fmt_err
+from scout._fmt import fmt_err, fmt_ok
+
 from .tools.base import (
-    _validate_path,
-    _validate_and_resolve_path,
     _call_tool,
-    _parallel_dispatch,
     _clear_symbol_line_cache,
     _find_symbol_line,
+    _parallel_dispatch,
     _persist_analysis,
+    _validate_and_resolve_path,
+    _validate_path,
 )
 from .tools.schemas import (
-    ANALYSIS_INSPECT_SCHEMA,
-    ANALYSIS_REPORT_SCHEMA,
     ANALYSIS_ARCHITECTURE_SCHEMA,
-    ANALYSIS_DEADCODE_SCHEMA,
-    ANALYSIS_PERFORMANCE_SCHEMA,
-    ANALYSIS_SECURITY_SCHEMA,
     ANALYSIS_ASK_SCHEMA,
+    ANALYSIS_DEADCODE_SCHEMA,
     ANALYSIS_DIFF_SCHEMA,
-    ANALYSIS_TREND_SCHEMA,
-    ANALYSIS_WATCH_SCHEMA,
     ANALYSIS_GRAPH_SCHEMA,
-    ANALYSIS_UI_GAP_SCHEMA,
+    ANALYSIS_INSPECT_SCHEMA,
     ANALYSIS_PATTERN_DISCOVER_SCHEMA,
+    ANALYSIS_PERFORMANCE_SCHEMA,
+    ANALYSIS_REPORT_SCHEMA,
+    ANALYSIS_SECURITY_SCHEMA,
+    ANALYSIS_TREND_SCHEMA,
+    ANALYSIS_UI_GAP_SCHEMA,
+    ANALYSIS_WATCH_SCHEMA,
 )
-
 from .tools.ui_gap import analysis_ui_gap_tool
 
 logger = logging.getLogger("analysis")
@@ -498,10 +498,10 @@ def analysis_deadcode_tool(args: dict, **kwargs) -> str:
 
 def analysis_performance_tool(args: dict, **kwargs) -> str:
     """Performance-Bottleneck-Analyse."""
-    from scout._fmt import fmt_ok, fmt_err
+    from scout._fmt import fmt_err, fmt_ok
 
     path = args.get("path", "")
-    persist = args.get("persist", True)
+    args.get("persist", True)
 
     error = _validate_path(path)
     if error:
@@ -561,11 +561,11 @@ def analysis_performance_tool(args: dict, **kwargs) -> str:
 
 def analysis_security_tool(args: dict, **kwargs) -> str:
     """Security-Analyse: Orphaned Error Handler + Vulnerability Patterns."""
-    from scout._fmt import fmt_ok, fmt_err
+    from scout._fmt import fmt_err, fmt_ok
 
     path = args.get("path", "")
     kinds = args.get("kinds", ["all"])
-    persist = args.get("persist", True)
+    args.get("persist", True)
 
     error = _validate_path(path)
     if error:
@@ -637,7 +637,7 @@ def analysis_security_tool(args: dict, **kwargs) -> str:
 
 def analysis_ask_tool(args: dict, **kwargs) -> str:
     """KI-gestützte Analyse-Frage."""
-    from scout._fmt import fmt_ok, fmt_err
+    from scout._fmt import fmt_err, fmt_ok
 
     question = args.get("question", "")
     path = args.get("path", "")
@@ -1054,7 +1054,7 @@ def analysis_graph_tool(args: dict, **kwargs) -> str:
 
 def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
     """Discover unregistered code patterns that look like bugs."""
-    from scout._fmt import fmt_ok, fmt_err
+    from scout._fmt import fmt_err, fmt_ok
 
     path = args.get("path", "")
     scan_language = args.get("scan_language", "")
@@ -1327,7 +1327,66 @@ def _discover_go_patterns(
 
 
 # ---------------------------------------------------------------------------
-# Schema-Registry (für __init__.py)
+# ─── analysis_framework Tool ─────────────────────────────────────────
+
+ANALYSIS_FRAMEWORK_SCHEMA = {
+    "name": "analysis_framework",
+    "description": "Zeigt das Framework-Profil eines Projekts an. Erkennt automatisch "
+                   "Technologie-Stack (Medusa, Next.js, React, Go, Docker, etc.) "
+                   "mit Confidence-Scoring und Evidence-Tracking.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absoluter Pfad zum Projekt-Root.",
+            },
+            "fast": {
+                "type": "boolean",
+                "description": "Wenn True, nur High-Confidence-Marker scannen (schneller).",
+                "default": False,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+
+def analysis_framework_tool(args: dict, **kwargs) -> str:
+    """Handler für analysis_framework — Framework-Profil anzeigen."""
+    from scout._fmt import fmt_err, fmt_ok
+
+    path = args.get("path", "").strip()
+    if not path:
+        return fmt_err("path ist erforderlich")
+
+    fast = args.get("fast", False)
+
+    try:
+        from shared.framework_detector import (
+            FrameworkDetector,
+            format_profile_summary,
+        )
+        detector = FrameworkDetector(path)
+        profile = detector.detect_fast() if fast else detector.detect()
+        profile_dict = profile.to_dict()
+        summary = format_profile_summary(profile_dict)
+
+        return fmt_ok({
+            "path": path,
+            "profile": profile_dict,
+            "summary": summary,
+            "instruction": (
+                f"Framework-Profil für {path}:\n{summary}"
+            ),
+        })
+    except ValueError as e:
+        return fmt_err(str(e))
+    except Exception as e:
+        return fmt_err(f"Framework-Analyse fehlgeschlagen: {e}")
+
+
+# ─── Schema-Registry (für __init__.py)
 # ---------------------------------------------------------------------------
 
 TOOL_HANDLERS = {
@@ -1344,33 +1403,34 @@ TOOL_HANDLERS = {
     "analysis_graph": (ANALYSIS_GRAPH_SCHEMA, analysis_graph_tool),
     "analysis_ui_gap": (ANALYSIS_UI_GAP_SCHEMA, analysis_ui_gap_tool),
     "analysis_pattern_discover": (ANALYSIS_PATTERN_DISCOVER_SCHEMA, analysis_pattern_discover_tool),
+    "analysis_framework": (ANALYSIS_FRAMEWORK_SCHEMA, analysis_framework_tool),
 }
 
 
 def _try_create_plan_follow_plan(tool_name: str, path: str) -> dict | None:
     """
     Erzeugt einen Plan im plan_follow Plugin via Registry (lose Kopplung).
-    
+
     Aufruf in analysis_inspect/architecture/deadcode Tools vor dem return.
     Schlägt silent fehl wenn plan_follow nicht geladen ist.
     """
     try:
         from tools.registry import registry
-        
+
         entry = registry.get_entry("plan_create")
         if entry is None:
             return None  # plan_follow nicht geladen
-        
+
         handler = getattr(entry, "handler", None)
         if not callable(handler):
             return None
-        
+
         goal = f"Analyse: {tool_name} ({path})"
         result = handler({
             "goal": goal,
             "template": "analysis",
         })
-        
+
         if isinstance(result, str):
             parsed = json.loads(result)
             return parsed if isinstance(parsed, dict) else None
@@ -1385,7 +1445,7 @@ def _try_create_plan_follow_plan(tool_name: str, path: str) -> dict | None:
 
 def _try_create_bughunt_finding(severity: str, title: str, details: dict) -> dict | None:
     """Erzeugt ein Bug-Hunt Finding via Registry (lose Kopplung).
-    
+
     Aufruf in analysis_deadcode/architecture wenn Findings existieren.
     Schlägt silent fehl wenn bughunt nicht geladen ist.
     """
