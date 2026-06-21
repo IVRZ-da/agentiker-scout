@@ -4,6 +4,7 @@ Provides bh, sample_finding, sample_session fixtures
 and all required sys.modules mocks.
 """
 
+import importlib.util
 import json
 import sys
 import types
@@ -92,7 +93,6 @@ _bl.__path__ = [str(_bd)]
 sys.modules["bughunt"] = _bl
 
 # Load bughunt_core via importlib
-import importlib.util
 
 _cp = _bd / "bughunt_core.py"
 _spc = importlib.util.spec_from_file_location("scout.bughunt.bughunt_core", _cp)

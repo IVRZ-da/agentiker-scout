@@ -132,7 +132,7 @@ def analysis_ui_gap_tool(args: dict, **kwargs) -> str:
                 "format": "text",
                 "report": report + "\n" + summary,
                 "layers": len(layers),
-                "total_routes": sum(len(l.routes) for l in layers),
+                "total_routes": sum(len(layer.routes) for layer in layers),
                 "total_modules": matrix.get("_coverage", {}).get("total_modules", 0),
                 "admin_coverage_pct": matrix.get("_coverage", {}).get("admin_coverage_pct", 0),
                 "storefront_coverage_pct": matrix.get("_coverage", {}).get("storefront_coverage_pct", 0),

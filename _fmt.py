@@ -75,11 +75,3 @@ def fmt_research_status(data: dict, title: str | None = None) -> str:
     if isinstance(data, dict):
         result.update(data)
     return json.dumps(result, ensure_ascii=False, default=str)
-
-
-def fmt_warn(message: str, data: dict | None = None) -> str:
-    """Warning response with yellow status."""
-    result = {"status": "warning", "message": message}
-    if data:
-        result["data"] = data
-    return json.dumps(result, ensure_ascii=False, default=str)

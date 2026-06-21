@@ -166,7 +166,7 @@ class TestDetectionWithFixtures:
         """discover_uis erkennt Next.js + Medusa Admin + Medusa API im Monorepo."""
         project = _create_monorepo(tmp_path)
         layers = discover_uis(str(project))
-        types = {l.ui_type for l in layers}
+        types = {layer.ui_type for layer in layers}
         assert "medusa-admin" in types
         assert "medusa-api" in types
         assert "nextjs" in types
@@ -182,7 +182,7 @@ class TestDetectionWithFixtures:
         _create_nextjs_storefront(apps / "admin")
 
         layers = discover_uis(str(project))
-        types = {l.ui_type for l in layers}
+        types = {layer.ui_type for layer in layers}
         assert "go-handler" in types
         assert "nextjs" in types
 

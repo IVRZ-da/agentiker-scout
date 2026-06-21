@@ -21,7 +21,7 @@ _delegate_mock = types.ModuleType("tools.delegate_tool")
 _delegate_mock.DEFAULT_TOOLSETS = ["terminal", "file"]
 _delegate_mock._build_child_system_prompt = lambda *a, **kw: "base prompt"
 sys.modules["tools.delegate_tool"] = _delegate_mock
-from tools import delegate_tool as delegate_mock
+from tools import delegate_tool as delegate_mock  # noqa: E402
 
 
 class MockEntry:

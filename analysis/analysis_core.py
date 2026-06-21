@@ -305,3 +305,15 @@ def persist_analysis_session(**kwargs: Any) -> None:
         )
     finally:
         _analysis_session.reset()
+# ---------------------------------------------------------------------------
+# Re-export from analysis_profiles for backward compatibility
+# Tests and external code rely on these being accessible via analysis_core
+# ---------------------------------------------------------------------------
+from scout.analysis.analysis_profiles import (  # noqa: E402,F401 — re-export backward compat
+    ANALYSIS_PROFILES,  # noqa: F401
+    get_active_analysis_profile,  # noqa: F401
+    get_profile_tools,  # noqa: F401
+    inject_steering_hints,  # noqa: F401
+    inject_subagent_steering,  # noqa: F401
+    patch_delegate_task,  # noqa: F401
+)

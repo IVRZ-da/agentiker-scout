@@ -467,12 +467,14 @@ class TestEdgeCases:
 class TestAIIntentDetection:
 
     def test_ai_cache_empty_initially(self):
-        core._ai_intent_cache.clear()
-        assert len(core._ai_intent_cache) == 0
+        from scout.analysis.analysis_intent import _ai_intent_cache
+        _ai_intent_cache.clear()
+        assert len(_ai_intent_cache) == 0
 
     def test_ai_detect_returns_none_on_exception(self):
         """Ohne Honcho-Service sollte _ai_detect_intent None zurückgeben."""
-        result = core._ai_detect_intent("random gibberish xyz")
+        from scout.analysis.analysis_intent import _ai_detect_intent
+        result = _ai_detect_intent("random gibberish xyz")
         assert result is None
 
 
@@ -536,8 +538,9 @@ class TestCrossSessionCache:
 
     def test_cache_is_exported_from_core(self):
         """Cache-Funktionen sind in analysis_core re-exportiert."""
-        assert hasattr(core, "_load_honcho_cache")
-        assert hasattr(core, "_save_honcho_cache")
+        from scout.analysis.analysis_intent import _load_honcho_cache, _save_honcho_cache
+        assert callable(_load_honcho_cache)
+        assert callable(_save_honcho_cache)
 
 
 # ---------------------------------------------------------------------------

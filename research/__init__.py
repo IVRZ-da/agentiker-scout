@@ -1,1 +1,1 @@
-from scout.research import research_tools
+from scout.research import research_tools as research_tools

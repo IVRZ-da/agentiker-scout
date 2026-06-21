@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger("analysis")
@@ -101,7 +102,6 @@ ANALYSIS_TOOLS: Set[str] = {
 _HONCHO_CACHE_TTL = 60  # Sekunden
 
 # Cache-Datei für Cross-Session-Persistenz
-from pathlib import Path
 
 _HONCHO_CACHE_FILE = str(Path(__file__).resolve().parent / ".honcho_cache.json")
 

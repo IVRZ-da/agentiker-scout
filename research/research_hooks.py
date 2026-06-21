@@ -60,7 +60,7 @@ def on_pre_llm_call(**kwargs) -> str | None:
     der aktuellen User-Nachricht. Zeigt auch Tracking-Status an.
     """
     try:
-        from tools.registry import registry
+        from tools.registry import registry  # noqa: F401
     except ImportError:
         return None
 

@@ -154,7 +154,7 @@ def _analyze_layers(layers: List[UiLayer], project_root: str) -> CoverageMatrix:
     matrix: CoverageMatrix = {
         "_meta": {
             "project_root": project_root,
-            "layers_found": [l.to_dict() for l in layers],
+            "layers_found": [layer.to_dict() for layer in layers],
             "total_layers": len(layers),
         }
     }

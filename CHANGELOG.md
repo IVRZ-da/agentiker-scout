@@ -4,13 +4,9 @@
 
 ### Framework Skill + Pattern-Discovery Integration
 - **Neuer Companion Skill:** `skills/framework-detection.md` mit vollständiger Doku
-  - FrameworkDetector API, alle 30+ Technologien, Presets, Tools
-  - Single-Source-of-Truth im Plugin-Repo
-- **analysis_pattern_discover framework-bewusst:**
-  - Neuer `frameworks`-Parameter für explizite Framework-Angabe
-  - Auto-Detection via FrameworkDetector wenn nicht angegeben
-  - scan_language wird automatisch aus erkannten Frameworks abgeleitet
-  - Framework-gefilterte Pattern-Suche via `get_patterns_for_frameworks()`
+- **analysis_pattern_discover framework-bewusst:** `frameworks`-Parameter + Auto-Detection
+- **Framework-gefilterte Pattern-Suche** via `get_patterns_for_frameworks()`
+- **Ruff-Lint bereinigt:** 29 pre-existing Fehler (F401, F811, E402, E741) in 12 Dateien
 - **Version:** 0.1.3 → 0.1.4
 
 ## [0.1.3] — 2026-06-22

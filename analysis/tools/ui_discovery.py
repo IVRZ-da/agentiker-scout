@@ -345,11 +345,11 @@ def discover_uis(project_root: str) -> List[UiLayer]:
     known_ui_dirs = ["admin", "storefront", "frontend", "dashboard"]
     for sub in known_ui_dirs:
         sub_path = os.path.join(project_root, sub)
-        if os.path.isdir(sub_path) and not any(l.path == sub_path for l in ui_layers):
+        if os.path.isdir(sub_path) and not any(layer.path == sub_path for layer in ui_layers):
             sub_layers = _scan_directory(sub_path, prefix=sub)
             # Nur hinzufügen wenn nicht bereits erfasst
             for sl in sub_layers:
-                if sl.path not in [l.path for l in ui_layers]:
+                if sl.path not in [layer.path for layer in ui_layers]:
                     ui_layers.append(sl)
 
     return ui_layers
@@ -427,7 +427,7 @@ def _scan_directory(path: str, prefix: str = "") -> List[UiLayer]:
     # Detect Vite (generic)
     if _detect_vite(path):
         markers = ["vite.config"]
-        if not any(l.path == path for l in layers):
+        if not any(layer.path == path for layer in layers):
             layers.append(UiLayer(
                 path=path,
                 ui_type="vite",
@@ -503,8 +503,8 @@ def summarize_ui_layers(layers: List[UiLayer]) -> str:
                 lines.append(f"      ... und {module_count - 10} weitere")
         lines.append(f"    Marker: {', '.join(layer.markers)}")
 
-    total_routes = sum(len(l.routes) for l in layers)
-    total_modules = sum(len(l.modules) for l in layers)
+    total_routes = sum(len(layer.routes) for layer in layers)
+    total_modules = sum(len(layer.modules) for layer in layers)
     lines.append(f"\nGesamt: {total_routes} Routen, {total_modules} Module")
     return "\n".join(lines)
 
