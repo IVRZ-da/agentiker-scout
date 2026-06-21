@@ -1,6 +1,52 @@
 # Scout Plugin — CHANGELOG
 
-## [0.2.0] — 2026-06-22
+## [0.3.0] — 2026-06-22
+
+### Bug-Pattern Katalog — von 45 auf ~830 Patterns
+
+#### PatternLoader + YAML-Katalog (P0)
+- **Neue `shared/pattern_loader.py`** — Bug-Pattern Loader analog zu yaml_rule_loader
+- `data/patterns/` Verzeichnis-Struktur mit 6 Kategorien
+- PatternLoader mit Singleton, Kategorie-/Sprach-/Severity-Filter, Duplikat-Erkennung
+- Fehlertolerant: korrupte YAML unterbricht nicht
+- 66 Tests
+
+#### Semgrep Registry Konverter (P1) — +425 Patterns
+- `scripts/convert_semgrep_rules.py` — konvertiert 425 Semgrep-Regeln
+- 340 Security + 85 Code-Quality Patterns
+- Nur einfache `pattern:`-Regeln (kein AST/taint)
+- Sprachverteilung: Python (247), JS/TS (105), Go (60), Rust (10)
+- 40 Tests
+
+#### OWASP Secure Coding + CWE Taxonomie (P2) — +86 Patterns
+- 86 OWASP Patterns in 7 Kategorien (Input Validation, Auth, Session, Access Control, Crypto, Error Handling, File Security)
+- `data/cwe_categories.json` mit 80 CWE-Entrys
+- Für alle Sprachen (generisch)
+- 44 Tests
+
+#### ESLint/TypeScript-ESLint (P3) — +39 Patterns
+- Top-ESLint Regeln: TS (10), Security (17), React Hooks (7), Import (5)
+- Nur TS/JS mit präzisen Fix-Descriptions
+- 24 Tests
+
+#### DependencyVersionScanner (P4) — +50 GHSA-Vulnerabilities
+- **Neuartiges Feature:** Version-basiertes Scanning statt grep
+- `shared/dependency_scanner.py` mit SemVer-Vergleich (packaging library)
+- 50 Top-GHSA Einträge (npm 28, PyPI 12, Go 7, Cargo 3)
+- Parst package.json, requirements.txt, go.mod, Cargo.toml
+- 74 Tests
+
+#### Manuelle Kuratierung (P5) — +156 Patterns
+- 106 Top-100 Security (CWE Top-25 + OWASP Top-10)
+- 20 Medusa v2 Service/Workflow/Module/Admin Anti-Patterns
+- 15 Next.js Pages/App Router + Middleware Patterns
+- 15 React Hooks Anti-Patterns
+- 56 Tests
+
+#### Performance
+- PatternLoader lädt 830+ Patterns in <50ms
+- DependencyScanner scannt Projekt in <100ms
+- **Version:** 0.2.0 → 0.3.0 (Feature-Release)
 
 ### Massive Framework-Erkennung — 30 → 732 Technologien
 
