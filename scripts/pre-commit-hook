@@ -104,6 +104,7 @@ def check_version_consistency() -> bool:
         "plugin.yaml": extract_version("plugin.yaml", r'version:\s*([\d.]+)'),
         "pyproject.toml": extract_version("pyproject.toml", r'version\s*=\s*"([\d.]+)"'),
         "CHANGELOG.md": extract_version("CHANGELOG.md", r'^## \[([\d.]+)\]'),
+        "VERSION": extract_version("VERSION", r'([\d.]+)'),
     }
 
     unique = set(v for v in versions.values() if v)
@@ -523,13 +524,20 @@ def check_changelog(staged_files: list[str]) -> bool:
 
 MODULE_TEST_MAP = {
     "__init__.py": ["test_structure"],
-    "analysis_tools.py": ["test_analysis_tools", "test_analysis_core", "test_analysis_phase_d"],
-    "analysis_core.py": ["test_analysis_core"],
-    "analysis_intent.py": ["test_analysis_core"],
-    "bughunt_core.py": ["test_core"],
-    "bughunt_tools.py": ["test_tools_basic", "test_tools_advanced", "test_tools_mgmt"],
-    "bughunt_hooks.py": ["test_hooks"],
-    "research_hooks.py": ["test_hooks", "test_hooks_extended"],
+    "analysis/analysis_tools.py": ["test_analysis_tools", "test_analysis_core", "test_analysis_phase_d"],
+    "analysis/analysis_core.py": ["test_analysis_core"],
+    "analysis/analysis_intent.py": ["test_analysis_core"],
+    "bughunt/bughunt_core.py": ["test_core"],
+    "bughunt/bughunt_tools.py": ["test_tools_basic", "test_tools_advanced", "test_tools_mgmt"],
+    "bughunt/bughunt_hooks.py": ["test_hooks"],
+    "bughunt/bughunt_fix.py": ["test_fix"],
+    "bughunt/bughunt_patterns.py": ["test_patterns"],
+    "bughunt/bughunt_scanrunner.py": ["test_scanrunner"],
+    "research/research_tools.py": ["test_tools", "test_tools_v2", "test_new_tools"],
+    "research/research_hooks.py": ["test_hooks", "test_hooks_extended"],
+    "shared/patterns.py": ["test_shared_patterns"],
+    "shared/intent.py": ["test_analysis_core"],
+    "shared/cache.py": ["test_tools_basic"],
 }
 
 
