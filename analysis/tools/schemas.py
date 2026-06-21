@@ -424,6 +424,12 @@ ANALYSIS_PATTERN_DISCOVER_SCHEMA = {
                 "description": "Minimum occurrences to consider a pattern meaningful (default: 3).",
                 "default": 3,
             },
+            "frameworks": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional framework names to focus discovery (e.g. ['medusa', 'nextjs']). "
+                               "Wenn leer, wird Auto-Detection via FrameworkDetector durchgeführt.",
+            },
         },
         "required": ["path"],
     },

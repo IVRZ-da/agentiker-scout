@@ -1059,6 +1059,7 @@ def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
     path = args.get("path", "")
     scan_language = args.get("scan_language", "")
     min_frequency = args.get("min_frequency", 3)
+    frameworks_opt = args.get("frameworks", [])
 
     error = _validate_path(path)
     if error:
@@ -1075,10 +1076,54 @@ def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
         "summary": {"patterns_scanned": 0, "patterns_found": 0, "gaps_found": 0},
     }
 
+    # ── Framework Auto-Detection ───────────────────────────────────
+    fw_names: list[str] = []
+    if not frameworks_opt:
+        try:
+            from shared.framework_detector import FrameworkDetector
+            detector = FrameworkDetector(path)
+            fw_profile = detector.detect_fast()
+            fw_names = []
+            for fw_list in fw_profile.frameworks.values():
+                for fw in fw_list:
+                    fw_names.append(fw.name)
+            report["frameworks"] = {
+                cat: [fw.name for fw in fws]
+                for cat, fws in fw_profile.frameworks.items()
+            }
+        except Exception as e:
+            logger.debug("framework detection failed: %s", e)
+    else:
+        fw_names = list(frameworks_opt)
+        # frameworks als Liste übergeben
+        report["frameworks"] = {"specified": fw_names}
+
+    # scan_language aus Framework ableiten wenn nicht explizit
+    if not scan_language and fw_names:
+        lang_map = {
+            "typescript": ["typescript"],
+            "javascript": ["javascript"],
+            "go": ["go", "go-chi", "go-fiber"],
+            "rust": ["rust"],
+            "python": ["python", "fastapi", "django"],
+        }
+        for lang, fw_group in lang_map.items():
+            if any(fw in fw_names for fw in fw_group):
+                scan_language = lang
+                break
+
     try:
-        # 1. Vorhandene Shared Patterns laden
-        from scout.shared.patterns import get_patterns_for_analysis
-        existing = get_patterns_for_analysis()
+        # 1. Vorhandene Shared Patterns laden (optional Framework-gefiltert)
+        from scout.shared.patterns import get_patterns_for_analysis, get_patterns_for_frameworks
+
+        if fw_names and report.get("frameworks"):
+            # Framework-gefilterte Patterns laden
+            existing = get_patterns_for_frameworks(
+                report["frameworks"], scan_language
+            )
+            report["frameworks_used_for_filter"] = True
+        else:
+            existing = get_patterns_for_analysis(scan_language)
         existing_queries = set()
         for p in existing:
             query = p.get("scan_query", "")
