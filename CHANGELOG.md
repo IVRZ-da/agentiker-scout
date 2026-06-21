@@ -1,5 +1,19 @@
 # Scout Plugin — CHANGELOG
 
+## [0.1.2] — 2026-06-22
+
+### Tests — E2E-Konvertierung
+- **E2E-Tests in Unit-Tests konvertiert:** Alle 81 E2E-Tests (gated via E2E_TEST=1) wurden analysiert:
+  - 44 Research-Tests: **gelöscht** (100% durch existierende Unit-Tests abgedeckt)
+  - 14 Bughunt-Tests: **gelöscht** (100% redundant)
+  - 15 Analysis-Tools-Tests: **migriert** nach `tests/test_analysis/test_e2e_converted.py` (tmp_path statt Plugin-Source)
+  - 3 Pattern-Tests: **migriert** nach `tests/test_bughunt/test_shared_patterns.py`
+  - 1 Edge-Case-Test: **migriert** nach `tests/test_bughunt/test_e2e_converted.py`
+  - 2 Workflow-Tests: **migriert** als `pytest.mark.integration` in `tests/test_integration/`
+- **`test_e2e/` Verzeichnis gelöscht** — kein E2E-TEST=1 Gate mehr
+- **`pytest.ini`:** `integration` Marker registriert
+- Resultat: 882 Tests, 0 von E2E_TEST abhängig
+
 ## [0.1.1] — 2026-06-22
 
 ### Bug-Fixes (Bug-Hunt Welle 1)

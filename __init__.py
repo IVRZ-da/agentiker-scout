@@ -112,6 +112,31 @@ def _register_hooks(ctx: PluginContext) -> None:
         logger.debug("honcho hooks nicht registriert: %s", e)
 
 
+# ─── Namespace-Shim ─────────────────────────────────────────────────
+# Hermes lädt Plugins als hermes_plugins.scout, nicht als scout.
+# Damit absolute 'from scout.X import Y' Imports funktionieren,
+# registrieren wir scout als sys.modules-Shim.
+_SCOUT_SHIM_REGISTERED = False
+
+
+def _ensure_scout_namespace() -> None:
+    global _SCOUT_SHIM_REGISTERED
+    if _SCOUT_SHIM_REGISTERED:
+        return
+    if "scout" not in sys.modules:
+        scout_mod = type(sys)("scout")
+        scout_mod.__path__ = [str(PLUGIN_DIR)]
+        scout_mod.__package__ = "scout"
+        scout_mod.__name__ = "scout"
+        sys.modules["scout"] = scout_mod
+    _SCOUT_SHIM_REGISTERED = True
+
+
+# → Module-Level Execution ←
+# Shim wird SOFORT beim Plugin-Load aktiviert, nicht erst in register()
+_ensure_scout_namespace()
+
+
 # ─── Data-Dirs ───────────────────────────────────────────────────────
 
 def _ensure_dirs() -> None:

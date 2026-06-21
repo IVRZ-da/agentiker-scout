@@ -80,7 +80,7 @@ class TestPatternStructure:
 
     def test_code_quality_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("code-quality")
-        assert len(pats) == 11
+        assert len(pats) == 13
 
     def test_typescript_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("typescript")
@@ -131,7 +131,7 @@ class TestPatternLookup:
 
     def test_list_categories(self, init_pats):
         cats = init_pats.list_categories()
-        assert len(cats) == 7
+        assert len(cats) == 8
         cat_names = [c["category"] for c in cats]
         assert "security" in cat_names
         assert "code-quality" in cat_names
@@ -169,8 +169,8 @@ class TestPatternIntegration:
     """Patterns sind via core.* verfügbar."""
 
     def test_init_patterns_populates_core(self, init_pats):
-        """init_patterns() befüllt CATEGORY mit 7 Kategorien."""
-        assert len(init_pats.PATTERNS_BY_CATEGORY) == 7
+        """init_patterns() befüllt CATEGORY mit 8 Kategorien."""
+        assert len(init_pats.PATTERNS_BY_CATEGORY) == 8
         assert len(init_pats.ALL_PATTERNS) >= 20
 
     def test_core_functions_work_after_init(self, init_pats):

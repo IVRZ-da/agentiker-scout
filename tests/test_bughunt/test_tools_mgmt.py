@@ -129,7 +129,7 @@ class TestBugHuntPattern:
         import bughunt_core as core
         core.init_patterns()
         result = _ok(bug_hunt_pattern({"action": "list_categories"}))
-        assert result["count"] == 7
+        assert result["count"] == 8
 
     def test_pattern_detail(self, monkeypatch):
         _mock_core(monkeypatch)
