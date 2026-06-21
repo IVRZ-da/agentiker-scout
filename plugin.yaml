@@ -1,0 +1,10 @@
+name: scout
+version: 0.1.1
+description: "Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline. 42 tools across 3 domains."
+author: agentiker
+license: MIT
+repo: https://git.agentiker.de/agentiker/scout
+hooks:
+  - pre_llm_call
+  - post_tool_call
+  - on_session_end

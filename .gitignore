@@ -1,0 +1,42 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+.coverage
+.ruff_cache/
+
+# Environments
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Generated data (sessions, plans, results)
+data/
+
+# Secrets
+**/secrets.*
+**/credentials.*
+data/sessions/
+data/patterns/
+
+# Temp / generated registry
+scout_tool_registry.json
+**.honcho_cache.json
