@@ -9,11 +9,15 @@ from __future__ import annotations
 import json
 import sys
 import types
+import warnings
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+
+# ─── DeprecationWarning-Filter (importlib __package__ != __spec__.parent) ─
+warnings.filterwarnings("ignore", message=".*__package__.*")
 
 # ─── _fmt Mock (sys.modules Injection) ────────────────────────────────────
 
