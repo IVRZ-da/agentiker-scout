@@ -2,6 +2,18 @@
 
 ## [0.1.2] — 2026-06-22
 
+### Repo-Setup
+- **Repository eingerichtet:** `git.agentiker.de:johannes/agentiker-scout-plugin.git`
+- **BRANCHING.md** erstellt (Branch-Konventionen nach Plugin-Standard)
+- **LICENSE** (MIT) hinzugefügt
+- **CONTRIBUTING.md** erstellt (Entwicklungsrichtlinien)
+- **pyproject.toml** erstellt (build-system, ruff-Konfiguration, pytest)
+- **scripts/generate_readme.py** — auto-generiert README.md aus plugin.yaml + Tool-Registry + CHANGELOG
+- **Pre-commit Hook aktualisiert:** MODULE_TEST_MAP auf aktuelle Scout-Module (15 Einträge), VERSION-Check erweitert
+- **README.md** automatisch generiert (Tool-Übersicht mit 43 Tools)
+- **Version harmonisiert:** plugin.yaml 0.1.2, VERSION 0.1.2, pyproject.toml 0.1.2, CHANGELOG 0.1.2
+- **Altes Repo ersetzt:** von `hermes-bot/scout` nach `johannes/agentiker-scout-plugin` migriert
+
 ### Tests — E2E-Konvertierung
 - **E2E-Tests in Unit-Tests konvertiert:** Alle 81 E2E-Tests (gated via E2E_TEST=1) wurden analysiert:
   - 44 Research-Tests: **gelöscht** (100% durch existierende Unit-Tests abgedeckt)
