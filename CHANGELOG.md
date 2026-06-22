@@ -18,6 +18,16 @@
   statt pass in 2 except-Blöcken.
 - 1316 Tests grün, 45 skipped, 0 Failures.
 
+## [0.3.3] — 2026-06-22
+
+### Refactoring
+- **framework_detector.py Split** — 2003-Zeilen-Monolith in `shared/detectors/` Subpackage
+  aufgeteilt (6 Module + `__init__.py` + Re-Export Facade für Rückwärtskompatibilität):
+  `base.py` (Data Classes, _TechDetector, _FileIndex), `catalog.py` (37 Detector-Instanzen),
+  `dependency_data.py` (Lookup-Tabellen), `loader.py` (FrameworkDetector-Klasse),
+  `generic.py` (GenericDependencyDetector), `public.py` (Convenience-API).
+  1316 Tests grün, 45 skipped, 0 Failures.
+
 ## [0.3.1] — 2026-06-22
 
 ### Fix
