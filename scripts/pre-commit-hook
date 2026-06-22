@@ -523,47 +523,114 @@ def check_changelog(staged_files: list[str]) -> bool:
 # ── 🔴 Selective Testing ──────────────────────────────
 
 MODULE_TEST_MAP = {
-    "__init__.py": ["test_structure"],
-    "analysis/analysis_tools.py": ["test_analysis_tools", "test_analysis_core", "test_analysis_phase_d"],
-    "analysis/analysis_core.py": ["test_analysis_core"],
-    "analysis/analysis_intent.py": ["test_analysis_core"],
-    "bughunt/bughunt_core.py": ["test_core"],
-    "bughunt/bughunt_tools.py": ["test_tools_basic", "test_tools_advanced", "test_tools_mgmt"],
-    "bughunt/bughunt_hooks.py": ["test_hooks"],
-    "bughunt/bughunt_fix.py": ["test_fix"],
-    "bughunt/bughunt_patterns.py": ["test_patterns"],
-    "bughunt/bughunt_scanrunner.py": ["test_scanrunner"],
-    "research/research_tools.py": ["test_tools", "test_tools_v2", "test_new_tools"],
-    "research/research_hooks.py": ["test_hooks", "test_hooks_extended"],
-    "shared/patterns.py": ["test_shared_patterns"],
-    "shared/intent.py": ["test_analysis_core"],
-    "shared/cache.py": ["test_tools_basic"],
+    # Domänen: analysis
+    "analysis/analysis_tools.py": ["test_analysis/analysis_tools", "test_analysis/analysis_core"],
+    "analysis/analysis_core.py": ["test_analysis/analysis_core"],
+    "analysis/analysis_intent.py": ["test_analysis/analysis_core"],
+    "analysis/analysis_profiles.py": ["test_analysis/analysis_core"],
+    "analysis/analysis_session.py": ["test_analysis/analysis_core"],
+    "analysis/__init__.py": ["test_analysis/analysis_core"],
+    "analysis/tools/ui_discovery.py": ["test_analysis/ui_discovery"],
+    "analysis/tools/ui_gap.py": ["test_analysis/ui_gap"],
+    "analysis/tools/mapping.py": ["test_analysis/mapping"],
+    "analysis/tools/base.py": ["test_analysis/analysis_tools"],
+    "analysis/tools/schemas.py": ["test_analysis/analysis_tools"],
+    "analysis/tools/extractors/__init__.py": ["test_analysis/extractors"],
+    "analysis/tools/extractors/medusa_admin.py": ["test_analysis/extractors"],
+    "analysis/tools/extractors/nextjs.py": ["test_analysis/extractors"],
+    "analysis/tools/extractors/medusa_api.py": ["test_analysis/extractors"],
+    "analysis/tools/extractors/go_handler.py": ["test_analysis/extractors"],
+    "analysis/tools/__init__.py": ["test_analysis/analysis_tools"],
+    # Domänen: bughunt
+    "bughunt/bughunt_core.py": ["test_bughunt/core"],
+    "bughunt/bughunt_tools.py": ["test_bughunt/tools_basic", "test_bughunt/tools_advanced", "test_bughunt/tools_mgmt"],
+    "bughunt/bughunt_hooks.py": ["test_bughunt/hooks"],
+    "bughunt/bughunt_fix.py": ["test_bughunt/fix"],
+    "bughunt/bughunt_patterns.py": ["test_bughunt/patterns"],
+    "bughunt/bughunt_scanrunner.py": ["test_bughunt/scanrunner"],
+    "bughunt/__init__.py": ["test_bughunt/structure"],
+    # Domänen: research
+    "research/research_tools.py": ["test_research/tools", "test_research/tools_v2", "test_research/new_tools"],
+    "research/research_hooks.py": ["test_research/hooks", "test_research/hooks_extended"],
+    "research/__init__.py": ["test_research/structure"],
+    "research/tools/base.py": ["test_research/tools"],
+    "research/tools/crud.py": ["test_research/tools", "test_research/tools_v2"],
+    "research/tools/search.py": ["test_research/tools_v2"],
+    "research/tools/export.py": ["test_research/new_tools"],
+    "research/tools/schedule.py": ["test_research/tools_v2"],
+    "research/tools/__init__.py": ["test_research/tools"],
+    # Shared layer
+    "shared/patterns.py": ["test_bughunt/shared_patterns"],
+    "shared/patterns_research.py": ["test_bughunt/shared_patterns"],
+    "shared/intent.py": ["test_analysis/analysis_core"],
+    "shared/cache.py": ["test_bughunt/tools_basic"],
+    "shared/honcho.py": ["test_analysis/analysis_core"],
+    "shared/__init__.py": ["test_analysis/analysis_core"],
+    "shared/framework_detector.py": ["test_framework_detector"],
+    "shared/pattern_loader.py": ["test_pattern_loader"],
+    "shared/yaml_rule_loader.py": ["test_yaml_rule_loader"],
+    "shared/dependency_scanner.py": ["test_dependency_scanner"],
+    "shared/registry.py": ["test_analysis/analysis_core"],
+    # Core modules
+    "__init__.py": ["test_bughunt/structure", "test_auto_discovery"],
+    "_fmt.py": ["test_analysis/fmt", "test_bughunt/tools_basic"],
+    # Scripts / config
+    "conftest.py": [],
+    "pyproject.toml": ["all"],
+    "scripts/pre-commit-hook": [],
 }
+
+# Threshold: wenn mehr als N Module geändert, volle Test-Suite
+# Erhöht von 2 auf 6
+MODULE_CHANGE_THRESHOLD = 6
 
 
 def determine_test_files(staged_files: list[str]) -> list[str]:
-    """Determine which test files to run based on changed modules."""
+    """Determine which test files to run based on changed modules.
+
+    - If a test file itself changed → run only that test file
+    - If ≤ MODULE_CHANGE_THRESHOLD modules changed → run matching tests
+    - If > MODULE_CHANGE_THRESHOLD modules changed → run all tests
+    """
+    staged_tests = [f for f in staged_files if f.startswith("tests/") and f.endswith(".py")]
     changed_modules = set()
+
+    # First pass: check if test files themselves changed
+    if staged_tests:
+        return staged_tests
+
+    # Second pass: map source modules to test files
     for f in staged_files:
+        f = f.replace("\\", "/")
         for module in MODULE_TEST_MAP:
-            if f.endswith(module) or f.startswith(module.rstrip(".py")):
+            if f == module or f.endswith("/" + module):
                 changed_modules.add(module)
 
     if not changed_modules:
         return []  # No code changes — skip tests
 
-    # If more than 2 modules changed, run all tests
-    if len(changed_modules) > 2:
+    # If threshold exceeded, run all tests
+    if len(changed_modules) > MODULE_CHANGE_THRESHOLD:
         return ["all"]
 
     test_files = []
     for mod in changed_modules:
         for tf in MODULE_TEST_MAP.get(mod, []):
+            if tf == "all":
+                return ["all"]
             test_file = f"tests/{tf}.py"
             if os.path.exists(os.path.join(REPO_ROOT, test_file)):
                 test_files.append(test_file)
 
-    return test_files or ["all"]
+    # Deduplicate while preserving order
+    seen = set()
+    unique_test_files = []
+    for tf in test_files:
+        if tf not in seen:
+            seen.add(tf)
+            unique_test_files.append(tf)
+
+    return unique_test_files or ["all"]
 
 
 def run_tests(test_files: list[str]) -> bool:
