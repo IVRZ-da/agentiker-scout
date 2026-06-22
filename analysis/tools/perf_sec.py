@@ -157,9 +157,24 @@ def analysis_security_tool(args: dict, **kwargs) -> str:
         except Exception as e:
             logger.debug("shared pattern scan skipped: %s", e)
 
+        # code_security_scan Integration (code_intel Plugin)
+        if "vulnerabilities" in kinds or "all" in kinds:
+            try:
+                sec_result = _call_tool("code_security_scan", path=path, severity="all")
+                if sec_result:
+                    if isinstance(sec_result, str):
+                        sec_result = json.loads(sec_result)
+                    if isinstance(sec_result, dict) and sec_result.get("findings"):
+                        report["findings"]["vulnerability_scan"] = sec_result["findings"]
+                        report["summary"]["vulnerability_scan_count"] = len(sec_result["findings"])
+            except Exception as e:
+                logger.debug("code_security_scan skipped: %s", e)
+
         report["summary"]["vulnerabilities_found"] = len(
             report["findings"].get("orphaned_errors", [])
-        ) + len(report["findings"].get("security_patterns", []))
+        ) + len(report["findings"].get("security_patterns", [])) + len(
+            report["findings"].get("vulnerability_scan", [])
+        )
     except Exception as e:
         logger.warning("security analysis error: %s", e)
         report["summary"]["error"] = str(e)
