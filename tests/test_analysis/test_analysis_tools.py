@@ -61,6 +61,8 @@ class TestToolRegistration:
             "analysis_ui_gap",
             "analysis_pattern_discover",
             "analysis_framework",
+            "analysis_code_query",
+            "analysis_code_move",
         }
         registered = set(tools.TOOL_HANDLERS.keys())
         missing = expected - registered

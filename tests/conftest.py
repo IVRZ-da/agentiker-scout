@@ -159,3 +159,110 @@ def tmp_shared_patterns(tmp_path) -> Path:
     path = tmp_path / "patterns"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+# ─── Integration-Test Registry: echter Dispatch statt pauschaler Mock ────
+
+
+class RealDispatchRegistry:
+    """Registry that dispatches to REAL handler functions.
+
+    Ermöglicht Integrationstests die den gesamten Dispatch-Pipeline testen:
+    registry.dispatch() → handler(args) → response parsing.
+
+    Handler werden via .register(name, handler, schema) registriert.
+    Die .dispatch()-Methode ruft den Handler mit args auf und returned
+    das echte Ergebnis (kein Mock).
+    """
+
+    def __init__(self):
+        self._entries: dict[str, dict] = {}
+
+    def register(self, name: str, handler, schema: dict | None = None) -> None:
+        self._entries[name] = {"handler": handler, "schema": schema or {}}
+
+    def get_entry(self, name: str):
+        entry = self._entries.get(name)
+        if entry is None:
+            return None
+        return type("_Entry", (), {
+            "handler": staticmethod(entry["handler"]),
+            "schema": entry["schema"],
+        })()
+
+    def deregister(self, name: str) -> None:
+        self._entries.pop(name, None)
+
+    def dispatch(self, name: str, args: dict | None = None, **kwargs) -> str:
+        entry = self._entries.get(name)
+        if entry is None:
+            return json.dumps({"status": "error", "error": f"Unknown tool: {name}"})
+        try:
+            result = entry["handler"](args or {}, **kwargs)
+            if isinstance(result, str):
+                return result
+            return json.dumps(result, ensure_ascii=False, default=str)
+        except Exception as e:
+            return json.dumps({"status": "error", "error": str(e), "tool": name})
+
+    def get_all_tool_names(self) -> list[str]:
+        return list(self._entries.keys())
+
+
+@pytest.fixture
+def real_registry(request):
+    """Fixture: Patched registry mit echten Handlern für Integrationstests.
+
+    Nutzt die TOOL_HANDLERS aus analysis.analysis_tools um Scout-eigene
+    Tools mit echten Handler-Funktionen zu registrieren.
+
+    Usage:
+        def test_real_dispatch(real_registry):
+            result = _call_tool("analysis_framework", path="/tmp")
+            assert result["status"] != "mocked"
+
+    Optional: Per `request.param` können zusätzliche Handler übergeben werden:
+        @pytest.mark.parametrize("real_registry", [extra_handlers], indirect=True)
+    """
+    import contextlib
+
+    # RealDispatchRegistry aufsetzen
+    reg = RealDispatchRegistry()
+
+    # Scout-eigene Handler registrieren (analysis_tools.TOOL_HANDLERS)
+    try:
+        from scout.analysis.analysis_tools import TOOL_HANDLERS as analysis_handlers
+
+        for name, (schema, handler) in analysis_handlers.items():
+            reg.register(name, handler, schema)
+    except ImportError:
+        pass  # Fallback: nur mit registrierten Handlern weitermachen
+
+    # Zusätzliche Handler via request.param (optional)
+    extra = getattr(request, "param", {}) or {}
+    for name, (handler, schema) in extra.items():
+        reg.register(name, handler, schema)
+
+    # tools.registry patchen
+    _tools_module = types.ModuleType("tools")
+    _tools_module.registry = types.ModuleType("tools.registry")
+    _tools_module.registry.registry = reg
+    _tools_module.registry.dispatch = reg.dispatch
+
+    @contextlib.contextmanager
+    def _registry_active():
+        old_modules = {}
+        for mod_name in ("tools", "tools.registry"):
+            old_modules[mod_name] = sys.modules.get(mod_name)
+            sys.modules[mod_name] = _tools_module if mod_name == "tools" else _tools_module.registry
+        try:
+            yield reg
+        finally:
+            for mod_name, old_mod in old_modules.items():
+                if old_mod is not None:
+                    sys.modules[mod_name] = old_mod
+                else:
+                    sys.modules.pop(mod_name, None)
+
+    with _registry_active():
+        yield reg

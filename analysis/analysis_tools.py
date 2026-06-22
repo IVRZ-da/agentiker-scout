@@ -39,6 +39,8 @@ from .tools.base import (
 from .tools.schemas import (
     ANALYSIS_ARCHITECTURE_SCHEMA,
     ANALYSIS_ASK_SCHEMA,
+    ANALYSIS_CODE_MOVE_SCHEMA,
+    ANALYSIS_CODE_QUERY_SCHEMA,
     ANALYSIS_DEADCODE_SCHEMA,
     ANALYSIS_DIFF_SCHEMA,
     ANALYSIS_GRAPH_SCHEMA,
@@ -232,6 +234,13 @@ def analysis_inspect_tool(args: dict, **kwargs) -> str:
                 layer3["highlight_count"] = len(json.dumps(highlight)) if not isinstance(highlight, int) else highlight
         except Exception as e:
             layer3["highlight_error"] = str(e)
+
+        try:
+            explain = _call_tool("code_explain", path=path, line=_find_symbol_line(path, symbol))
+            if explain:
+                layer3["explain"] = explain
+        except Exception as e:
+            layer3["explain_error"] = str(e)
 
         report["layers"]["3_hierarchy"] = layer3
 
@@ -467,6 +476,15 @@ def analysis_deadcode_tool(args: dict, **kwargs) -> str:
     except Exception as e:
         logger.debug("shared pattern scan skipped: %s", e)
 
+    # 3. Code Duplicates
+    if "all" in kinds or "code-quality" in kinds:
+        try:
+            duplicates = _call_tool("code_duplicates", path=path, min_lines=5, top_n=10)
+            if duplicates:
+                report["findings"]["duplicates"] = duplicates
+        except Exception as e:
+            report["findings"]["duplicates_error"] = str(e)
+
     report["summary"]["total_unused"] = total_unused
 
     if persist:
@@ -518,6 +536,7 @@ def analysis_performance_tool(args: dict, **kwargs) -> str:
         perf_calls = [
             {"key": "complexity", "name": "code_complexity", "kwargs": {"path": path}},
             {"key": "hot_paths", "name": "code_hot_paths", "kwargs": {"path": path, "top_n": 10}},
+            {"key": "metrics", "name": "code_metrics", "kwargs": {"path": path}},
         ]
         if os.path.isfile(path):
             perf_calls.append({
@@ -1431,6 +1450,64 @@ def analysis_framework_tool(args: dict, **kwargs) -> str:
         return fmt_err(f"Framework-Analyse fehlgeschlagen: {e}")
 
 
+# ---------------------------------------------------------------------------
+# analysis_code_query Tool
+# ---------------------------------------------------------------------------
+
+def analysis_code_query_tool(args: dict, **kwargs) -> str:
+    """Wrapper für code_query: Smart Query Router für Code-Intelligence.
+
+    Delegiert an _call_tool("code_query", ...) mit Intent-Erkennung.
+    """
+    path = args.get("path", "")
+    intent = args.get("intent", "")
+    line = args.get("line", 0)
+    language = args.get("language", "")
+
+    error = _validate_path(path)
+    if error:
+        return fmt_err(error)
+
+    path_error, resolved_path = _validate_and_resolve_path(path)
+    if path_error:
+        return fmt_err(f"{path_error} (path: {path})")
+
+    result = _call_tool("code_query", intent=intent, path=resolved_path, line=line, language=language)
+    return fmt_ok(result) if isinstance(result, dict) else result
+
+
+# ---------------------------------------------------------------------------
+# analysis_code_move Tool
+# ---------------------------------------------------------------------------
+
+def analysis_code_move_tool(args: dict, **kwargs) -> str:
+    """Wrapper für code_move: Verschiebt ein Symbol zwischen Dateien.
+
+    Delegiert an _call_tool("code_move", ...) mit Source/Target-Pfaden.
+    """
+    source = args.get("source", "")
+    symbol = args.get("symbol", "")
+    target = args.get("target", "")
+    dry_run = args.get("dry_run", True)
+
+    if not source or not symbol or not target:
+        return fmt_err("source, symbol, and target are required")
+
+    for p in (source, target):
+        error = _validate_path(p)
+        if error:
+            return fmt_err(f"{error} (path: {p})")
+
+    result = _call_tool(
+        "code_move",
+        source=source,
+        symbol=symbol,
+        target=target,
+        dry_run=dry_run,
+    )
+    return fmt_ok(result) if isinstance(result, dict) else result
+
+
 # ─── Schema-Registry (für __init__.py)
 # ---------------------------------------------------------------------------
 
@@ -1449,6 +1526,8 @@ TOOL_HANDLERS = {
     "analysis_ui_gap": (ANALYSIS_UI_GAP_SCHEMA, analysis_ui_gap_tool),
     "analysis_pattern_discover": (ANALYSIS_PATTERN_DISCOVER_SCHEMA, analysis_pattern_discover_tool),
     "analysis_framework": (ANALYSIS_FRAMEWORK_SCHEMA, analysis_framework_tool),
+    "analysis_code_query": (ANALYSIS_CODE_QUERY_SCHEMA, analysis_code_query_tool),
+    "analysis_code_move": (ANALYSIS_CODE_MOVE_SCHEMA, analysis_code_move_tool),
 }
 
 

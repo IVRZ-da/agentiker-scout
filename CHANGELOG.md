@@ -1,5 +1,12 @@
 # Scout Plugin — CHANGELOG
 
+## [0.3.1] — 2026-06-22
+
+### Fix
+- **shared Namespace-Shim** — `from shared.X` Imports in 6 Modulen crashten mit
+  "No module named 'shared'". Fix via `_ensure_shared_namespace()` in __init__.py,
+  analog zum bestehenden `scout`-Shim. 1316 Tests grün.
+
 ## [0.3.0] — 2026-06-22
 
 ### Bug-Pattern Katalog — von 45 auf ~830 Patterns

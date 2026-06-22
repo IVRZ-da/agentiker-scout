@@ -112,11 +112,12 @@ def _register_hooks(ctx: PluginContext) -> None:
         logger.debug("honcho hooks nicht registriert: %s", e)
 
 
-# ─── Namespace-Shim ─────────────────────────────────────────────────
+# ─── Namespace-Shims ───────────────────────────────────────────────
 # Hermes lädt Plugins als hermes_plugins.scout, nicht als scout.
-# Damit absolute 'from scout.X import Y' Imports funktionieren,
-# registrieren wir scout als sys.modules-Shim.
+# Damit absolute 'from scout.X import Y' und 'from shared.X import Y'
+# Imports funktionieren, registrieren wir beide als sys.modules-Shims.
 _SCOUT_SHIM_REGISTERED = False
+_SHARED_SHIM_REGISTERED = False
 
 
 def _ensure_scout_namespace() -> None:
@@ -132,9 +133,28 @@ def _ensure_scout_namespace() -> None:
     _SCOUT_SHIM_REGISTERED = True
 
 
+def _ensure_shared_namespace() -> None:
+    """Registriert 'shared' als sys.modules-Shim für 'from shared.X' Imports.
+
+    Ermöglicht lazy imports wie 'from shared.framework_detector import X'
+    ohne dass alle 6+ Stellen auf 'scout.shared.X' umgestellt werden müssen.
+    """
+    global _SHARED_SHIM_REGISTERED
+    if _SHARED_SHIM_REGISTERED:
+        return
+    if "shared" not in sys.modules:
+        shared_mod = type(sys)("shared")
+        shared_mod.__path__ = [str(PLUGIN_DIR / "shared")]
+        shared_mod.__package__ = "shared"
+        shared_mod.__name__ = "shared"
+        sys.modules["shared"] = shared_mod
+    _SHARED_SHIM_REGISTERED = True
+
+
 # → Module-Level Execution ←
-# Shim wird SOFORT beim Plugin-Load aktiviert, nicht erst in register()
+# Shims werden SOFORT beim Plugin-Load aktiviert, nicht erst in register()
 _ensure_scout_namespace()
+_ensure_shared_namespace()
 
 
 # ─── Data-Dirs ───────────────────────────────────────────────────────

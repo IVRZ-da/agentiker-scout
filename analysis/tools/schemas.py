@@ -424,13 +424,37 @@ ANALYSIS_PATTERN_DISCOVER_SCHEMA = {
                 "description": "Minimum occurrences to consider a pattern meaningful (default: 3).",
                 "default": 3,
             },
-            "frameworks": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "Optional framework names to focus discovery (e.g. ['medusa', 'nextjs']). "
-                               "Wenn leer, wird Auto-Detection via FrameworkDetector durchgeführt.",
-            },
         },
         "required": ["path"],
+    },
+}
+
+ANALYSIS_CODE_QUERY_SCHEMA = {
+    "name": "analysis_code_query",
+    "description": "Smart Query Router für Code-Intelligence. Stellt eine Frage über Code und wählt automatisch das beste Tool.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "intent": {"type": "string", "description": "What you want: find_usage, definition, understand, overview, tests, diagnostics, callers, callees, structure, search_pattern"},
+            "path": {"type": "string", "description": "Absolute file or directory path"},
+            "line": {"type": "integer", "description": "Optional 1-based line number"},
+            "language": {"type": "string", "description": "Optional language override"},
+        },
+        "required": ["intent"],
+    },
+}
+
+ANALYSIS_CODE_MOVE_SCHEMA = {
+    "name": "analysis_code_move",
+    "description": "Verschiebt ein Symbol (Funktion/Klasse) zwischen Dateien via AST-Extraktion.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "source": {"type": "string", "description": "Source file path"},
+            "symbol": {"type": "string", "description": "Symbol name to move"},
+            "target": {"type": "string", "description": "Target file path"},
+            "dry_run": {"type": "boolean", "description": "Preview changes without writing (default: True)"},
+        },
+        "required": ["source", "symbol", "target"],
     },
 }
