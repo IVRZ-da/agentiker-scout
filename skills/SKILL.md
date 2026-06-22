@@ -1,7 +1,7 @@
 ---
 name: scout
 description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 46 Tools, 3 Domains, E2E-testing."
-version: 0.3.3
+version: 0.3.4
 author: agentiker
 tags: [analysis, bughunt, research, patterns, code-analysis, security, web-research]
 related_skills: [plan-follow, code-intel-plugin-maintenance, hermes-plugin-development]
@@ -78,10 +78,10 @@ research_start(pattern=...) → patterns_research.get() ←┘
 research_save → findings → _auto_deduce_patterns() ────┘
 ```
 
-## Tools (42 total)
+## Tools (46 total)
 
-### Code-Analyse (12)
-`analysis_inspect`, `analysis_architecture`, `analysis_deadcode`, `analysis_performance`, `analysis_security`, `analysis_ask`, `analysis_diff`, `analysis_trend`, `analysis_watch`, `analysis_graph`, `analysis_report`, `analysis_pattern_discover`, `analysis_ui_gap`
+### Code-Analyse (16)
+`analysis_inspect`, `analysis_architecture`, `analysis_deadcode`, `analysis_performance`, `analysis_security`, `analysis_ask`, `analysis_diff`, `analysis_trend`, `analysis_watch`, `analysis_graph`, `analysis_report`, `analysis_pattern_discover`, `analysis_ui_gap`, `analysis_framework`, `analysis_code_query`, `analysis_code_move`
 
 ### Bug-Hunt (13)
 `bug_hunt_start`, `bug_hunt_finding`, `bug_hunt_list`, `bug_hunt_close`, `bug_hunt_scan`, `bug_hunt_triage`, `bug_hunt_verify`, `bug_hunt_report`, `bug_hunt_export`, `bug_hunt_history`, `bug_hunt_pattern`, `bug_hunt_stats`, `bug_hunt_fix`

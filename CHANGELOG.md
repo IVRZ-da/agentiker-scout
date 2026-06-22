@@ -1,5 +1,44 @@
 # Scout Plugin — CHANGELOG
 
+## [0.3.4] — 2026-06-22
+
+### Bug-Hunt Fixes (8 Findings)
+- **P1 Fix: 3 fehlende Tools in Registry** — `analysis_framework`, `analysis_code_query`,
+  `analysis_code_move` waren in `analysis_tools.py` implementiert aber nicht in
+  `scout_tool_registry.json` registriert. Agent konnte sie nicht nutzen.
+  Fix: Einträge ergänzt, `ANALYSIS_FRAMEWORK_SCHEMA` in `schemas.py` angelegt.
+  Tool-Count: 43→46 (analysis: 13→16).
+- **P1 Fix: Silent Catches (3 Stellen)** — `shared/honcho.py` (`_get_analysis_session`,
+  `_get_bughunt_session`, `_get_research_session`) hatten `except Exception: pass` ohne
+  Logging. Fix: `logger.debug()` nachgerüstet.
+- **P2 Fix: `research/research_core.py` fehlte** — `shared/honcho.py:58` importierte
+  `get_active_research()` aus nicht existenter Datei. Fix: Datei mit Tracker-basierter
+  Implementierung angelegt.
+- **P2 Fix: `analysis_intent.py` Legacy-Marker** — Als DEPRECATED markiert, auf
+  `shared/intent.py` als Nachfolger verwiesen.
+- **P2 Fix: Companion Skill Drift** — `skills/SKILL.md` von v0.1.0/42-Tools auf
+  v0.3.3/46-Tools aktualisiert.
+- 1316 Tests grün, 45 skipped, 0 Failures.
+
+### Bug-Hunt Fixes (v0.3.4+ — 5 Findings nach Release)
+- **P2 Fix: CHANGELOG-Reihenfolge** — v0.3.4-Eintrag war unsortiert zwischen v0.3.2,
+  v0.3.3 fehlte als separater Eintrag. Reihenfolge korrigiert.
+- **P2 Fix: Companion Skill Drift** — Skill zeigte 42 Tools/v0.3.3 statt 46 Tools/v0.3.4
+- **P3 Fix: pytest.ini DeprecationWarnings** — `filterwarnings` ergänzt (590 Warnings)
+- **P3 Fix: DEPRECATED-Markierung in analysis_intent.py** — Korrigiert auf "partiell abgelöst"
+- **P3 Fix: Tool-Count dynamisch** — `__init__.py`-Docstring nutzt `len(registry)` statt 46
+- 1316 Tests grün, 45 skipped, 0 Failures.
+
+## [0.3.3] — 2026-06-22
+
+### Refactoring
+- **framework_detector.py Split** — 2003-Zeilen-Monolith in `shared/detectors/` Subpackage
+  aufgeteilt (6 Module + `__init__.py` + Re-Export Facade für Rückwärtskompatibilität):
+  `base.py` (Data Classes, _TechDetector, _FileIndex), `catalog.py` (37 Detector-Instanzen),
+  `dependency_data.py` (Lookup-Tabellen), `loader.py` (FrameworkDetector-Klasse),
+  `generic.py` (GenericDependencyDetector), `public.py` (Convenience-API).
+  1316 Tests grün, 45 skipped, 0 Failures.
+
 ## [0.3.2] — 2026-06-22
 
 ### Bug-Hunt Fixes (9 Findings)
@@ -17,36 +56,6 @@
 - **P3 Fix: Script Silent Catches** — `scripts/convert_specfy_rules.py` print()-Warnungen
   statt pass in 2 except-Blöcken.
 - 1316 Tests grün, 45 skipped, 0 Failures.
-
-## [0.3.4] — 2026-06-22
-
- ### Bug-Hunt Fixes (8 Findings)
- - **P1 Fix: 3 fehlende Tools in Registry** — `analysis_framework`, `analysis_code_query`,
- `analysis_code_move` waren in `analysis_tools.py` implementiert aber nicht in
- `scout_tool_registry.json` registriert. Agent konnte sie nicht nutzen.
- Fix: Einträge ergänzt, `ANALYSIS_FRAMEWORK_SCHEMA` in `schemas.py` angelegt.
- Tool-Count: 43→46 (analysis: 13→16).
- - **P1 Fix: Silent Catches (3 Stellen)** — `shared/honcho.py` (`_get_analysis_session`,
- `_get_bughunt_session`, `_get_research_session`) hatten `except Exception: pass` ohne
- Logging. Fix: `logger.debug()` nachgerüstet.
- - **P2 Fix: `research/research_core.py` fehlte** — `shared/honcho.py:58` importierte
- `get_active_research()` aus nicht existenter Datei. Fix: Datei mit Tracker-basierter
- Implementierung angelegt.
- - **P2 Fix: `analysis_intent.py` Legacy-Marker** — Als DEPRECATED markiert, auf
- `shared/intent.py` als Nachfolger verwiesen.
- - **P2 Fix: Companion Skill Drift** — `skills/SKILL.md` von v0.1.0/42-Tools auf
- v0.3.3/46-Tools aktualisiert.
- - 1316 Tests grün, 45 skipped, 0 Failures.
-
- ## [0.3.3] — 2026-06-22
-
-### Refactoring
-- **framework_detector.py Split** — 2003-Zeilen-Monolith in `shared/detectors/` Subpackage
-  aufgeteilt (6 Module + `__init__.py` + Re-Export Facade für Rückwärtskompatibilität):
-  `base.py` (Data Classes, _TechDetector, _FileIndex), `catalog.py` (37 Detector-Instanzen),
-  `dependency_data.py` (Lookup-Tabellen), `loader.py` (FrameworkDetector-Klasse),
-  `generic.py` (GenericDependencyDetector), `public.py` (Convenience-API).
-  1316 Tests grün, 45 skipped, 0 Failures.
 
 ## [0.3.1] — 2026-06-22
 
