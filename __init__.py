@@ -29,7 +29,7 @@ TOOL_SCHEMAS: dict[str, dict] = {}
 # ─── Tool-Registrierung ──────────────────────────────────────────────
 
 def _register_tools(ctx: PluginContext) -> None:
-    """Register all 43 tools via ctx.register_tool()."""
+    """Register all 46 tools via ctx.register_tool()."""
     import json  # lazy import — structure test erzwingt das
 
     # Lade Schema-Map aus JSON (wenn vorhanden)

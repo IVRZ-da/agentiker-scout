@@ -444,6 +444,19 @@ ANALYSIS_CODE_QUERY_SCHEMA = {
     },
 }
 
+ANALYSIS_FRAMEWORK_SCHEMA = {
+    "name": "analysis_framework",
+    "description": "Zeigt das Framework-Profil eines Projekts an. Erkennt automatisch Technologie-Stack (Medusa, Next.js, React, Go, Docker, etc.) mit Confidence-Scoring und Evidence-Tracking.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "Absoluter Pfad zum Projekt-Root."},
+            "fast": {"type": "boolean", "description": "Wenn True, nur High-Confidence-Marker scannen (schneller).", "default": False}
+        },
+        "required": ["path"]
+    }
+}
+
 ANALYSIS_CODE_MOVE_SCHEMA = {
     "name": "analysis_code_move",
     "description": "Verschiebt ein Symbol (Funktion/Klasse) zwischen Dateien via AST-Extraktion.",

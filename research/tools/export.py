@@ -367,7 +367,7 @@ def research_merge(args: dict, **kwargs) -> str:
         "_merged_from": research_ids,
     }
 
-    from .base import RESULTS_DIR as _RD
+    from scout.research.tools.base import RESULTS_DIR as _RD
     _write_json(_RD / f"{new_id}.json", new_result)
 
     return fmt_ok({

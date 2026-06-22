@@ -1,7 +1,7 @@
 ---
 name: scout
-description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 42 Tools, 3 Domains, E2E-testing."
-version: 0.1.0
+description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 46 Tools, 3 Domains, E2E-testing."
+version: 0.3.3
 author: agentiker
 tags: [analysis, bughunt, research, patterns, code-analysis, security, web-research]
 related_skills: [plan-follow, code-intel-plugin-maintenance, hermes-plugin-development]

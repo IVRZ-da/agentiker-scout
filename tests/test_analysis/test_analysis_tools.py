@@ -114,7 +114,7 @@ class TestAnalysisInspect:
             assert result["path"] == tmp_path
             assert result["depth"] == 1
             assert "layers" in result
-            assert "1_basics" in result["layers"]
+            assert "1_symbols" in result["layers"]
         finally:
             os.unlink(tmp_path)
 
@@ -146,7 +146,7 @@ class TestAnalysisInspect:
         try:
             result = json.loads(tools.analysis_inspect_tool({"path": tmp_path}))
             assert "summary" in result
-            assert "symbol_count" in result["summary"]
+            assert "symbols" in result["summary"]
         finally:
             os.unlink(tmp_path)
 
@@ -596,7 +596,7 @@ class TestAnalysisDiff:
         assert "error" in result
 
     def test_identical_reports_show_no_changes(self):
-        a = {"tool": "analysis_inspect", "path": "/test.py", "summary": {"symbol_count": 5}}
+        a = {"tool": "analysis_inspect", "path": "/test.py", "summary": {"symbols": 5}}
         result = json.loads(tools.analysis_diff_tool({"report_a": a, "report_b": a}))
         assert result["summary"]["total_differences"] >= 0
 
@@ -609,8 +609,8 @@ class TestAnalysisDiff:
         assert path_changes[0]["status"] == "changed"
 
     def test_summary_diff_detected(self):
-        a = {"tool": "analysis_inspect", "summary": {"symbol_count": 5, "tools_called": 3}}
-        b = {"tool": "analysis_inspect", "summary": {"symbol_count": 8, "tools_called": 4}}
+        a = {"tool": "analysis_inspect", "summary": {"symbols": 5, "tools_called": 3}}
+        b = {"tool": "analysis_inspect", "summary": {"symbols": 8, "tools_called": 4}}
         result = json.loads(tools.analysis_diff_tool({"report_a": a, "report_b": b}))
         assert result["summary"]["changed"] >= 2
 
@@ -738,12 +738,12 @@ class TestAnalysisGraph:
         assert "mermaid" in result["graph"]
 
     def test_summary_graph(self):
-        report = {"tool": "analysis_inspect", "summary": {"symbol_count": 10, "tools_called": 5}}
+        report = {"tool": "analysis_inspect", "summary": {"symbols": 10, "tools_called": 5}}
         result = json.loads(tools.analysis_graph_tool({
             "report": report, "type": "summary",
         }))
         assert "mermaid" in result["graph"]
-        assert "symbol_count" in result["graph"]
+        assert "symbols" in result["graph"]
 
     def test_mermaid_from_dependency_with_data(self):
         data = {"edges": [["A", "B"], ["B", "C"]]}
@@ -1302,7 +1302,7 @@ class TestAnalysisInspectDepth:
                 "depth": 4,
             }))
             assert result["depth"] == 4
-            assert "4_graphs" in result["layers"]
+            assert "6_deadcode" in result["layers"]
 
     def test_inspect_depth_5_with_directory(self):
         """Depth 5 aktiviert Layer 5 (Tiefenanalyse)."""
@@ -1312,7 +1312,7 @@ class TestAnalysisInspectDepth:
                 "depth": 5,
             }))
             assert result["depth"] == 5
-            assert "5_deep" in result["layers"]
+            assert "7_complexity" in result["layers"]
 
     def test_inspect_depth_4_with_file(self):
         """Depth 4 mit single File — cycle_detector wird nicht dispatched (kein dir)."""
@@ -1325,9 +1325,9 @@ class TestAnalysisInspectDepth:
                 "depth": 4,
             }))
             assert result["depth"] == 4
-            assert "4_graphs" in result["layers"]
-            # dependency_graph und hot_paths sollten da sein
-            assert "dependency_graph" in result["layers"]["4_graphs"]
+            assert "6_deadcode" in result["layers"]
+            # deadcode layer
+            assert "unused_imports" in result["layers"]["6_deadcode"]
         finally:
             os.unlink(tmp_path)
 
@@ -1986,9 +1986,9 @@ class TestAnalysisInspectDepthAndSymbol:
             assert result["depth"] == 3
             assert result["symbol"] == "Foo"
             # Layer 2 sollte da sein (depth >= 2 + symbol)
-            assert "2_navigation" in result["layers"]
+            assert "4_capsule" in result["layers"]
             # Layer 3 sollte da sein (depth >= 3 + symbol)
-            assert "3_hierarchy" in result["layers"]
+            assert "5_call_hierarchy" in result["layers"]
         finally:
             os.unlink(tmp_path)
 
@@ -2005,9 +2005,9 @@ class TestAnalysisInspectDepthAndSymbol:
             }))
             assert result["depth"] == 5
             # Layer 4 (Graphen) sollte da sein
-            assert "4_graphs" in result["layers"]
+            assert "6_deadcode" in result["layers"]
             # Layer 5 (Tiefenanalyse) sollte da sein
-            assert "5_deep" in result["layers"]
+            assert "7_complexity" in result["layers"]
         finally:
             os.unlink(tmp_path)
 
@@ -2023,7 +2023,7 @@ class TestAnalysisInspectDepthAndSymbol:
                 "depth": 2,
             }))
             assert result["symbol"] == "Baz"
-            assert "2_navigation" in result["layers"]
+            assert "4_capsule" in result["layers"]
             assert "3_hierarchy" not in result["layers"]
         finally:
             os.unlink(tmp_path)

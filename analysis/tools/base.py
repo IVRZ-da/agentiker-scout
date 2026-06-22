@@ -397,5 +397,69 @@ def _build_summary_line(report: Dict[str, Any], metadata: Dict[str, Any]) -> str
 
 
 # ---------------------------------------------------------------------------
+# Cross-Tool Utilities (Registry-Integration)
+# ---------------------------------------------------------------------------
+
+
+def _try_create_plan_follow_plan(tool_name: str, path: str) -> dict | None:
+    """Erzeugt einen plan_follow Plan für eine tiefe Analyse.
+
+    Nur wenn das plan_follow Plugin geladen ist (lose Kopplung via Registry).
+    """
+    try:
+        from tools.registry import registry
+
+        entry = registry.get_entry("plan_create")
+        if entry is None:
+            return None
+
+        result = entry.handler({
+            "goal": f"Auto-Plan: {tool_name} auf {path}",
+            "template": "analysis",
+        })
+        if isinstance(result, str):
+            try:
+                return json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                return {"plan_created": True}
+        return result
+    except Exception as e:
+        logger.debug("plan_follow integration failed: %s", e)
+        return None
+
+
+def _try_create_bughunt_finding(severity: str, title: str, details: dict) -> dict | None:
+    """Erzeugt ein Bug-Hunt Finding via Registry (lose Kopplung).
+
+    Nur wenn das bughunt Plugin geladen ist.
+    """
+    try:
+        from tools.registry import registry
+
+        entry = registry.get_entry("bug_hunt_finding")
+        if entry is None:
+            return None
+
+        result = entry.handler({
+            "severity": severity,
+            "title": title,
+            "session_id": details.get("session_id", ""),
+            "file": details.get("file", ""),
+            "line": details.get("line", 0),
+            "description": details.get("description", ""),
+            "evidence": details.get("evidence", ""),
+        })
+        if isinstance(result, str):
+            try:
+                return json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                return {"finding_created": True}
+        return result
+    except Exception as e:
+        logger.debug("bughunt integration failed: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
 # analysis_diff Tool
 # ---------------------------------------------------------------------------

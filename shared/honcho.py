@@ -33,7 +33,7 @@ def _get_analysis_session() -> dict | None:
                 "findings_count": len(getattr(_active_session, "findings", [])),
             }
     except Exception:
-        pass
+        logger.debug("scout.honcho: no active analysis session")
     return None
 
 
@@ -48,7 +48,7 @@ def _get_bughunt_session() -> dict | None:
                 "severity": session.get("severity", "unknown"),
             }
     except Exception:
-        pass
+        logger.debug("scout.honcho: no active bug-hunt session")
     return None
 
 
@@ -63,7 +63,7 @@ def _get_research_session() -> dict | None:
                 "sources_count": len(research.get("sources", [])),
             }
     except Exception:
-        pass
+        logger.debug("scout.honcho: no active research session")
     return None
 
 

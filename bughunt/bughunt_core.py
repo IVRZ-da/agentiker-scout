@@ -726,6 +726,62 @@ def list_all_patterns() -> list[dict]:
 
 
 # ======================================================================
+# Session Cleanup — verhindert Datenmüll
+# ======================================================================
+
+MAX_SESSIONS = 100
+SESSION_TTL_DAYS = 30
+
+
+def cleanup_old_sessions(max_sessions: int = MAX_SESSIONS,
+                         max_age_days: int = SESSION_TTL_DAYS) -> int:
+    """Remove old session files beyond limits.
+
+    Args:
+        max_sessions: Maximum session files to keep (newest first).
+        max_age_days: Maximum age in days for any session file.
+
+    Returns:
+        Number of deleted files.
+    """
+    before = len(list(SESSIONS_DIR.glob("*.json")))
+    now = time.time()
+    cutoff = now - (max_age_days * 86400)
+    deleted = 0
+
+    sessions = sorted(SESSIONS_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+
+    # Remove by age
+    for f in sessions:
+        if f.stat().st_mtime < cutoff:
+            try:
+                f.unlink()
+                deleted += 1
+            except OSError:
+                pass
+
+    # Remove by count (keep newest max_sessions)
+    remaining = sorted(SESSIONS_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+    for f in remaining[max_sessions:]:
+        try:
+            f.unlink()
+            deleted += 1
+        except OSError:
+            pass
+
+    after = len(list(SESSIONS_DIR.glob("*.json")))
+    if deleted:
+        logger.debug("cleanup_old_sessions: %d removed (%d → %d)", deleted, before, after)
+    return deleted
+
+
+# Auto-Cleanup beim Import (falls >10% über Limit)
+_initial_session_count = len(list(SESSIONS_DIR.glob("*.json")))
+if _initial_session_count > MAX_SESSIONS * 1.1:
+    cleanup_old_sessions()
+
+
+# ======================================================================
 # Auto-Init — Patterns laden beim ersten Import (Fallback)
 # ======================================================================
 # Wird von __init__.py via core.init_patterns() aufgerufen.
