@@ -1235,11 +1235,11 @@ def _discover_python_patterns(
                         "description": "Leeres except: pass ohne Logging. Fehler werden verschluckt.",
                         "suggested_fix": "Im except-Block mindestens logger.warning() verwenden.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+                    logger.debug("silent catch (except: pass) pattern discovery failed: %s", e)
 
     # Mutable Default Args
-    q2 = r"def \w+\([^)]*=\{\s*\}|def \w+\([^)]*=\[\s*\]"
+        q2 = r"def \w+\([^)]*=\{\s*\}|def \w+\([^)]*=\[\s*\]"
     if q2 not in existing_queries:
         try:
             r = subprocess.run(
@@ -1261,8 +1261,8 @@ def _discover_python_patterns(
                         "description": "Mutable Default Args (list/dict) werden zwischen Aufrufen geteilt.",
                         "suggested_fix": "Default auf None setzen und im Body initialisieren.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("mutable default args pattern discovery failed: %s", e)
 
 
 def _discover_ts_patterns(
@@ -1299,8 +1299,8 @@ def _discover_ts_patterns(
                         "description": "console.log/warn/error in Produktionscode — Debug-Überreste.",
                         "suggested_fix": "Durch logger.debug() ersetzen oder entfernen.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("console.log pattern discovery failed: %s", e)
 
     # any statt unknown
     q2 = r":\s*any\b"
@@ -1325,8 +1325,8 @@ def _discover_ts_patterns(
                         "description": ": any deaktiviert Type Checking. unknown ist type-safe.",
                         "suggested_fix": ": any durch : unknown ersetzen und Typ-Guards nutzen.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("any-vs-unknown pattern discovery failed: %s", e)
 
     # force-dynamic in Next.js
     q3 = r"export\s+(const\s+)?dynamic\s*=\s*['\"]force"
@@ -1351,8 +1351,8 @@ def _discover_ts_patterns(
                         "description": "force-dynamic deaktiviert Caching. Nur nutzen wenn nötig.",
                         "suggested_fix": "Auf 'auto' setzen oder Route Segment Config prüfen.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("force-dynamic pattern discovery failed: %s", e)
 
 
 def _discover_go_patterns(
@@ -1386,8 +1386,8 @@ def _discover_go_patterns(
                         "description": "if err != nil { } — Error wird ignoriert (leerer Block).",
                         "suggested_fix": "Error immer loggen oder returned werden.",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("go error handling pattern discovery failed: %s", e)
 
 
 # ---------------------------------------------------------------------------

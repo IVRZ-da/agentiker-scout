@@ -98,6 +98,7 @@ def parse_ts_file(filepath: Path) -> Optional[dict[str, Any]]:
     try:
         text = filepath.read_text(encoding="utf-8", errors="replace")
     except Exception:
+        print(f"⚠️  could not read file: {filepath}")
         return None
 
     # Extract register({...}) call body
@@ -425,6 +426,7 @@ def load_existing_rules(yaml_path: Path) -> set[str]:
         for m in re.finditer(r'(?:^|\n)\s*-?\s*name:\s+(\S+)', text):
             names.add(m.group(1))
     except Exception:
+        print(f"⚠️  could not extract names from {yaml_path}")
         pass
 
     return names

@@ -1,5 +1,23 @@
 # Scout Plugin — CHANGELOG
 
+## [0.3.2] — 2026-06-22
+
+### Bug-Hunt Fixes (9 Findings)
+- **P0 Fix: `_parallel_dispatch` try/except** — `from tools.registry import registry` in
+  `analysis/tools/base.py:247` ohne Absicherung. Fix via try/except ImportError mit
+  logger.warning + return {}.
+- **P1 Fix: Silent Catches (8 Stellen)** — `except Exception: pass` in Pattern-Discovery
+  (`_discover_python_patterns`, `_discover_ts_patterns`, `_discover_go_patterns`) und
+  `increment_match_count` in `analysis/tools/base.py` durch logger.debug() ersetzt.
+- **P1 Fix: Version Tags** — Git-Tags v0.2.0, v0.3.0, v0.3.1 nachgetragen (plugin.yaml
+  war v0.3.1 aber nur v0.1.1 getaggt).
+- **P2 Fix: Domain __init__.py** — `analysis/__init__.py`, `bughunt/__init__.py`,
+  `research/__init__.py`, `shared/__init__.py` mit sinnvollen Re-Exports und __all__
+  versehen (vorher leer/nutzlos).
+- **P3 Fix: Script Silent Catches** — `scripts/convert_specfy_rules.py` print()-Warnungen
+  statt pass in 2 except-Blöcken.
+- 1316 Tests grün, 45 skipped, 0 Failures.
+
 ## [0.3.1] — 2026-06-22
 
 ### Fix

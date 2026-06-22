@@ -219,8 +219,8 @@ def _run_shared_pattern_scans(
                 try:
                     from scout.shared.patterns import increment_match_count
                     increment_match_count(p["pattern_id"])
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("increment_match_count failed for %s: %s", p.get("pattern_id", "?"), e)
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             logger.debug("shared pattern scan skipped for %s: %s",
                          p.get("pattern_id"), e)
@@ -244,7 +244,11 @@ def _parallel_dispatch(
     Returns:
         Dict mit keys → Ergebnisse (inkl. "key_error" bei Fehlern).
     """
-    from tools.registry import registry
+    try:
+        from tools.registry import registry
+    except ImportError:
+        logger.warning("tools.registry nicht verfügbar — _parallel_dispatch fällt aus")
+        return {}
 
     results: Dict[str, Any] = {}
     futures = {}
