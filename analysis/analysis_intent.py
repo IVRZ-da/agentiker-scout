@@ -1,9 +1,11 @@
 """analysis_intent — Intent-Erkennung und Keyword-Detection für das Analyse-Plugin.
 
-⚠️ DEPRECATED — Wird von shared/intent.py abgelöst.
+⚠️ PARTIELL ABGELÖST — _detect_intent existiert in shared/intent.py,
+aber _extract_file_refs, _is_analysis_query, _build_tool_recommendations
+und _query_honcho_analysis_history sind nur hier verfügbar.
 
-Neue Entwicklung sollte shared/intent.py verwenden. Dieser Code wird noch
-von analysis_core.py importiert (5 Funktionen: _detect_intent, _extract_file_refs,
+Neue Entwicklung sollte shared/intent.py verwenden, wo möglich. Dieser Code wird
+noch von analysis_core.py importiert (5 Funktionen: _detect_intent, _extract_file_refs,
 _is_analysis_query, _build_tool_recommendations, _query_honcho_analysis_history).
 
 Bietet:
