@@ -263,7 +263,8 @@ def _load_all_results() -> list[dict]:
                     "sources_count": len(data.get("sources", [])),
                     "saved_at": data.get("saved_at", ""),
                 })
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as e:
+            logger.debug("result file read failed: %s", e)
             continue
     return results
 

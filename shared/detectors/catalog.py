@@ -373,6 +373,42 @@ TF_DETECTOR = type("_TerraformDetector", (_TechDetector,), {
 
 # ── Definierte Detectors ───────────────────────────────────────────
 
+# Java
+JAVA_DETECTOR = type("_JavaDetector", (_TechDetector,), {
+    "name": "java",
+    "category": "language",
+    "markers": [
+        ("pom.xml", "<project", "high"),
+        ("build.gradle", "apply plugin", "high"),
+        ("**/*.java", "class ", "medium"),
+    ],
+})()
+
+# C / C++
+CPP_DETECTOR = type("_CppDetector", (_TechDetector,), {
+    "name": "cpp",
+    "category": "language",
+    "markers": [
+        ("CMakeLists.txt", "cmake_minimum_required", "high"),
+        ("Makefile", "CC=", "medium"),
+        ("**/*.cpp", "#include", "medium"),
+        ("**/*.c", "#include <", "medium"),
+        ("**/*.h", "#ifndef", "medium"),
+    ],
+})()
+
+# Ruby
+RUBY_DETECTOR = type("_RubyDetector", (_TechDetector,), {
+    "name": "ruby",
+    "category": "language",
+    "markers": [
+        ("Gemfile", "source ", "high"),
+        ("**/*.rb", "class ", "medium"),
+        ("**/*.rb", "def ", "medium"),
+        ("Rakefile", "task ", "medium"),
+    ],
+})()
+
 ALL_DETECTORS: List[_TechDetector] = [
     # Backend
     MEDUSA_V2_DETECTOR,
@@ -401,6 +437,9 @@ ALL_DETECTORS: List[_TechDetector] = [
     PYTHON_DETECTOR,
     RUST_DETECTOR,
     GO_DETECTOR,
+    JAVA_DETECTOR,
+    CPP_DETECTOR,
+    RUBY_DETECTOR,
     # Testing
     JEST_DETECTOR,
     VITEST_DETECTOR,

@@ -84,6 +84,8 @@ def build_fix_prompt(finding: dict, pattern: Optional[dict] = None) -> str:
 - Nur die betroffene Datei editieren, keine anderen Dateien verändern
 - Nach dem Fix: Syntax-Prüfung durchführen
 - Bei Unsicherheit: Schritt für Schritt vorgehen
+- **Optional:** Nutze `analysis_review` nach dem Fix um den geänderten Code zu reviewen
+  (analysis_review vergleicht main vs HEAD und zeigt Security/Complexity-Delta)
 """
     return prompt
 

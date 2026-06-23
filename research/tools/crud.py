@@ -70,8 +70,8 @@ def research_start(args: dict, **kwargs) -> str:
     try:
         from scout.research.research_hooks import reset_tracker
         reset_tracker(research_id)
-    except ImportError:
-        pass
+    except ImportError as e:
+        logger.debug("reset_tracker import skipped: %s", e)
 
     # Plan im plan_follow Plugin anlegen (lose Kopplung via Registry)
     plan_follow_result = _try_create_plan_follow_plan(query, research_id)
@@ -117,8 +117,8 @@ def _enforce_max_results() -> None:
         oldest = files.pop(0)
         try:
             oldest.unlink()
-        except OSError:
-            pass
+        except OSError as e:
+            logger.debug("cleanup unlink failed: %s", e)
 
 
 # ---------------------------------------------------------------------------

@@ -167,10 +167,56 @@ def _ensure_dirs() -> None:
     (PLUGIN_DIR / "analysis" / "data").mkdir(parents=True, exist_ok=True)
 
 
+def _ensure_deps() -> None:
+    """Auto-install fehlender Dependencies beim ersten Plugin-Start."""
+    import importlib
+    import logging
+    import subprocess
+    import sys
+    logger = logging.getLogger(__name__)
+
+    missing: list[str] = []
+    for pkg_name, import_name in [
+        ("PyYAML", "yaml"),
+        ("packaging", "packaging"),
+    ]:
+        try:
+            importlib.import_module(import_name)
+        except ImportError:
+            missing.append(pkg_name)
+
+    if not missing:
+        return
+
+    # Versuch 1: pip ins aktive Venv
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install"] + missing,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        logger.info("✅ Dependencies auto-installiert: %s", missing)
+        return
+    except Exception:
+        pass
+
+    # Versuch 2: --user Fallback (für systemd/root/Docker)
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--user"] + missing,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        logger.info("✅ Dependencies via --user installiert: %s", missing)
+        return
+    except Exception as e:
+        logger.error("❌ Auto-Install fehlgeschlagen: %s. Manuell: %s -m pip install %s",
+                     e, sys.executable, " ".join(missing))
+
+
 # ─── Plugin Entry Point ──────────────────────────────────────────────
 
 def register(ctx: PluginContext) -> None:
     """Plugin entry point — registers hooks + tools."""
+    _ensure_deps()
     from hermes_cli.plugins import PluginContext  # noqa: F401 — lazy import
 
     # tools.registry Shim (für 19 Stellen in Domain-Modulen)

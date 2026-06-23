@@ -260,3 +260,78 @@ def analysis_watch_tool(args: dict, **kwargs) -> str:
     }
 
     return fmt_ok(watch_plan)
+
+
+# ---------------------------------------------------------------------------
+# analysis_diff_analysis Tool
+# ---------------------------------------------------------------------------
+
+
+def analysis_diff_analysis_tool(args: dict, **kwargs) -> str:
+    """Git-Diff mit Impact-Analyse zwischen zwei Refs.
+
+    Nutzt code_diff_analysis + code_impact + code_git_diff_file.
+    """
+    from .base import _call_tool
+
+    path = args.get("path", "")
+    base = args.get("base", "main")
+    head = args.get("head", "HEAD")
+    max_files = min(args.get("max_files", 5), 20)
+
+    path_error, resolved_path = _validate_and_resolve_path(path)
+    if path_error:
+        return fmt_err(f"{path_error} (path: {path})")
+    path = resolved_path
+
+    if not os.path.isdir(path):
+        return fmt_err(f"Not a directory: {path}")
+
+    result: dict[str, Any] = {
+        "path": path,
+        "base": base,
+        "head": head,
+        "sections": {},
+    }
+
+    # 1. code_diff_analysis
+    try:
+        diff = _call_tool("code_diff_analysis", path=path, base=base, head=head, max_files=max_files)
+        if diff and isinstance(diff, dict):
+            result["sections"]["diff_overview"] = {
+                k: diff.get(k) for k in
+                ("changed_files", "insertions", "deletions", "changed_functions")
+                if k in diff
+            }
+            # Changed functions + complexity delta
+            funcs = diff.get("changed_functions", diff.get("functions", []))
+            if isinstance(funcs, list):
+                result["sections"]["changed_functions"] = [
+                    {"name": f.get("name", "?"), "complexity_delta": f.get("complexity_delta", 0)}
+                    for f in funcs[:max_files]
+                ]
+    except Exception as e:
+        logger.debug("code_diff_analysis skipped: %s", e)
+
+    # 2. Uncommitted diff
+    try:
+        dirty = _call_tool("code_git_diff_file", path=path)
+        if dirty and isinstance(dirty, dict):
+            result["sections"]["uncommitted"] = {
+                "files_changed": dirty.get("changed_files", dirty.get("summary", {}).get("files", 0)),
+                "diff_present": bool(dirty.get("diff", "")),
+            }
+    except Exception as e:
+        logger.debug("code_git_diff_file skipped: %s", e)
+
+    parts = [f"📊 Diff-Analyse: {base} → {head}"]
+    overview = result.get("sections", {}).get("diff_overview", {})
+    if overview:
+        parts.append(f"  {overview.get('changed_files', '?')} Dateien geändert")
+        parts.append(f"  +{overview.get('insertions', 0)} -{overview.get('deletions', 0)} Zeilen")
+    funcs = result.get("sections", {}).get("changed_functions", [])
+    if funcs:
+        parts.append(f"  {len(funcs)} Funktionen geändert")
+    result["summary"] = "\n".join(parts)
+
+    return fmt_ok(result)

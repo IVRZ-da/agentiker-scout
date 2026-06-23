@@ -129,7 +129,7 @@ class TestBugHuntPattern:
         import bughunt_core as core
         core.init_patterns()
         result = _ok(bug_hunt_pattern({"action": "list_categories"}))
-        assert result["count"] == 8
+        assert result["count"] == 11, f"Erwartet 11 categories, habe {result['count']}"
 
     def test_pattern_detail(self, monkeypatch):
         _mock_core(monkeypatch)
@@ -152,7 +152,7 @@ class TestBugHuntPattern:
         import bughunt_core as core
         core.init_patterns()
         result = _ok(bug_hunt_pattern({"category": "security"}))
-        assert result["count"] == 12
+        assert result["count"] == 19, f"Erwartet 19 security patterns, habe {result['count']}"
 
 
 # ======================================================================

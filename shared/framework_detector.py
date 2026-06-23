@@ -18,9 +18,12 @@ from .detectors.base import (
 )
 from .detectors.catalog import (
     ALL_DETECTORS,
+    CPP_DETECTOR,
     FORGEJO_ACTIONS_DETECTOR,
+    JAVA_DETECTOR,
     MEDUSA_V2_DETECTOR,
     NEXTJS_DETECTOR,
+    RUBY_DETECTOR,
 )
 from .detectors.dependency_data import (
     _DOCKER_IMAGE_MAP,

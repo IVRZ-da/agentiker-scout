@@ -138,6 +138,16 @@ ANALYSIS_DEADCODE_SCHEMA = {
                 "description": "Persist results in Honcho (default: true).",
                 "default": True,
             },
+            "max_files": {
+                "type": "integer",
+                "description": "Maximum files to scan (default: 500, max: 1000).",
+                "default": 500,
+            },
+            "timeout": {
+                "type": "integer",
+                "description": "Maximum seconds for scanning (default: 60, max: 300).",
+                "default": 60,
+            },
         },
         "required": ["path"],
     },
@@ -469,5 +479,296 @@ ANALYSIS_CODE_MOVE_SCHEMA = {
             "dry_run": {"type": "boolean", "description": "Preview changes without writing (default: True)"},
         },
         "required": ["source", "symbol", "target"],
+    },
+}
+
+ANALYSIS_TIMELINE_SCHEMA = {
+    "name": "analysis_timeline",
+    "description": (
+        "Zeigt die Evolution eines Symbols oder Projekts über die Git-History. "
+        "Nutzt code_timeline + code_git_log_symbol + code_diff_analysis um "
+        "kompakte Timeline mit Autor, Datum, Änderungsart und Complexity-Trend zu liefern."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute file or directory path.",
+            },
+            "symbol": {
+                "type": "string",
+                "description": "Optional symbol name (function/class) für fokussierte Timeline.",
+            },
+            "max_commits": {
+                "type": "integer",
+                "description": "Max commits to show (default: 10).",
+                "default": 10,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_DUPLICATES_SCHEMA = {
+    "name": "analysis_duplicates",
+    "description": (
+        "Findet duplizierte/ähnliche Code-Blöcke via AST-Vergleich. "
+        "Nutzt code_duplicates für AST-basierte Duplikat-Erkennung "
+        "mit konfigurierbarer Mindestlänge und Ähnlichkeitsschwelle."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to project or file.",
+            },
+            "min_lines": {
+                "type": "integer",
+                "description": "Minimum lines for a duplicate block (default: 5).",
+                "default": 5,
+            },
+            "similarity_threshold": {
+                "type": "number",
+                "description": "Similarity ratio for near-duplicate detection (default: 0.8).",
+                "default": 0.8,
+            },
+            "top_n": {
+                "type": "integer",
+                "description": "Number of top results (default: 10).",
+                "default": 10,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_DEPENDENCY_RISK_SCHEMA = {
+    "name": "analysis_dependency_risk",
+    "description": (
+        "Bewertet Abhängigkeitsrisiken einer Datei oder eines Projekts. "
+        "Kombiniert code_dependency_risk + code_complexity + code_hot_paths "
+        "zu einem gewichteten Risk Score (0-10) mit Breakdown nach Kategorien."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute file or directory path.",
+            },
+            "detail_level": {
+                "type": "string",
+                "enum": ["summary", "detailed"],
+                "description": "'summary' (default) gibt Gesamt-Score, 'detailed' zeigt Breakdown.",
+                "default": "summary",
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_DIFF_ANALYSIS_SCHEMA = {
+    "name": "analysis_diff_analysis",
+    "description": (
+        "Vergleicht zwei Git-Refs und zeigt geänderte Funktionen mit "
+        "Complexity-Delta und Blast Radius. Nutzt code_diff_analysis + "
+        "code_impact + code_git_diff_file."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to git repository.",
+            },
+            "base": {
+                "type": "string",
+                "description": "Base ref (commit/branch/tag). Default: 'main'.",
+                "default": "main",
+            },
+            "head": {
+                "type": "string",
+                "description": "Head ref. Default: current HEAD.",
+                "default": "HEAD",
+            },
+            "max_files": {
+                "type": "integer",
+                "description": "Max files to analyze in depth (default: 5).",
+                "default": 5,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_RISK_SCHEMA = {
+    "name": "analysis_risk",
+    "description": (
+        "Multi-Faktor Risk Assessment für ein Projekt. Kombiniert "
+        "dependency_risk + complexity + unused_finder + security_scan + "
+        "hot_paths + duplicates zu einem Gesamt-Risk-Score (0-10)."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to project directory.",
+            },
+            "categories": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Risk categories to include (default: all). Options: dependencies, complexity, deadcode, security, hotspots, duplicates",
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_REVIEW_SCHEMA = {
+    "name": "analysis_review",
+    "description": (
+        "Automated Code Review für Änderungen zwischen Git-Refs. "
+        "Kombiniert code_review_assistant + code_security_scan + "
+        "code_diff_analysis für vollständigen PR-Review mit "
+        "Diff-Analyse, Security-Check und Complexity-Delta."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to git repository.",
+            },
+            "base": {
+                "type": "string",
+                "description": "Base branch (default: 'main').",
+                "default": "main",
+            },
+            "head": {
+                "type": "string",
+                "description": "Head ref (default: current HEAD).",
+                "default": "HEAD",
+            },
+            "max_files": {
+                "type": "integer",
+                "description": "Max files to analyze in depth (default: 10).",
+                "default": 10,
+            },
+            "include_security": {
+                "type": "boolean",
+                "description": "Include security scan (default: true).",
+                "default": True,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_GRAPH_QUERY_SCHEMA = {
+    "name": "analysis_graph_query",
+    "description": (
+        "Durchsucht den Knowledge Graph eines Projekts. "
+        "Baut via code_index einen SQLite-persistenten ImportGraph auf "
+        "und erlaubt Abfragen zu Callern, Callees, Hot Paths, "
+        "Zyklen und Dependency-Health."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to project root.",
+            },
+            "query": {
+                "type": "string",
+                "enum": ["callers", "callees", "hot_paths", "cycles", "health", "summary"],
+                "description": "Query type.",
+            },
+            "symbol": {
+                "type": "string",
+                "description": "File path or symbol name (for callers/callees).",
+            },
+            "top_n": {
+                "type": "integer",
+                "description": "Max results (default: 10).",
+                "default": 10,
+            },
+            "force_reindex": {
+                "type": "boolean",
+                "description": "Force reindex before query (default: false).",
+                "default": False,
+            },
+        },
+        "required": ["path", "query"],
+    },
+}
+
+ANALYSIS_TEST_INSIGHT_SCHEMA = {
+    "name": "analysis_test_insight",
+    "description": (
+        "Analysiert die Testabdeckung eines Symbols oder Projekts. "
+        "Nutzt code_tests_for_symbol + code_generate_tests um "
+        "vorhandene Tests zu finden und fehlende Test-Scaffolds zu generieren."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Absolute path to file or directory.",
+            },
+            "symbol": {
+                "type": "string",
+                "description": "Optional symbol name to focus analysis on.",
+            },
+            "generate": {
+                "type": "boolean",
+                "description": "Generate test scaffolds for untested symbols (default: false).",
+                "default": False,
+            },
+        },
+        "required": ["path"],
+    },
+}
+
+ANALYSIS_MIGRATION_SCHEMA = {
+    "name": "analysis_migration",
+    "description": (
+        "Führt YAML-basierte Bulk-Migrationen über ein Projekt aus. "
+        "Nutzt code_migration für AST-gewahrte Pattern-Replacements "
+        "mit Dry-Run und detailliertem Reporting."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Project root or directory to apply migrations to.",
+            },
+            "rules": {
+                "type": "array",
+                "description": "List of migration rules. Each rule has: pattern + rewrite + optional file_glob/language/name.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {"type": "string", "description": "ast-grep pattern."},
+                        "rewrite": {"type": "string", "description": "Replacement template."},
+                        "file_glob": {"type": "string", "description": "File glob filter (default: **/*.ts)."},
+                        "language": {"type": "string", "description": "Language override."},
+                        "name": {"type": "string", "description": "Optional rule name."},
+                    },
+                    "required": ["pattern", "rewrite"],
+                },
+            },
+            "dry_run": {
+                "type": "boolean",
+                "description": "Preview changes without writing (default: true).",
+                "default": True,
+            },
+        },
+        "required": ["path", "rules"],
     },
 }

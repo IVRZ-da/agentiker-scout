@@ -188,7 +188,11 @@ def analysis_security_tool(args: dict, **kwargs) -> str:
 
 
 def analysis_ask_tool(args: dict, **kwargs) -> str:
-    """KI-gestützte Analyse-Frage."""
+    """KI-gestützte Analyse-Frage — kompakte Antwort.
+
+    Sammelt Code-Kontext + Honcho-Memory und gibt eine kurze
+    Zusammenfassung zurück (kein voller Data-Dump).
+    """
     from scout._fmt import fmt_err, fmt_ok
 
     question = args.get("question", "")
@@ -197,11 +201,11 @@ def analysis_ask_tool(args: dict, **kwargs) -> str:
     if not question.strip():
         return fmt_err("question is required")
 
-    result: Dict[str, Any] = {
-        "question": question[:200],
-        "context": {},
-        "findings": [],
-    }
+    symbol_count = 0
+    diag_errors = 0
+    diag_warnings = 0
+    has_honcho = False
+    error_hint = ""
 
     if path:
         error = _validate_path(path)
@@ -213,7 +217,17 @@ def analysis_ask_tool(args: dict, **kwargs) -> str:
                         {"key": "symbols", "name": "code_symbols", "kwargs": {"path": path_resolved}},
                         {"key": "diagnostics", "name": "code_diagnostics", "kwargs": {"path": path_resolved}},
                     ]
-                    result["context"] = _parallel_dispatch(ctx_calls)
+                    ctx = _parallel_dispatch(ctx_calls)
+                    # Nur relevante Metriken extrahieren, kein Full-Dump
+                    syms = ctx.get("symbols", {})
+                    if isinstance(syms, dict):
+                        symbol_count = len(syms.get("symbols", syms.get("data", [])))
+                    elif isinstance(syms, list):
+                        symbol_count = len(syms)
+                    diag = ctx.get("diagnostics", {})
+                    if isinstance(diag, dict):
+                        diag_errors = diag.get("errors", 0)
+                        diag_warnings = diag.get("warnings", 0) or diag.get("diagnostic_count", 0) - diag_errors
                 except Exception as e:
                     logger.warning("analysis_ask context collection error: %s", e)
 
@@ -223,17 +237,33 @@ def analysis_ask_tool(args: dict, **kwargs) -> str:
             "query": question[:200],
             "max_tokens": 400,
         })
-        if honcho:
-            if isinstance(honcho, str):
-                result["honcho_context"] = honcho[:500]
-            else:
-                result["honcho_context"] = str(honcho)[:500]
+        has_honcho = bool(honcho)
+        if has_honcho and isinstance(honcho, str) and len(honcho) > 10:
+            error_hint = honcho[:200]
     except Exception:
         logger.warning("analysis_ask honcho_search failed", exc_info=True)
 
-    result["summary"] = (
-        f"Question: {question[:100]}... "
-        f"Context sources: {len(result.get('context', {}))} files + Honcho memory"
-    )
+    question_short = question[:120]
+    parts = [f"📝 {question_short}"]
+    if path:
+        parts.append(f"📁 {path}")
+        parts.append(f"  Symbole: {symbol_count} | Diagnostics: ⚠{diag_warnings} ✗{diag_errors}")
+    if has_honcho:
+        parts.append("🧠 Honcho-Kontext vorhanden")
+        if error_hint:
+            parts.append(f"  → {error_hint}")
+    else:
+        parts.append("🧠 Kein Honcho-Kontext")
+
+    result = {
+        "question": question[:200],
+        "summary": "\n".join(parts),
+        "metrics": {
+            "symbol_count": symbol_count,
+            "diag_errors": diag_errors,
+            "diag_warnings": diag_warnings,
+            "has_honcho": has_honcho,
+        },
+    }
 
     return fmt_ok(result)

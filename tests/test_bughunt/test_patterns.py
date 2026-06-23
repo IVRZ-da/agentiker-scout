@@ -51,7 +51,8 @@ class TestPatternStructure:
             assert p.name, f"{p.pattern_id} hat keinen name"
 
     def test_all_have_categories(self, init_pats):
-        valid = {"security", "code-quality", "typescript", "go", "rust", "react-next", "medusa-admin-ui"}
+        valid = {"security", "code-quality", "typescript", "go", "rust", "react-next",
+                 "medusa-admin-ui", "java", "cpp", "ruby"}
         for p in init_pats.ALL_PATTERNS:
             assert p.category in valid, f"{p.pattern_id}: category={p.category} ungültig"
 
@@ -69,17 +70,21 @@ class TestPatternStructure:
             assert p.fix_description, f"{p.pattern_id} hat keine fix_description"
 
     def test_all_have_scan_type(self, init_pats):
-        valid = {"code_search", "grep", "code_diagnostics"}
+        valid = {
+            "code_search", "grep", "code_diagnostics",
+            "code_security_scan", "code_todo_finder", "code_duplicates",
+            "code_merge_conflict", "code_search_by_error", "code_unused_finder",
+        }
         for p in init_pats.ALL_PATTERNS:
             assert p.scan_type in valid, f"{p.pattern_id}: scan_type={p.scan_type} ungültig"
 
     def test_security_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("security")
-        assert len(pats) == 12, f"security hat {len(pats)} patterns, erwarte 12"
+        assert len(pats) == 19, f"security hat {len(pats)} patterns, erwarte 19"
 
     def test_code_quality_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("code-quality")
-        assert len(pats) == 13
+        assert len(pats) == 19, f"code-quality hat {len(pats)} patterns, erwarte 19"
 
     def test_typescript_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("typescript")
@@ -130,12 +135,15 @@ class TestPatternLookup:
 
     def test_list_categories(self, init_pats):
         cats = init_pats.list_categories()
-        assert len(cats) == 8
+        assert len(cats) == 11
         cat_names = [c["category"] for c in cats]
         assert "security" in cat_names
         assert "code-quality" in cat_names
         assert "go" in cat_names
         assert "rust" in cat_names
+        assert "java" in cat_names
+        assert "cpp" in cat_names
+        assert "ruby" in cat_names
 
     def test_list_all_patterns_returns_dicts(self, init_pats):
         pats = init_pats.list_all_patterns()
@@ -168,8 +176,8 @@ class TestPatternIntegration:
     """Patterns sind via core.* verfügbar."""
 
     def test_init_patterns_populates_core(self, init_pats):
-        """init_patterns() befüllt CATEGORY mit 8 Kategorien."""
-        assert len(init_pats.PATTERNS_BY_CATEGORY) == 8
+        """init_patterns() befüllt PATTERNS_BY_CATEGORY mit 11 Kategorien."""
+        assert len(init_pats.PATTERNS_BY_CATEGORY) == 11
         assert len(init_pats.ALL_PATTERNS) >= 20
 
     def test_core_functions_work_after_init(self, init_pats):

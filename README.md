@@ -1,107 +1,236 @@
-# Scout Plugin — Hermes Agent
+# 🔍 Scout — Hermes Plugin
 
-Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline. 42 tools across 3 domains.
+> Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
+> 43 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
 
-- **Version:** 0.1.2
-- **Author:** agentiker
-- **License:** MIT
-- **Total Tools:** 43
-
----
-
-## Tool-Übersicht
-
-### Analysis — Code & Architecture Analysis (13 Tools)
-
-| Tool | Description |
-|------|-------------|
-| `analysis_inspect` |  |
-| `analysis_report` |  |
-| `analysis_architecture` |  |
-| `analysis_deadcode` |  |
-| `analysis_performance` |  |
-| `analysis_security` |  |
-| `analysis_ask` |  |
-| `analysis_diff` |  |
-| `analysis_trend` |  |
-| `analysis_watch` |  |
-| `analysis_graph` |  |
-| `analysis_ui_gap` |  |
-| `analysis_pattern_discover` |  |
-
-### Bug-Hunt — Automated Bug Pattern Scanning (13 Tools)
-
-| Tool | Description |
-|------|-------------|
-| `bug_hunt_start` | Start a new bug-hunt session. |
-| `bug_hunt_finding` | Add a finding to a session. |
-| `bug_hunt_list` | List findings for a session, filterable. |
-| `bug_hunt_close` | Close a bug-hunt session. |
-| `bug_hunt_scan` | Run automated scans using pattern library. |
-| `bug_hunt_triage` | Update severity/status for findings. |
-| `bug_hunt_verify` | Verify if a finding's bug still exists. |
-| `bug_hunt_fix` | Generate an auto-fix prompt for a bug finding. |
-| `bug_hunt_report` | Generate a structured bug-hunt report. |
-| `bug_hunt_export` | Export findings as JSON or Markdown. |
-| `bug_hunt_history` | Search past bug-hunt sessions. |
-| `bug_hunt_pattern` | List, inspect, search, save, or manage bug patterns. |
-| `bug_hunt_stats` | Statistics about findings in a session. |
-
-### Research — Web Research & Synthesis (17 Tools)
-
-| Tool | Description |
-|------|-------------|
-| `research_start` | Startet eine neue Recherche. Validiert die Query, erzeugt eine research_id und l… |
-| `research_save` | Speichert die Ergebnisse einer Recherche. |
-| `research_delete` | Löscht eine Recherche inklusive Plan- und Ergebnis-Dateien. |
-| `research_cleanup` | Bereinigt alte oder verwaiste Research-Daten. |
-| `research_tag` | Verwaltet Tags für eine Recherche (add/remove/set/clear). |
-| `research_update` | Aktualisiert eine bestehende Recherche (erweitern/korrigieren). |
-| `research_verify` | Prüft Quellen-URLs auf Erreichbarkeit und validiert Findings. |
-| `research_auto` | Startet eine vollautonome Recherche. Rüstet einen Sub-Agenten aus der selbststän… |
-| `research_search` | Durchsucht gespeicherte Research-Ergebnisse mit BM25-Volltextsuche. Unterstützt … |
-| `research_status` | Zeigt Status und Details einer Recherche an. |
-| `research_stats` | Zeigt Metriken und Statistiken über alle Recherchen. |
-| `research_export` | Exportiert Research-Ergebnisse als Markdown oder Text. |
-| `research_compare` | Vergleicht 2-3 Research-IDs. |
-| `research_synthesize` | Synthetisiert passende Research-Ergebnisse via Honcho. |
-| `research_merge` | Fasst mehrere Recherchen zu einer zusammen (dedupliziert). |
-| `research_export_all` | Exportiert ALLE gespeicherten Recherchen als Bundle. |
-| `research_schedule` | Plant periodische Recherchen via Hermes cronjob. |
+[![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1390-green.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ---
 
-## Latest Changes
+## 📋 Table of Contents
 
-## [0.1.2] — 2026-06-22
-
-### Tests — E2E-Konvertierung
-- **E2E-Tests in Unit-Tests konvertiert:** Alle 81 E2E-Tests (gated via E2E_TEST=1) wurden analysiert:
-  - 44 Research-Tests: **gelöscht** (100% durch existierende Unit-Tests abgedeckt)
-  - 14 Bughunt-Tests: **gelöscht** (100% redundant)
-  - 15 Analysis-Tools-Tests: **migriert** nach `tests/test_analysis/test_e2e_converted.py` (tmp_path statt Plugin-Source)
-  - 3 Pattern-Tests: **migriert** nach `tests/test_bughunt/test_shared_patterns.py`
-  - 1 Edge-Case-Test: **migriert** nach `tests/test_bughunt/test_e2e_converted.py`
-  - 2 Workflow-Tests: **migriert** als `pytest.mark.integration` in `tests/test_integration/`
-- **`test_e2e/` Verzeichnis gelöscht** — kein E2E-TEST=1 Gate mehr
-- **`pytest.ini`:** `integration` Marker registriert
-- Resultat: 882 Tests, 0 von E2E_TEST abhängig
+- [✨ Why?](#-why)
+- [🚀 Quick Start](#-quick-start)
+- [🛠 Tools](#-tools)
+- [📦 Installation](#-installation)
+- [🏗 Architecture](#-architecture)
+- [🧪 Development](#-development)
+- [🤝 Contributing](#-contributing)
 
 ---
 
-## Development
+## ✨ Why?
 
-### Setup
+Hermes comes with basic search and read tools. When you need deeper insights — architecture analysis, vulnerability scanning, or multi-source web research — you'd normally juggle multiple tools and manual workflows.
+
+**Scout combines three capabilities into one plugin:**
+
+| Domain | What it does |
+|--------|-------------|
+| **Analysis** | Code & architecture analysis — dependency graphs, complexity, dead code, security, UI gaps, trend tracking |
+| **Bug-Hunt** | Automated pattern-based vulnerability scanning — find bugs, triage, verify fixes, track history |
+| **Research** | Autonomous web research — search → scrape → synthesize → save with full lifecycle management |
+
+The **shared pattern pipeline** lets bug-hunt patterns feed into analysis scans and vice versa. Custom patterns discovered during analysis are immediately available for automated bug-hunt scans.
+
+---
+
+## 🚀 Quick Start
+
+### Analyse einen Codebase
+
+```python
+# Architecture overview mit Dependency-Graph
+analysis_architecture(path="/path/to/project", depth=2)
+```
+
+### Bug-Hunt starten
+
+```python
+# Session öffnen, Patterns scannen, Results sichern
+bug_hunt_start(project="/path/to/project", scope="quick")
+bug_hunt_scan(session_id="...", patterns=["security", "errors"])
+bug_hunt_report(session_id="...", format="markdown")
+```
+
+### Autonome Recherche
+
+```python
+# Sub-Agent startet firecrawl_search → scrape → synthesize → save
+research_auto(query="Neueste Medusa v2 Features 2026", depth=3)
+```
+
+---
+
+## 🛠 Tools
+
+<!-- AUTO-GENERATED -->
+| Tool | Description |
+|------|-------------|
+| `analysis_architecture` | Full architecture analysis: workspace structure → dependency graph → hot paths → cycles |
+| `analysis_ask` | Natural language questions about a codebase — uses Honcho context |
+| `analysis_code_move` | Move symbol between files via AST extraction |
+| `analysis_code_query` | Smart query router — auto-selects best code intelligence tool |
+| `analysis_deadcode` | Finds unused imports, unused functions, orphaned error handlers |
+| `analysis_dependency_risk` | Code dependency health assessment with risk score (0-10) |
+| `analysis_diff` | Compare two analysis results — shows added/removed/changed findings |
+| `analysis_diff_analysis` | Compare two Git-refs: changed functions, complexity delta, blast radius |
+| `analysis_duplicates` | Find duplicate/similar code blocks via AST comparison |
+| `analysis_framework` | Framework profile detection — auto-detects tech stack with confidence scoring |
+| `analysis_graph` | Generates Mermaid diagrams from analysis reports |
+| `analysis_graph_query` | Knowledge graph queries: callers, callees, hot paths, cycles |
+| `analysis_inspect` | Multi-step analysis: symbols → definitions → references → call hierarchy → cycles in one call |
+| `analysis_migration` | YAML-based bulk pattern migrations with dry-run |
+| `analysis_pattern_discover` | Discover code patterns that look like bugs but aren't covered by existing patterns |
+| `analysis_performance` | Bottleneck analysis: complexity hotspots, slow paths, inlay hints |
+| `analysis_report` | Generate structured analysis report and persist in Honcho |
+| `analysis_review` | Automated code review: diff analysis + security + complexity delta |
+| `analysis_risk` | Multi-factor risk assessment combining dependency risk, complexity, dead code, security |
+| `analysis_security` | Scans for orphaned error handlers, vulnerability patterns, security anti-patterns |
+| `analysis_test_insight` | Test coverage analysis for a symbol or project |
+| `analysis_timeline` | Symbol evolution over git history — commits, complexity trend, author distribution |
+| `analysis_trend` | Trend analysis over time — queries Honcho for past analysis results |
+| `analysis_ui_gap` | Discovers UI layers (Next.js, Medusa admin, API routes, Go handlers) and compares against backend modules |
+| `analysis_watch` | Set up recurring cron-based analysis on a path with change detection |
+| `bug_hunt_close` | Close a session with optional summary |
+| `bug_hunt_export` | Export findings as JSON or Markdown |
+| `bug_hunt_finding` | Add a finding (title, severity P0-P3, category, evidence, fix) |
+| `bug_hunt_fix` | Generate auto-fix prompt for a finding |
+| `bug_hunt_history` | Search past bug-hunt sessions by project |
+| `bug_hunt_list` | List findings filtered by severity, status, category, or file |
+| `bug_hunt_pattern` | List, inspect, save, or manage bug patterns (45+ built-in) |
+| `bug_hunt_report` | Generate structured report (JSON/Markdown) grouped by severity |
+| `bug_hunt_scan` | Run automated scans using the 45+ pattern library |
+| `bug_hunt_start` | Start a new bug-hunt session with scope (quick/comprehensive/custom) |
+| `bug_hunt_stats` | Statistics about findings in a session |
+| `bug_hunt_triage` | Update finding severity/status with notes |
+| `bug_hunt_verify` | Verify if a finding's bug still exists in the code |
+| `research_auto` | Autonomous research: spawns a sub-agent that searches → scrapes → synthesizes → saves |
+| `research_cleanup` | Clean old or orphaned research data |
+| `research_compare` | Compare 2-3 research results side by side |
+| `research_delete` | Delete a research including plan and result files |
+| `research_export` | Export a research as Markdown or text |
+| `research_export_all` | Export ALL researches as JSON/Markdown/CSV |
+| `research_merge` | Merge 2-5 researches into one (deduplicated) |
+| `research_save` | Save results with summary, findings, sources, tags |
+| `research_schedule` | Schedule periodic research via Hermes cron |
+| `research_search` | Full-text search over saved research with BM25 ranking |
+| `research_start` | Start a new research — validates query, creates plan file |
+| `research_stats` | Metrics and statistics about all researches |
+| `research_status` | Show status and details of a research |
+| `research_synthesize` | Synthesize related research via Honcho |
+| `research_tag` | Manage tags for a research (add/remove/set/clear) |
+| `research_update` | Update an existing research (append findings/sources) |
+| `research_verify` | Verify source URLs and validate findings |
+<!-- END AUTO-GENERATED -->
+
+---
+
+
+
+Enable the plugin in `~/.hermes/config.yaml`:
+
+```yaml
+plugins:
+  enabled:
+    - scout
+```
+
+Then install dependencies:
 
 ```bash
-# Pre-commit hook aktivieren
-git config core.hooksPath .githooks
+# Ins Hermes-Venv installieren
+~/.hermes/hermes-agent/venv/bin/pip install -e /home/jo/.hermes/plugins/scout/
+
+# Oder via Script
+./scripts/install-deps.sh
+```
+
+**Dependencies:** `rich>=13.0`, `PyYAML>=6.0`, `packaging>=24.0`
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                     Scout Plugin                     │
+├────────────┬──────────────────┬──────────────────────┤
+│  Analysis  │    Bug-Hunt      │      Research        │
+│  13 Tools  │    13 Tools      │     17 Tools         │
+│            │                  │                      │
+│ • Inspect  │ • Start/Finding  │ • Auto-Research      │
+│ • Arch     │ • Scan/Patterns  │ • Search/Save        │
+│ • Deadcode │ • Triage/Verify  │ • Synthesize/Merge   │
+│ • Security │ • Report/Export  │ • Schedule/Export    │
+│ • UI Gap   │ • Fix/History    │ • Compare/Verify     │
+│ • Risk     │                  │                      │
+└────────────┴──────────────────┴──────────────────────┘
+       │               │                  │
+       └───────────────┴──────────────────┘
+                       │
+           ┌───────────▼───────────┐
+           │  Shared Pattern       │
+           │  Pipeline             │
+           │  (patterns_core.py)   │
+           │  • 45+ Built-in       │
+           │  • Custom Patterns    │
+           │  • Framework-Aware    │
+           └───────────────────────┘
+                       │
+           ┌───────────▼───────────┐
+           │  Persistence          │
+           │  • Honcho (Sessions)  │
+           │  • JSON (Research)    │
+           │  • SQLite (Patterns)  │
+           └───────────────────────┘
+```
+
+**Key design decisions:**
+- **Intent-Priority-Scoring** — `bug > research > analysis` — when multiple domains could handle a query, the highest-priority handler wins
+- **Shared Pattern Pipeline** — patterns from bug-hunt are available in analysis and vice versa
+- **Single pre_llm_call Hook** — one hook handles all 3 domains instead of 3 separate hooks
+- **Tool name compatibility** — `analysis_*`, `bug_hunt_*`, `research_*` namespaces preserved for backward compatibility
+
+---
+
+## 🧪 Development
+
+```bash
+cd /home/jo/.hermes/plugins/scout
 
 # Tests ausführen
 python3 -m pytest tests/ -q --tb=short
 
 # Ruff Lint
 python3 -m ruff check . --select F,E,T,W,I
+
+# Pre-Commit Hook aktivieren
+git config core.hooksPath .githooks
 ```
 
+Aktuell: **1390 Tests** (45 skipped), Coverage per Pre-Commit Hook enforced.
+
+---
+
+## 📄 Changelog
+
+Siehe `CHANGELOG.md` für vollständige Release-History.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repo
+2. Create a feature branch
+3. Add tests for your changes
+4. Run `python3 -m pytest tests/ -q` — alle Tests müssen grün sein
+5. Open a PR
+
 Siehe `CONTRIBUTING.md` und `BRANCHING.md` für Details.
+
+## 📄 License
+
+[MIT](LICENSE)

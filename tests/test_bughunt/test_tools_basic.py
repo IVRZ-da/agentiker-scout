@@ -437,7 +437,7 @@ class TestGetCoreLoadsPatterns:
         assert any(c["category"] == "security" for c in cats), "security-Kategorie muss existieren"
 
     def test_get_core_has_all_five_categories(self):
-        """Alle 8 Pattern-Kategorien müssen geladen sein."""
+        """Alle 12 Pattern-Kategorien müssen geladen sein."""
         import sys as _sys
 
         plugin_root = Path(__file__).parent.parent
@@ -448,11 +448,13 @@ class TestGetCoreLoadsPatterns:
         from scout.bughunt.bughunt_tools import _get_core
         core = _get_core()
         cats = {c["category"] for c in core.list_categories()}
-        expected = {"security", "code-quality", "typescript", "go", "rust", "react-next", "medusa-admin-ui", "custom"}
+        expected = {"security", "code-quality", "typescript", "go", "rust",
+                    "react-next", "medusa-admin-ui", "custom",
+                    "java", "cpp", "ruby"}
         assert cats == expected, f"Erwartet {expected}, habe {cats}"
 
     def test_get_core_returns_30_patterns(self):
-        """Genau 36 Patterns müssen geladen sein."""
+        """Genau 56 Patterns müssen geladen sein."""
         import sys as _sys
 
         plugin_root = Path(__file__).parent.parent
@@ -462,4 +464,4 @@ class TestGetCoreLoadsPatterns:
 
         from scout.bughunt.bughunt_tools import _get_core
         core = _get_core()
-        assert len(core.PATTERNS_BY_ID) == 45, f"Erwartet 45 Patterns, habe {len(core.PATTERNS_BY_ID)}"
+        assert len(core.PATTERNS_BY_ID) == 71, f"Erwartet 71 Patterns, habe {len(core.PATTERNS_BY_ID)}"

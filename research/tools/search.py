@@ -2,14 +2,17 @@
 tools/search.py — Suche und Status: research_search, research_status, research_stats.
 """
 
+import logging
 import math
 import re
 from collections import Counter
 from datetime import datetime, timezone
 
-from scout._fmt import fmt_err, fmt_ok, fmt_research_status
+logger = logging.getLogger(__name__)
 
-from .base import (
+from scout._fmt import fmt_err, fmt_ok, fmt_research_status  # noqa: E402
+
+from .base import (  # noqa: E402
     PLANS_DIR,
     RESULTS_DIR,
     _list_orphan_plans,
@@ -203,8 +206,8 @@ def research_search(args: dict, **kwargs) -> str:
                         dt_to = datetime.fromisoformat(date_to)
                         if dt > dt_to:
                             continue
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as e:
+                    logger.debug("date filter parse failed: %s", e)
 
         # BM25-Score
         score = 0.0
@@ -346,8 +349,8 @@ def research_status(args: dict, **kwargs) -> str:
                     hours = secs // 3600
                     mins = (secs % 3600) // 60
                     duration_str = f"{hours}h {mins}m"
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug("duration parse failed: %s", e)
 
         return fmt_research_status({
             "research_id": research_id,
@@ -420,8 +423,8 @@ def research_stats(args: dict, **kwargs) -> str:
                     age_dist["7-30 Tage"] += 1
                 else:
                     age_dist["> 30 Tage"] += 1
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug("age distribution parse failed: %s", e)
 
     return fmt_ok({
         "total_researches": total,

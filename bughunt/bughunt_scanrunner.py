@@ -1,11 +1,9 @@
-"""Scan-Runner für bug_hunt_scan() — automatische Ausführung von grep-Scans.
+"""Scan-Runner für bug_hunt_scan() — automatische Ausführung von grep + code_intel Scans.
 
 Architektur:
 - **grep-Scans** (security, code-quality pattern mit scan_type=grep) → automatisch via subprocess
-- **code_search** (AST-basiert) → weiterhin Instructions (braucht Hermes-Tools)
-- **code_diagnostics** (LSP-basiert) → weiterhin Instructions (braucht Hermes-Tools)
-
-Der Runner reduziert die manuelle Arbeit des Agents um ~70%.
+- **code_intel-Scans** (code_security_scan, code_search_by_error, code_todo_finder) → via Registry Dispatch
+- **code_search** / **code_diagnostics** → weiterhin Instructions (kein auto-exec)
 """
 import logging
 import re
@@ -79,6 +77,93 @@ def run_grep_scan(scan_query: str, scan_file_glob: str,
     return results
 
 
+# ---------------------------------------------------------------------------
+# code_intel Scan Dispatch (Phase 1 — Neue Scan-Typen)
+# ---------------------------------------------------------------------------
+# 🔴 F2: Graceful Degradation — jeder Scan hat try/except
+# Wenn code_intel Plugin nicht geladen ist, wird der Scan übersprungen
+# und als "not available" vermerkt (kein Abbruch des gesamten Batches).
+
+# Mapping: scan_type → registry tool name
+_CODE_INTEL_SCAN_MAP = {
+    "code_security_scan": {
+        "tool": "code_security_scan",
+        "kwargs": {"severity": "all"},
+        "finding_extractor": lambda r: [
+            {"file": f.get("file", ""), "line": f.get("line", 0),
+             "evidence": f.get("evidence", f.get("description", ""))[:200],
+             "severity": _map_security_severity(f.get("severity", "P3"))}
+            for f in (r.get("findings", []) if isinstance(r, dict) else [])
+        ],
+    },
+    "code_search_by_error": {
+        "tool": "code_search_by_error",
+        "kwargs": {},
+        "finding_extractor": lambda r: [
+            {"file": e.get("file", ""), "line": e.get("line", 0),
+             "evidence": e.get("evidence", e.get("match", ""))[:200],
+             "severity": "P2"}
+            for e in (r.get("errors", r.get("data", [])) if isinstance(r, dict) else [])
+        ],
+    },
+    "code_todo_finder": {
+        "tool": "code_todo_finder",
+        "kwargs": {},
+        "finding_extractor": lambda r: [
+            {"file": m.get("file", ""), "line": m.get("line", 0),
+             "evidence": m.get("match", m.get("content", ""))[:200],
+             "severity": "P3"}
+            for m in (r.get("matches", r.get("data", [])) if isinstance(r, dict) else [])
+        ],
+    },
+}
+
+
+def _map_security_severity(sev: str) -> str:
+    """Map security scan severity to P-Level."""
+    sev_map = {"CRITICAL": "P0", "HIGH": "P1", "MEDIUM": "P2", "LOW": "P3", "INFO": "INFO"}
+    return sev_map.get(sev.upper(), "P2")
+
+
+def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
+    """Führt einen code-intel Scan via Registry Dispatch aus.
+
+    🔴 F2: Bei fehlendem Plugin/Registry → graceful Fallback.
+    Returns: dict mit "findings" (list) und "tool_status".
+    """
+    scan_config = _CODE_INTEL_SCAN_MAP.get(scan_type)
+    if not scan_config:
+        return {"findings": [], "tool_status": "unknown_scan_type"}
+
+    tool_name = scan_config["tool"]
+    kwargs = dict(scan_config["kwargs"])
+    kwargs["path"] = scan_path
+
+    try:
+        from tools.registry import registry
+        entry = registry.get_entry(tool_name)
+        if entry is None:
+            logger.debug("code_intel scan skipped — %s not registered", tool_name)
+            return {"findings": [], "tool_status": f"{tool_name} nicht verfügbar (Plugin?)"}
+
+        result = entry.handler(kwargs)
+        if isinstance(result, str):
+            import json
+            try:
+                result = json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                return {"findings": [], "tool_status": f"{tool_name}: parse error"}
+
+        extractor = scan_config["finding_extractor"]
+        findings = extractor(result) if callable(extractor) else []
+        return {"findings": findings, "tool_status": "ok", "raw_count": len(findings)}
+
+    except Exception as e:
+        # 🔴 F2: Graceful Degradation — kein Abbruch
+        logger.debug("code_intel scan %s failed: %s", tool_name, e)
+        return {"findings": [], "tool_status": f"{tool_name}: {e}"}
+
+
 def _parse_grep_line(line: str) -> Optional[dict]:
     """Parse a single grep output line into a structured result.
 
@@ -147,6 +232,38 @@ def batch_grep_scans(patterns: list[dict], project_root: str) -> dict:
             else:
                 manual_instructions.append(
                     f"ℹ️ {pattern_id} ({name}): Keine Treffer (grep)"
+                )
+
+        elif scan_type in _CODE_INTEL_SCAN_MAP:
+            # 🔴 F2: Graceful Degradation — bei Fehler kein Abbruch
+            scan_result = _run_code_intel_scan(scan_type, project_root)
+            findings = scan_result.get("findings", [])
+            tool_status = scan_result.get("tool_status", "unknown")
+
+            if tool_status == "ok" and findings:
+                for f_data in findings:
+                    auto_findings.append({
+                        "pattern_id": pattern_id,
+                        "severity": f_data.get("severity", severity),
+                        "title": name,
+                        "file": f_data.get("file", ""),
+                        "line": f_data.get("line", 0),
+                        "evidence": f_data.get("evidence", ""),
+                        "category": pattern.get("category", "other"),
+                        "description": pattern.get("description", ""),
+                        "suggested_fix": pattern.get("fix_description", ""),
+                    })
+                manual_instructions.append(
+                    f"✅ {pattern_id} ({name}): {len(findings)} Treffer via {scan_type}"
+                )
+            elif tool_status == "ok" and not findings:
+                manual_instructions.append(
+                    f"ℹ️ {pattern_id} ({name}): Keine Treffer ({scan_type})"
+                )
+            else:
+                # 🔴 F2: Tool nicht verfügbar — kein Abbruch, nur Hinweis
+                manual_instructions.append(
+                    f"⚠️ {pattern_id} ({name}): {tool_status} — Scan übersprungen"
                 )
 
         elif scan_type in ("code_search", "code_diagnostics"):

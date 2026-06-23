@@ -1,5 +1,77 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.0] — 2026-06-23
+
+### Added — Bughunt code-intel Integration
+
+**Phase 1 — Neue Scan-Typen:**
+- `code_security_scan`: 16 integrierte Vulnerability-Patterns via Registry Dispatch
+- `code_search_by_error`: Orphaned Error-Handler Analyse
+- `code_todo_finder`: TODO/FIXME/HACK Scanner
+- Graceful Degradation: Fehlende Tools brechen den Scan nicht ab (🔴 F2)
+
+**Phase 2 — Neue Bug Patterns (43→69, +26):**
+- Security (S020-S026): 7 Patterns mit scan_type=code_security_scan
+- Code-Quality (C020-C025): 6 Patterns (TODOs, Duplicates, Merge-Conflicts, Error Handler)
+- Java (J001-J005): 5 Patterns (Log Forging, Null Pointer, SQL, Deserialization, Credentials)
+- C/C++ (CPP001-CPP005): 5 Patterns (Buffer Overflow, Memory Leak, Use-After-Free, Integer Overflow, Format String)
+- Ruby (RB001-RB003): 3 Patterns (Mass Assignment, Command Injection, SQL Injection)
+
+**Phase 3 — Cross-Tool Integration:**
+- Auto-Findings: analysis_security Ergebnisse → BugHunt-Findings (Dedup via TTL-Cache, 🔴 F3)
+- Bug-Timeline: analysis_timeline + code_git_blame in bug_hunt_history
+- Risk-Priorisierung: analysis_risk Risk-Score in bug_hunt_stats
+- _call_tool Import in bughunt_tools (fallback-sicher)
+
+**Phase 4 — Bug-Fix + Framework Patterns:**
+- analysis_review Hinweis in bug_hunt_fix Prompt
+- Framework-specific patterns (Java, C/C++, Ruby)
+
+### Changed
+- **Scan-Runner**: batch_grep_scans unterstützt jetzt 3 code_intel scan_types
+- **bug_hunt_history**: Neuer `path`/`symbol` Parameter für Timeline
+- **bug_hunt_stats**: Neuer `risk_score`/`risk_level` Output
+- **bughunt_hooks**: Deduplizierungs-Cache für Auto-Findings (5min TTL)
+- **Plugin-Version**: 0.4.0→0.5.0
+
+### Tests
+- 292+ Bughunt-Tests grün, 0 Failures
+- 1383+ Gesamt-Tests grün
+- 69 Built-in Patterns (vorher 43)
+
+## [0.4.0] — 2026-06-23
+
+### Added — 9 neue Analyse-Tools (16→25)
+
+**Phase 1a — Composite-Tools (3):**
+- `analysis_timeline` — Composite aus code_timeline + code_git_log_symbol + code_diff_analysis
+- `analysis_duplicates` — Wrapper für code_duplicates (AST-basierte Duplikat-Erkennung)
+- `analysis_dependency_risk` — Composite Risk Score (code_dependency_risk + complexity + hot_paths)
+
+**Phase 1b+2 — Erweiterungen + Mittlere Komplexität (2):**
+- `analysis_diff_analysis` — Git-Diff mit Impact-Analyse (code_diff_analysis + code_git_diff_file)
+- `analysis_risk` — Multi-Faktor Risk Score (6 Kategorien: dependencies, complexity, deadcode, security, hotspots, duplicates)
+
+**Phase 3+4 — Höhere Komplexität (4):**
+- `analysis_review` — Automated Code Review (code_review_assistant + security_scan + diff_analysis)
+- `analysis_graph_query` — Knowledge Graph Query (code_index + code_graph_query)
+- `analysis_test_insight` — Testabdeckungs-Analyse (code_tests_for_symbol + generate_tests)
+- `analysis_migration` — YAML-basierte Bulk Migration (code_migration)
+
+### Changed
+- **analysis_inspect depth=5**: 3 neue Layer (8=timeline, 9=duplicates, 10=dependency_risk)
+- **analysis_deadcode**: Neue Parameter max_files/timeout
+- **analysis_security**: code_security_scan Integration (parallel zu eigenen Patterns)
+- **analysis_framework**: 3 neue LSP-Detectors (Java, C/C++, Ruby)
+- **analysis_ask**: Output radikal gekürzt (kein Full-Data-Dump mehr)
+- **Tool-Count**: 46→55 (analysis: 16→25, bughunt: 13, research: 17)
+- **Version**: 0.3.4→0.4.0
+
+### Tests
+- 38 neue Tests für alle neuen Tools
+- 1361+ Tests grün, 0 Failures
+- Framework-Detector: YAML-Rule-Test für cpp/ruby als known_without_yaml markiert
+
 ## [0.3.4] — 2026-06-22
 
 ### Bug-Hunt Fixes (8 Findings)

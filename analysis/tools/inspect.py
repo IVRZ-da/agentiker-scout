@@ -93,6 +93,19 @@ def analysis_inspect_tool(args: dict, **kwargs) -> str:
 
     if depth >= 5:
         report["layers"]["7_complexity"] = _build_complexity_layer(path)
+        # Layer 8-10: Nur bei depth=5 (volle Tiefe)
+        try:
+            report["layers"]["8_timeline"] = _build_timeline_layer(path, symbol)
+        except Exception as e:
+            report["layers"]["8_timeline"] = {"error": str(e)}
+        try:
+            report["layers"]["9_duplicates"] = _build_duplicates_layer(path)
+        except Exception as e:
+            report["layers"]["9_duplicates"] = {"error": str(e)}
+        try:
+            report["layers"]["10_dependency_risk"] = _build_dependency_risk_layer(path)
+        except Exception as e:
+            report["layers"]["10_dependency_risk"] = {"error": str(e)}
 
     report["summary"] = _build_summary(report["layers"])
     report["instruction"] = _build_report_instruction(report, path)
@@ -174,6 +187,71 @@ def _build_complexity_layer(path: str) -> dict:
         return {"error": str(e)}
 
 
+# ─── Helper: Timeline Layer (depth=5) ─────────────────────────────────
+
+
+def _build_timeline_layer(path: str, symbol: str = "") -> dict:
+    """Baut Layer 8: Code-Timeline (letzte Änderungen)."""
+    result = {}
+    try:
+        diff = _call_tool("code_diff_analysis", path=path, base="HEAD~5", head="HEAD", max_files=5)
+        if diff and isinstance(diff, dict):
+            result["recent_changes"] = {
+                "files": diff.get("changed_files", diff.get("summary", {}).get("changed_files", 0)),
+                "insertions": diff.get("insertions", diff.get("summary", {}).get("insertions", 0)),
+                "deletions": diff.get("deletions", diff.get("summary", {}).get("deletions", 0)),
+            }
+    except Exception as e:
+        result["diff_error"] = str(e)
+    if symbol:
+        try:
+            syms = _call_tool("code_symbols", path=path, pattern=symbol)
+            line = 1
+            if isinstance(syms, dict):
+                for s in syms.get("symbols", []):
+                    if s.get("name") == symbol:
+                        line = s.get("line", 1)
+                        break
+            timeline = _call_tool("code_timeline", path=path, line=line, max_commits=5)
+            if timeline:
+                result["symbol_timeline"] = timeline
+        except Exception as e:
+            result["timeline_error"] = str(e)
+    return result
+
+
+# ─── Helper: Duplicates Layer (depth=5) ───────────────────────────────
+
+
+def _build_duplicates_layer(path: str) -> dict:
+    """Baut Layer 9: Duplikat-Erkennung."""
+    try:
+        dups = _call_tool("code_duplicates", path=path, min_lines=5, top_n=10)
+        if isinstance(dups, dict):
+            blocks = dups.get("duplicates", dups.get("data", []))
+            return {"duplicate_count": len(blocks) if isinstance(blocks, list) else 0}
+        return {"duplicate_count": 0}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ─── Helper: Dependency Risk Layer (depth=5) ──────────────────────────
+
+
+def _build_dependency_risk_layer(path: str) -> dict:
+    """Baut Layer 10: Dependency Risk Score."""
+    try:
+        risk = _call_tool("code_dependency_risk", path=path)
+        if isinstance(risk, dict):
+            return {
+                "risk_score": risk.get("risk_score", risk.get("score", 0)),
+                "risk_level": risk.get("risk_level", "unknown"),
+            }
+        return {"risk_score": 0}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ─── Helper: Summary ──────────────────────────────────────────────────
 
 
@@ -188,6 +266,18 @@ def _build_summary(layers: dict) -> dict:
             "errors": diag.get("errors", 0),
             "warnings": diag.get("warnings", 0),
         }
+    if "8_timeline" in layers:
+        tl = layers["8_timeline"]
+        if "recent_changes" in tl:
+            summary["recent_changes"] = tl["recent_changes"]
+    if "9_duplicates" in layers:
+        dup = layers["9_duplicates"]
+        if "duplicate_count" in dup:
+            summary["duplicates"] = dup["duplicate_count"]
+    if "10_dependency_risk" in layers:
+        risk = layers["10_dependency_risk"]
+        if "risk_score" in risk:
+            summary["dependency_risk"] = risk["risk_score"]
     return summary
 
 

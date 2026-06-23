@@ -6,8 +6,21 @@ Jeder Handler folgt dem Hermes Dispatch Contract:
 
 import importlib.util
 import json
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("scout.bughunt")
+
+# Import shared tool dispatch (analysis/tools/base.py)
+try:
+    from scout.analysis.tools.base import _call_tool
+except ImportError:
+    # Fallback: _call_tool definieren (falls analysis nicht verfügbar)
+    def _call_tool(name: str, **kwargs):
+        """Fallback wenn analysis tools nicht geladen."""
+        logger.debug("_call_tool: %s nicht verfügbar (analysis tools fehlen)", name)
+        return {"error": f"{name} nicht verfügbar"}
 
 # Lazy-load bughunt_core via importlib (avoid relative import issues in tool dispatch)
 _CORE_MODULE = None
@@ -29,7 +42,8 @@ def _get_core():
         core_mod.init_patterns()  # idempotent — befüllt PATTERNS_BY_ID
         _CORE_MODULE = core_mod
         return _CORE_MODULE
-    except (ImportError, AttributeError, ValueError):
+    except (ImportError, AttributeError, ValueError) as e:
+        logger.debug("bughunt_core lazy-import fallback: %s", e)
         pass
 
     # 2) Fallback: importlib mit korrektem Package-Namen
@@ -74,7 +88,8 @@ def _get_fix_mod():
         from scout.bughunt import bughunt_fix as fix_mod
         _FIX_MODULE = fix_mod
         return _FIX_MODULE
-    except (ImportError, AttributeError, ValueError):
+    except (ImportError, AttributeError, ValueError) as e:
+        logger.debug("bughunt_fix lazy-import fallback: %s", e)
         pass
     if "bughunt_fix" in sys.modules:
         _FIX_MODULE = sys.modules["bughunt_fix"]
@@ -590,7 +605,10 @@ def bug_hunt_export(args: dict, **kwargs) -> str:
 
 
 def bug_hunt_history(args: dict, **kwargs) -> str:
-    """Search past bug-hunt sessions."""
+    """Search past bug-hunt sessions + Timeline via analysis_timeline.
+
+    🔴 F3/F4: Erweiterte History mit analysis_timeline + code_git_blame.
+    """
     core = _get_core()
     session_id = args.get("session_id", "").strip()
     if session_id:
@@ -603,10 +621,39 @@ def bug_hunt_history(args: dict, **kwargs) -> str:
     sessions = core.list_sessions()
     if project:
         sessions = [s for s in sessions if project.lower() in s.get("project", "").lower()]
-    return _ok({
+
+    result: dict = {
         "sessions": sessions[:limit], "count": min(len(sessions), limit),
         "instruction": "Für Details: bug_hunt_history(session_id='...'). Für Honcho: honcho_search(peer='bughunt').",
-    })
+    }
+
+    # Timeline/Blame Integration (wenn path angegeben)
+    path = args.get("path", "").strip()
+    symbol = args.get("symbol", "").strip()
+    if path:
+        try:
+            timeline_kwargs = {"path": path}
+            if symbol:
+                timeline_kwargs["symbol"] = symbol
+                timeline_kwargs["max_commits"] = 5
+            from tools.registry import registry
+            entry = registry.get_entry("analysis_timeline")
+            if entry:
+                tl_result = entry.handler(timeline_kwargs)
+                if tl_result:
+                    result["timeline"] = str(tl_result)[:500]
+        except Exception:
+            pass
+        try:
+            blame = _call_tool("code_git_blame", path=path)
+            if blame and isinstance(blame, dict):
+                result["git_blame"] = {
+                    "lines": len(blame.get("blame", blame.get("lines", []))),
+                }
+        except Exception:
+            pass
+
+    return _ok(result)
 
 
 def bug_hunt_pattern(args: dict, **kwargs) -> str:
@@ -792,7 +839,7 @@ def bug_hunt_pattern(args: dict, **kwargs) -> str:
 
 
 def bug_hunt_stats(args: dict, **kwargs) -> str:
-    """Statistics about findings in a session."""
+    """Statistics about findings in a session + Risk-Score via analysis_risk."""
     core = _get_core()
     session_id = args.get("session_id", "").strip()
     if not session_id:
@@ -811,10 +858,24 @@ def bug_hunt_stats(args: dict, **kwargs) -> str:
         fp = f.get("file", "unknown")
         file_counts[fp] = file_counts.get(fp, 0) + 1
     top_files = sorted(file_counts.items(), key=lambda x: -x[1])[:10]
-    return _ok({
+
+    result: dict = {
         "session_id": session_id, "total": len(findings),
         "by_severity": by_severity, "by_category": by_category,
         "by_status": by_status,
         "top_files": [{"file": f, "count": c} for f, c in top_files],
         "scope": session.scope, "project": session.project, "status": session.status,
-    })
+    }
+
+    # Risk-Score via analysis_risk (falls verfügbar)
+    project_path = session.project
+    if project_path and project_path != "/test":
+        try:
+            risk_result = _call_tool("analysis_risk", path=project_path)
+            if isinstance(risk_result, dict) and risk_result.get("risk_score") is not None:
+                result["risk_score"] = risk_result["risk_score"]
+                result["risk_level"] = risk_result.get("risk_level", "unknown")
+        except Exception:
+            pass
+
+    return _ok(result)

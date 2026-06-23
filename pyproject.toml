@@ -15,18 +15,22 @@ requires-python = ">=3.12"
 
 dependencies = [
     "rich>=13.0",
+    "PyYAML>=6.0",
+    "packaging>=24.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-cov",
+    "pytest-xdist",
     "ruff>=0.6.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = [".."]
 testpaths = ["tests"]
+addopts = "-n auto"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",

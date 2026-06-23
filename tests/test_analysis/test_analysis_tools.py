@@ -50,7 +50,7 @@ class TestToolRegistration:
     """Prüft ob Tools korrekt registriert werden."""
 
     def test_all_tools_in_handler_registry(self):
-        """Alle 13 Tools müssen in TOOL_HANDLERS registriert sein."""
+        """Alle 25 Tools müssen in TOOL_HANDLERS registriert sein."""
         expected = {
             "analysis_inspect", "analysis_report",
             "analysis_architecture", "analysis_deadcode",
@@ -63,6 +63,18 @@ class TestToolRegistration:
             "analysis_framework",
             "analysis_code_query",
             "analysis_code_move",
+            # Phase 1a
+            "analysis_timeline",
+            "analysis_duplicates",
+            "analysis_dependency_risk",
+            # Phase 1b+2
+            "analysis_diff_analysis",
+            "analysis_risk",
+            # Phase 3+4
+            "analysis_review",
+            "analysis_graph_query",
+            "analysis_test_insight",
+            "analysis_migration",
         }
         registered = set(tools.TOOL_HANDLERS.keys())
         missing = expected - registered

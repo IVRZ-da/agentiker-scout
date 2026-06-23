@@ -212,3 +212,109 @@ class TestBatchGrepScans:
                      "scan_type": "invalid_type", "scan_query": ""}]
         result = batch_grep_scans(patterns, str(tmp_path))
         assert "Unbekannter Scan-Typ" in result["manual_instructions"][0]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# _run_code_intel_scan — code-intel basierte Scans
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestRunCodeIntelScan:
+    """_run_code_intel_scan — Dispatch für code_security_scan, search_by_error, todo_finder."""
+
+    def test_graceful_degradation_when_tool_missing(self):
+        """🔴 F2: Wenn Tool nicht registriert → graceful Fallback, kein Crash."""
+        from scout.bughunt.bughunt_scanrunner import _run_code_intel_scan
+        result = _run_code_intel_scan("code_security_scan", "/tmp")
+        assert "findings" in result
+        assert isinstance(result["findings"], list)
+        assert "tool_status" in result
+
+    def test_unknown_scan_type(self):
+        """Unbekannter scan_type → leer + Status."""
+        from scout.bughunt.bughunt_scanrunner import _run_code_intel_scan
+        result = _run_code_intel_scan("nonexistent_scan", "/tmp")
+        assert result["findings"] == []
+        assert "unknown_scan_type" in result["tool_status"]
+
+    def test_map_security_severity(self):
+        """_map_security_severity mappt korrekt."""
+        from scout.bughunt.bughunt_scanrunner import _map_security_severity
+        assert _map_security_severity("CRITICAL") == "P0"
+        assert _map_security_severity("HIGH") == "P1"
+        assert _map_security_severity("MEDIUM") == "P2"
+        assert _map_security_severity("LOW") == "P3"
+        assert _map_security_severity("INFO") == "INFO"
+        assert _map_security_severity("unknown") == "P2"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# batch_grep_scans — code-intel Scan-Typen Integration
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestBatchScansWithCodeIntel:
+    """batch_grep_scans — neue code-intel scan_types."""
+
+    def test_code_security_scan_type_graceful(self, tmp_path):
+        """code_security_scan ohne Registry → graceful degradation."""
+        from scout.bughunt.bughunt_scanrunner import batch_grep_scans
+        patterns = [{
+            "pattern_id": "S020", "name": "Security Scan",
+            "severity": "P0", "category": "security",
+            "scan_type": "code_security_scan",
+            "scan_query": "", "scan_file_glob": "",
+            "description": "Test", "fix_description": "Fix",
+        }]
+        result = batch_grep_scans(patterns, str(tmp_path))
+        # Kein Crash — entweder Findings oder Hinweis
+        assert "auto_findings" in result
+        assert "manual_instructions" in result
+        # Wenn Tool nicht verfügbar → Hinweis in manual_instructions
+        if result["auto_count"] == 0:
+            assert any("⚠️" in i or "ℹ️" in i for i in result["manual_instructions"])
+
+    def test_code_search_by_error_type_graceful(self, tmp_path):
+        """code_search_by_error ohne Registry → graceful degradation."""
+        from scout.bughunt.bughunt_scanrunner import batch_grep_scans
+        patterns = [{
+            "pattern_id": "C020", "name": "Error Handler",
+            "severity": "P2", "category": "code-quality",
+            "scan_type": "code_search_by_error",
+            "scan_query": "", "scan_file_glob": "",
+            "description": "Test", "fix_description": "Fix",
+        }]
+        result = batch_grep_scans(patterns, str(tmp_path))
+        assert "auto_findings" in result
+        assert "manual_instructions" in result
+
+    def test_todo_finder_type_graceful(self, tmp_path):
+        """code_todo_finder ohne Registry → graceful degradation."""
+        from scout.bughunt.bughunt_scanrunner import batch_grep_scans
+        patterns = [{
+            "pattern_id": "C021", "name": "Stale TODOs",
+            "severity": "P3", "category": "code-quality",
+            "scan_type": "code_todo_finder",
+            "scan_query": "", "scan_file_glob": "",
+            "description": "Test", "fix_description": "Fix",
+        }]
+        result = batch_grep_scans(patterns, str(tmp_path))
+        assert "auto_findings" in result
+        assert "manual_instructions" in result
+
+    def test_mixed_grep_and_code_intel_patterns(self, tmp_path):
+        """Grep + code_intel Patterns gemischt — kein Crash."""
+        from scout.bughunt.bughunt_scanrunner import batch_grep_scans
+        (tmp_path / "test.py").write_text("eval('print(1)')\n")
+        patterns = [
+            {"pattern_id": "S009", "name": "Python eval", "severity": "P0",
+             "category": "security", "scan_type": "grep",
+             "scan_query": "eval(", "scan_file_glob": "*.py",
+             "description": "", "fix_description": ""},
+            {"pattern_id": "S020", "name": "Security Scan", "severity": "P0",
+             "category": "security", "scan_type": "code_security_scan",
+             "scan_query": "", "scan_file_glob": "",
+             "description": "", "fix_description": ""},
+        ]
+        result = batch_grep_scans(patterns, str(tmp_path))
+        assert result["auto_count"] >= 0
+        assert len(result["manual_instructions"]) == 2
+        assert "auto_findings" in result

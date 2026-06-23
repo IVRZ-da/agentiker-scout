@@ -377,6 +377,69 @@ QUALITY_PATTERNS = [
         fix_description="assert nur in Tests verwenden. In Production: if not condition: raise ...",
         false_positive_notes="assert in Test-Dateien und __debug__-geguardten Blöcken ist ok",
     ),
+    # ──────────────────────────────────────────────────────────────────────
+    # Neue Code-Quality Patterns (C020-C025) — code_intel-basiert
+    # ──────────────────────────────────────────────────────────────────────
+    BugPattern(
+        pattern_id="C020",
+        name="Stale TODOs/FIXMEs im Code",
+        category="code-quality",
+        severity="P3",
+        description="TODO, FIXME, HACK oder XXX Kommentare die auf unerledigte Arbeit hinweisen",
+        scan_type="code_todo_finder",
+        fix_description="Entweder erledigen und Kommentar entfernen, oder Task im Issue-Tracker anlegen",
+        false_positive_notes="Explizit gewollte TODOs (z.B. geplante Features) können Ausnahme sein",
+    ),
+    BugPattern(
+        pattern_id="C021",
+        name="Duplicate Code-Blöcke",
+        category="code-quality",
+        severity="P2",
+        description="Duplizierte Code-Blöcke die auf fehlende Abstraktion hindeuten",
+        scan_type="code_duplicates",
+        fix_description="In gemeinsame Funktion/Methode extrahieren. DRY-Prinzip anwenden.",
+        false_positive_notes="Kleine Boilerplate-Blöcke (<5 Zeilen) können akzeptabel sein",
+    ),
+    BugPattern(
+        pattern_id="C022",
+        name="Merge-Konflikt Marker im Code",
+        category="code-quality",
+        severity="P0",
+        description="<<<<<<< / ======= / >>>>>>> Marker die auf ungelöste Merge-Konflikte hinweisen",
+        scan_type="code_merge_conflict",
+        fix_description="Merge-Konflikt manuell auflösen und Marker entfernen",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="C023",
+        name="Error Handler ohne Logging",
+        category="code-quality",
+        severity="P2",
+        description="try/catch Blöcke oder Exception Handler die keine Fehler loggen",
+        scan_type="code_search_by_error",
+        fix_description="logger.error() oder ähnliches in jedem catch-Block ergänzen",
+        false_positive_notes="Leere catch-Blöcke die als 'TODO' markiert sind",
+    ),
+    BugPattern(
+        pattern_id="C024",
+        name="Unused Imports/Code",
+        category="code-quality",
+        severity="P3",
+        description="Importierte aber ungenutzte Module oder deklarierte aber nie aufgerufene Funktionen",
+        scan_type="code_unused_finder",
+        fix_description="Nicht verwendete Imports/Funktionen entfernen",
+        false_positive_notes="Type-Only Imports und re-exportierte Module ausschliessen",
+    ),
+    BugPattern(
+        pattern_id="C025",
+        name="Error-Handler Vulnerabilities",
+        category="code-quality",
+        severity="P2",
+        description="Orphaned Error Handler oder unvollständige Fehlerbehandlung",
+        scan_type="code_search_by_error",
+        fix_description="Error-Handler auf Vollständigkeit prüfen, Stacktrace loggen",
+        false_positive_notes="",
+    ),
 ]
 
 # ======================================================================
@@ -654,6 +717,256 @@ ADMIN_PATTERNS = [
         fix_description="catch (err) { toast.error(err?.message || 'Fehler') }",
         false_positive_notes="",
     ),
+    # ──────────────────────────────────────────────────────────────────────
+    # Neue Security Patterns (S020-S026) — code_security_scan
+    # ──────────────────────────────────────────────────────────────────────
+    BugPattern(
+        pattern_id="S020",
+        name="Hardcoded Secrets (code_security_scan)",
+        category="security",
+        severity="P0",
+        description="Hardcodierte Secrets, API-Keys, Tokens oder Passwörter",
+        scan_type="code_security_scan",
+        fix_description="Secrets in .env oder Secret-Manager auslagern",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S021",
+        name="SQL Injection (code_security_scan)",
+        category="security",
+        severity="P0",
+        description="SQL Injection via String-Concatenation",
+        scan_type="code_security_scan",
+        fix_description="Prepared Statements oder Query-Builder verwenden",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S022",
+        name="Path Traversal (code_security_scan)",
+        category="security",
+        severity="P1",
+        description="File-Operationen mit user-gesteuerten Pfaden",
+        scan_type="code_security_scan",
+        fix_description="Pfad-Validierung via realpath + prefix-Check",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S023",
+        name="Command Injection (code_security_scan)",
+        category="security",
+        severity="P0",
+        description="Shell-Kommandos mit user-gesteuerten Parametern",
+        scan_type="code_security_scan",
+        fix_description="exec/execSync vermeiden. spawn mit param-Array",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S024",
+        name="Weak Cryptography (code_security_scan)",
+        category="security",
+        severity="P2",
+        description="Veraltete Kryptographie (MD5, SHA1, DES, ECB)",
+        scan_type="code_security_scan",
+        fix_description="SHA-256/512 oder Argon2 für Passwörter",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S025",
+        name="CRITICAL Vulnerability (code_security_scan)",
+        category="security",
+        severity="P0",
+        description="CRITICAL-gestufte Sicherheitslücke",
+        scan_type="code_security_scan",
+        fix_description="Je nach Pattern — siehe Detail-Output",
+        false_positive_notes="",
+    ),
+    BugPattern(
+        pattern_id="S026",
+        name="HIGH Vulnerability (code_security_scan)",
+        category="security",
+        severity="P1",
+        description="HIGH-gestufte Sicherheitslücke",
+        scan_type="code_security_scan",
+        fix_description="Je nach Pattern — siehe Detail-Output",
+        false_positive_notes="",
+    ),
+]
+
+# ======================================================================
+# JAVA PATTERNS (J001-J005)
+# ======================================================================
+
+JAVA_PATTERNS = [
+    BugPattern(
+        pattern_id="J001",
+        name="Log Forging (Java)",
+        category="java",
+        severity="P1",
+        description="Log-Einträge mit ungesäubertem User-Input → Log Forging / Injection",
+        scan_type="code_security_scan",
+        fix_description="User-Input vor dem Loggen säubern oder als Parameter übergeben",
+        false_positive_notes="",
+        frameworks=["java"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="J002",
+        name="Null Pointer Dereference (Java)",
+        category="java",
+        severity="P1",
+        description="Potenzielle Null-Pointer Dereferenzierung ohne vorherige Null-Prüfung",
+        scan_type="code_search_by_error",
+        fix_description="Optional/Objects.requireNonNull() verwenden oder Null-Prüfung ergänzen",
+        false_positive_notes="",
+        frameworks=["java"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="J003",
+        name="SQL String Concatenation (Java)",
+        category="java",
+        severity="P0",
+        description="SQL-Queries mit String-Concatenation statt PreparedStatement",
+        scan_type="code_security_scan",
+        fix_description="PreparedStatement mit Parameter-Platzhaltern verwenden",
+        false_positive_notes="",
+        frameworks=["java"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="J004",
+        name="Insecure Deserialization (Java)",
+        category="java",
+        severity="P1",
+        description="ObjectInputStream.readObject() ohne Validierung → Deserialization-Angriff",
+        scan_type="code_security_scan",
+        fix_description="Validierung vor Deserialization oder Look-Ahead-Muster nutzen",
+        false_positive_notes="",
+        frameworks=["java"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="J005",
+        name="Hardcoded Credentials (Java)",
+        category="java",
+        severity="P0",
+        description="Hardcodierte Zugangsdaten in Java-Quellcode",
+        scan_type="code_security_scan",
+        fix_description="Credentials in Konfigurationsdateien/Environment-Variablen auslagern",
+        false_positive_notes="",
+        frameworks=["java"],
+        frameworks_required=True,
+    ),
+]
+
+# ======================================================================
+# C/C++ PATTERNS (CPP001-CPP005)
+# ======================================================================
+
+CPP_PATTERNS = [
+    BugPattern(
+        pattern_id="CPP001",
+        name="Buffer Overflow (C/C++)",
+        category="cpp",
+        severity="P0",
+        description="Potenzielle Buffer-Overflow durch unsichere String-Operationen (strcpy, gets)",
+        scan_type="code_security_scan",
+        fix_description="strncpy, snprintf oder std::string anstelle von strcpy/gets verwenden",
+        false_positive_notes="",
+        frameworks=["cpp"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="CPP002",
+        name="Memory Leak (C/C++)",
+        category="cpp",
+        severity="P1",
+        description="Allokierter Speicher wird nicht freigegeben (malloc ohne free, new ohne delete)",
+        scan_type="code_security_scan",
+        fix_description="Smart Pointer (unique_ptr, shared_ptr) oder RAII-Pattern verwenden",
+        false_positive_notes="",
+        frameworks=["cpp"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="CPP003",
+        name="Use-After-Free (C/C++)",
+        category="cpp",
+        severity="P0",
+        description="Zugriff auf freigegebenen Speicherpointer",
+        scan_type="code_security_scan",
+        fix_description="Pointer nach delete/free auf nullptr setzen. Smart Pointer bevorzugen.",
+        false_positive_notes="",
+        frameworks=["cpp"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="CPP004",
+        name="Integer Overflow (C/C++)",
+        category="cpp",
+        severity="P2",
+        description="Integer-Overflow in arithmetischen Operationen ohne Bereichsprüfung",
+        scan_type="code_security_scan",
+        fix_description="Overflow-Prüfung vor der Operation oder SafeInt-Bibliothek nutzen",
+        false_positive_notes="",
+        frameworks=["cpp"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="CPP005",
+        name="Format String Vulnerability (C/C++)",
+        category="cpp",
+        severity="P0",
+        description="printf mit User-Input als Format-String → Speicher-Lesen/-Schreiben",
+        scan_type="code_security_scan",
+        fix_description='printf("%s", user_input) statt printf(user_input)',
+        false_positive_notes="",
+        frameworks=["cpp"],
+        frameworks_required=True,
+    ),
+]
+
+# ======================================================================
+# RUBY PATTERNS (RB001-RB003)
+# ======================================================================
+
+RUBY_PATTERNS = [
+    BugPattern(
+        pattern_id="RB001",
+        name="Mass Assignment (Ruby/Rails)",
+        category="ruby",
+        severity="P1",
+        description="Mass Assignment ohne Strong Parameters → Attribute Injection",
+        scan_type="code_security_scan",
+        fix_description="Strong Parameters (require/permit) in allen Controllern verwenden",
+        false_positive_notes="",
+        frameworks=["ruby"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="RB002",
+        name="Command Injection (Ruby)",
+        category="ruby",
+        severity="P0",
+        description="Shell-Kommandos mit User-Input via exec/system/backticks",
+        scan_type="code_security_scan",
+        fix_description="Open3.capture3 oder system mit Array-Argumenten verwenden",
+        false_positive_notes="",
+        frameworks=["ruby"],
+        frameworks_required=True,
+    ),
+    BugPattern(
+        pattern_id="RB003",
+        name="SQL Injection (Ruby/Rails)",
+        category="ruby",
+        severity="P0",
+        description="SQL-Queries mit String-Interpolation statt Parameter-Binding",
+        scan_type="code_security_scan",
+        fix_description="ActiveRecord Parameter-Binding (where('?', value)) statt String-Interpolation",
+        false_positive_notes="",
+        frameworks=["ruby"],
+        frameworks_required=True,
+    ),
 ]
 
 # ======================================================================
@@ -663,6 +976,7 @@ ADMIN_PATTERNS = [
 ALL_PATTERNS: list[BugPattern] = (
     SECURITY_PATTERNS + QUALITY_PATTERNS + TYPESCRIPT_PATTERNS
     + GO_PATTERNS + RUST_PATTERNS + REACT_PATTERNS + ADMIN_PATTERNS
+    + JAVA_PATTERNS + CPP_PATTERNS + RUBY_PATTERNS
 )
 
 PATTERNS_BY_ID: dict[str, BugPattern] = {p.pattern_id: p for p in ALL_PATTERNS}

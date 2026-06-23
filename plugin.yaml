@@ -1,6 +1,6 @@
 name: scout
-version: 0.3.4
-description: "Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline. 46 tools across 3 domains."
+version: 0.5.0
+description: "Unified analysis, bug-hunt, and web-research plugin. 69 bug patterns, 25 analysis tools, 55 total tools."
 author: agentiker
 license: MIT
 repo: https://git.agentiker.de/agentiker/scout

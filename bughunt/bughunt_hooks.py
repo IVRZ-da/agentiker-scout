@@ -110,12 +110,106 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[str]:
     return "\n".join(lines) if len(lines) > 1 else "[BUG-HUNT PLUGIN]\n  (keine aktiven Sessions)"
 
 
+# ─── Deduplizierungs-Cache für Auto-Findings (🔴 F3) ─────────────────
+_AUTO_FINDING_CACHE: dict[str, float] = {}
+_AUTO_FINDING_TTL = 300  # 5 Minuten
+
+
+def _auto_create_findings_from_security(result_str: str, args: dict) -> None:
+    """🔴 F3: Erzeugt BugHunt-Findings aus analysis_security Ergebnis.
+
+    Mit Deduplizierung via (path + hash) — KEINE Endlosschleife.
+    """
+    import json
+    import time
+
+    try:
+        from . import bughunt_core as core
+    except ImportError:
+        import bughunt_core as core
+
+    tracker = core.get_tracker()
+    if not tracker.is_active():
+        return
+
+    path = args.get("path", "")
+    dedup_key = f"analysis_security:{path}"
+
+    now = time.monotonic()
+    last_run = _AUTO_FINDING_CACHE.get(dedup_key, 0)
+    if now - last_run < _AUTO_FINDING_TTL:
+        return
+    _AUTO_FINDING_CACHE[dedup_key] = now
+
+    try:
+        data = json.loads(result_str)
+    except (json.JSONDecodeError, TypeError):
+        return
+
+    findings_list = []
+    if isinstance(data, dict):
+        findings_section = data.get("findings", {})
+        if isinstance(findings_section, dict):
+            for cat, items in findings_section.items():
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict):
+                            findings_list.append(item)
+
+    if not findings_list:
+        return
+
+    sessions = core.list_sessions()
+    session = None
+    existing_titles: set = set()
+    for s_data in sessions:
+        if s_data.get("project") == path and s_data.get("status") == "open":
+            sid = s_data.get("session_id", "")
+            if sid:
+                session = core.load_session(sid)
+                break
+    if session:
+        existing_titles = {f.get("title") for f in session.findings if isinstance(f, dict)}
+    else:
+        session = core.BugHuntSession(project=path or "/unknown", scope="auto")
+
+    for finding in findings_list[:20]:
+        title = f"🔴 {finding.get('severity', 'MEDIUM')}: {finding.get('title', finding.get('description', 'Security Finding'))[:80]}"
+        if session and title in existing_titles:
+            continue
+        try:
+            f = core.Finding(
+                title=title[:120],
+                severity=_map_security_severity(finding.get("severity", "MEDIUM")),
+                category=finding.get("category", "security"),
+                file=finding.get("file", path or ""),
+                line=finding.get("line", 0),
+                evidence=str(finding.get("evidence", finding.get("description", "")))[:200],
+                pattern_id="S025",
+                description=str(finding.get("description", ""))[:200],
+            )
+            session.add_finding(f)
+        except Exception:
+            pass
+
+    core.save_session(session)
+
+
+def _map_security_severity(sev: str) -> str:
+    """Map security scan severity to P-Level."""
+    sev_map = {"CRITICAL": "P0", "HIGH": "P1", "MEDIUM": "P2", "LOW": "P3", "INFO": "INFO"}
+    return sev_map.get(sev.upper(), "P2")
+
+
 # ======================================================================
-# Hook: post_tool_call
+# Hook: on_post_tool_call (erweitert)
 # ======================================================================
 
 def on_post_tool_call(**kwargs: Any) -> None:
-    """Track code_* and bug_hunt_* tool calls for the active session."""
+    """Track code_* and bug_hunt_* tool calls for the active session.
+
+    🔴 F3: Auto-Findings aus analysis_security mit Deduplizierung via Hash.
+    """
     try:
         from . import bughunt_core as core  # Hermes Runtime (Package)
     except ImportError:
@@ -126,7 +220,9 @@ def on_post_tool_call(**kwargs: Any) -> None:
 
     tool_name = kwargs.get("tool_name", "")
     if not tool_name.startswith(("code_", "bug_hunt_")):
-        return
+        # 🔴 F3: Auch analysis_security verarbeiten
+        if tool_name != "analysis_security":
+            return
 
     args = kwargs.get("args", {})
     result = kwargs.get("result", "")
@@ -138,6 +234,10 @@ def on_post_tool_call(**kwargs: Any) -> None:
         path = args.get("path", "")
         if path and isinstance(path, str):
             tracker.track_file(path)
+
+    # 🔴 F3: Auto-Findings aus analysis_security (mit Deduplizierung)
+    if tool_name == "analysis_security" and isinstance(result, str) and len(result) > 20:
+        _auto_create_findings_from_security(result, args)
 
 
 # ======================================================================
