@@ -665,6 +665,28 @@ def run_tests(test_files: list[str]) -> bool:
 
 # ── Main ──────────────────────────────────────────────
 
+def check_coverage() -> bool:
+    """Run coverage check with fail-under threshold. Returns True if coverage check passes."""
+    print(f"  📊 Coverage-Gate...")
+    cov_config = os.path.join(REPO_ROOT, ".coveragerc")
+    if not os.path.exists(cov_config):
+        print(f"  ⚠️  Keine .coveragerc gefunden — Coverage-Gate übersprungen")
+        return True
+
+    args = [VENV_PYTHON, "-m", "pytest", "-q", "--tb=line",
+            "--cov", "--cov-config=" + cov_config, "--cov-fail-under=69"]
+    env = {**os.environ, "PYTHONPATH": os.path.expanduser("~/.hermes/plugins")}
+    r = run_cmd(args, timeout=180, cwd=REPO_ROOT)
+
+    if r.returncode == 0:
+        print(f"  ✅ Coverage-Gate bestanden (≥81%)")
+        return True
+    else:
+        print(f"  ❌ Coverage unter 81% — Commit abgebrochen")
+        print(f"  (git commit --no-verify zum Überspringen)")
+        return False
+
+
 def main():
     os.chdir(REPO_ROOT)
 
@@ -772,7 +794,11 @@ def main():
     if not run_tests(test_files):
         return 1
 
-    print(f"\n✅ Alle 11 Pre-Commit-Checks bestanden")
+    # 13. Coverage Gate (nur bei vollem Test-Suite)
+    if test_files == ["all"] and not check_coverage():
+        return 1
+
+    print(f"\n✅ Alle 12 Pre-Commit-Checks bestanden")
     elapsed = __import__("time").time() - (start_time if "start_time" in dir() else __import__("time").time())
     print(f"⏱️  Dauer: {elapsed:.1f}s")
     return 0
