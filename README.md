@@ -1,4 +1,4 @@
-# 🔍 Scout — Hermes Plugin
+# 🔍 agentiker-scout — Hermes Plugin
 
 > Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
 > 43 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
