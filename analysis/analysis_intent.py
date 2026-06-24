@@ -1,23 +1,15 @@
 """analysis_intent — Intent-Erkennung und Keyword-Detection für das Analyse-Plugin.
 
-⚠️ PARTIELL ABGELÖST — _detect_intent existiert in shared/intent.py,
-aber _extract_file_refs, _is_analysis_query, _build_tool_recommendations
-und _query_honcho_analysis_history sind nur hier verfügbar.
+STATUS: Aktiver Code — wird von analysis_core.py importiert (5 Funktionen).
+Überschneidet sich teilweise mit shared/intent.py (_detect_intent), bietet aber
+zusätzlich _extract_file_refs, _is_analysis_query, _build_tool_recommendations
+und _query_honcho_analysis_history, die in shared/intent.py nicht existieren.
 
-Neue Entwicklung sollte shared/intent.py verwenden, wo möglich. Dieser Code wird
-noch von analysis_core.py importiert (5 Funktionen: _detect_intent, _extract_file_refs,
-_is_analysis_query, _build_tool_recommendations, _query_honcho_analysis_history).
-
-Bietet:
-  - DEFAULT_ANALYSIS_KEYWORDS: Keyword-Liste für Analyse-Erkennung
-  - ANALYSIS_TOOLS: Set aller analyse-relevanter Tools
-  - _detect_intent: Score-basierte Intent-Erkennung
-  - _ai_detect_intent: KI-Fallback via Honcho
-  - _extract_file_refs: Datei-Referenzen aus Text extrahieren
-  - _is_analysis_query: Prüft ob Text eine Analyse-Anfrage ist
-  - _build_tool_recommendations: Tool-Empfehlungen nach Intent
-  - _query_honcho_analysis_history: Frühere Analysen abrufen
-"""
+Eine vollständige Konsolidierung mit shared/intent.py erfordert:
+  1. Migration der 4 exklusiven Funktionen nach shared/intent.py
+  2. Umstellung von analysis_core.py auf shared/intent.py
+  3. Entfernen dieser Datei
+Dies ist ein eigenständiges Refactoring, das nicht Teil der Coverage-Phase ist."""
 
 from __future__ import annotations
 
