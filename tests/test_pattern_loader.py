@@ -1110,6 +1110,44 @@ class TestConstants:
         assert "info" in VALID_SEVERITIES
         assert len(VALID_SEVERITIES) == 5
 
+
+class TestEdgeCases:
+    """Lücken in der Coverage schliessen — Error-Pfade."""
+
+    def test_entry_with_invalid_id_raises(self, tmp_path: Path) -> None:
+        """Eintrag ohne id löst ValueError aus."""
+        d = tmp_path / "patterns"
+        d.mkdir()
+        (d / "bad.yaml").write_text("patterns:\n  - title: ohne id")
+        loader = PatternLoader(str(d))
+        # _load_all sollte den invaliden Eintrag überspringen (warnen)
+        patterns = loader.load_all()
+        assert len(patterns) == 0
+
+    def test_entry_with_non_list_languages(self, tmp_path: Path) -> None:
+        """languages als String statt Liste wird trotzdem akzeptiert."""
+        d = tmp_path / "patterns"
+        d.mkdir()
+        # Richtig formatierte YAML: Top-Level ist eine Liste
+        import yaml
+        data = [
+            {"id": "STR-LANG-01", "cwe": "CWE-20", "category": "security",
+             "severity": "high", "languages": "python",
+             "title": "Test", "scan_query": "test()", "fix_description": "fix"}
+        ]
+        (d / "str_lang.yaml").write_text(yaml.dump(data))
+        loader = PatternLoader(str(d))
+        patterns = loader.load_all()
+        assert len(patterns) == 1
+        assert patterns[0].languages == ["python"]
+
+    def test_cache_hit_after_first_load(self, tmp_path: Path) -> None:
+        """get_instance() liefert immer dieselbe Singleton-Instanz."""
+        PatternLoader.reset_singleton()
+        p1 = PatternLoader.get_instance()
+        p2 = PatternLoader.get_instance()
+        assert p1 is p2  # gleiche Singleton-Instanz
+
     def test_valid_confidences(self) -> None:
         assert "high" in VALID_CONFIDENCES
         assert "medium" in VALID_CONFIDENCES

@@ -586,3 +586,41 @@ class TestEdgeCases:
     def test_load_by_category_empty_dir(self, loader: YamlRuleLoader) -> None:
         rules = loader.load_by_category("/dev/null/xyz", "backend")
         assert rules == []
+
+
+class TestCoverageGaps:
+    """Schliesst gezielt die letzten Lücken."""
+
+    def test_to_detector_cache_hit(self, loader: YamlRuleLoader) -> None:
+        """Zweiter Aufruf mit gleichem Rule-Namen trifft Cache."""
+        rule = YamlRule(
+            name="cache-test-fw",
+            category="backend",
+            markers=[YamlMarker(file="cfg.json", search="TEST", confidence="high")],
+        )
+        d1 = loader.to_detector(rule)
+        d2 = loader.to_detector(rule)
+        assert d1 is d2  # gleiche gecachte Instanz
+
+    def test_invalid_marker_list_too_few(self, loader: YamlRuleLoader) -> None:
+        """Marker-Tupel mit zu wenigen Elementen wird übersprungen -> ValueError."""
+        yaml_data = {
+            "name": "test-fw",
+            "category": "backend",
+            "markers": [["just-one-arg"]],
+        }
+        with pytest.raises(ValueError):
+            loader._parse_entry(yaml_data)
+
+    def test_invalid_marker_wrong_type(self, loader: YamlRuleLoader) -> None:
+        """Marker die weder dict noch list sind, werden übersprungen.
+
+        Der Warning-Logger wird getriggert, danach ValueError weil alle Marker rausfallen.
+        """
+        yaml_data = {
+            "name": "test-fw2",
+            "category": "backend",
+            "markers": ["invalid-string-marker"],
+        }
+        with pytest.raises(ValueError):
+            loader._parse_entry(yaml_data)

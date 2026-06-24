@@ -827,3 +827,38 @@ class TestCleanGoVersion:
 
     def test_no_v_prefix(self):
         assert DependencyVersionScanner._clean_go_version("0.17.0") == "0.17.0"
+
+
+class TestEdgeCases:
+    """Gezielte Lücken schliessen — Error + Edge Pfade."""
+
+    def test_manifest_parse_error(self, tmp_path: Path):
+        """Defektes Manifest löst except-Block aus."""
+        (tmp_path / "package.json").write_text("{broken json")
+        scanner = DependencyVersionScanner()
+        findings = scanner.scan(tmp_path)
+        assert findings == []
+
+    def test_unknown_manifest_raises(self, tmp_path: Path):
+        """Unbekanntes Manifest löst ValueError aus."""
+        scanner = DependencyVersionScanner()
+        with pytest.raises(ValueError, match="Unbekanntes Manifest"):
+            scanner._parse_manifest("unknown.yml", tmp_path / "unknown.yml")
+
+    def test_non_dict_deps_skipped(self, tmp_path: Path):
+        """dependencies als String wird übersprungen."""
+        import json
+        pkg = tmp_path / "package.json"
+        pkg.write_text(json.dumps({"dependencies": "not-a-dict"}))
+        scanner = DependencyVersionScanner()
+        findings = scanner.scan(tmp_path)
+        assert findings == []
+
+    def test_non_string_version_skipped(self, tmp_path: Path):
+        """Versionspec als Zahl wird übersprungen."""
+        import json
+        pkg = tmp_path / "package.json"
+        pkg.write_text(json.dumps({"dependencies": {"react": 19}}))
+        scanner = DependencyVersionScanner()
+        findings = scanner.scan(tmp_path)
+        assert findings == []
