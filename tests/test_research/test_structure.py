@@ -56,7 +56,7 @@ def test_plugin_yaml_is_valid():
 
     assert isinstance(data, dict), "plugin.yaml muss ein Mapping sein"
     assert "name" in data, "plugin.yaml braucht 'name'"
-    assert data["name"] == "scout", "plugin name muss 'scout' sein"
+    assert data["name"] == "agentiker-scout", "plugin name muss 'agentiker-scout' sein"
     assert "version" in data, "plugin.yaml braucht 'version'"
     assert "description" in data, "plugin.yaml braucht 'description'"
     assert "hooks" in data, "plugin.yaml braucht 'hooks'"
@@ -68,6 +68,24 @@ def test_plugin_yaml_is_valid():
         "plugin.yaml hooks muss 'post_tool_call' enthalten"
     assert "on_session_end" in hook_names or any("on_session_end" in v for v in data["hooks"]), \
         "plugin.yaml hooks muss 'on_session_end' enthalten"
+
+
+def test_research_init_importable():
+    """research/__init__.py muss als Modul spezifizierbar sein."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "scout.research", RESEARCH_DIR / "__init__.py")
+    assert spec is not None, "Kann research/__init__.py nicht spezifizieren"
+    assert spec.origin is not None
+
+
+def test_research_tools_shim_exists():
+    """research_tools.py (Legacy-Shim) muss existieren und nicht-leer sein."""
+    shim_path = RESEARCH_DIR / "research_tools.py"
+    assert shim_path.exists(), "research_tools.py fehlt"
+    content = shim_path.read_text()
+    assert len(content) > 50, "research_tools.py ist zu kurz"
+    assert "from scout.research.tools" in content, "research_tools.py muss Re-Export enthalten"
 
 
 def test_research_tools_imports():

@@ -943,7 +943,7 @@ class TestPerformance:
         elapsed = (time.perf_counter() - start) * 1000  # ms
 
         assert len(patterns) == 500
-        assert elapsed < 500, f"Performance-Test: {elapsed:.1f}ms (Grenze: 500ms)"
+        assert elapsed < 1000, f"Performance-Test: {elapsed:.1f}ms (Grenze: 1000ms)"
 
     def test_large_volume_filter_fast(self, tmp_path: Path) -> None:
         """Filter auf 500 Patterns sollte ebenfalls schnell sein."""

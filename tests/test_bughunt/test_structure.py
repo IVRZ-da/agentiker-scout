@@ -28,7 +28,7 @@ class TestPluginYaml:
         import yaml
         text = (PLUGIN_DIR / "plugin.yaml").read_text()
         data = yaml.safe_load(text)
-        assert data["name"] == "scout", "name != bughunt"
+        assert data["name"] == "agentiker-scout", "name != agentiker-scout"
         assert "hooks" in data, "hooks section fehlt"
         assert len(data["hooks"]) == 3, f"erwarte 3 hooks, habe {len(data['hooks'])}"
         assert "pre_llm_call" in data["hooks"]
@@ -233,6 +233,7 @@ class TestStubFiles:
         ("bughunt_tools", "bughunt/bughunt_tools.py", "__doc__"),
         ("bughunt_hooks", "bughunt/bughunt_hooks.py", "__doc__"),
         ("bughunt_patterns", "bughunt/bughunt_patterns.py", "__doc__"),
+        ("bughunt___init__", "bughunt/__init__.py", "__doc__"),
     ])
     def test_module_importable(self, modname, filename, expected_attr):
         spec = importlib.util.spec_from_file_location(
