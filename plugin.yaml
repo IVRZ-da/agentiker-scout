@@ -1,9 +1,9 @@
-name: scout
+name: agentiker-scout
 version: 0.5.0
 description: "Unified analysis, bug-hunt, and web-research plugin. 69 bug patterns, 25 analysis tools, 55 total tools."
 author: agentiker
 license: MIT
-repo: https://git.agentiker.de/agentiker/scout
+repo: https://git.agentiker.de/johannes/agentiker-scout
 hooks:
   - pre_llm_call
   - post_tool_call

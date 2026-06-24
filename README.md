@@ -3,11 +3,11 @@
 > Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
 > 43 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
 
-[![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)]()
 [![Tests](https://img.shields.io/badge/tests-1390-green.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
----
+# 🔍 agentiker-scout — Hermes Plugin
 
 ## 📋 Table of Contents
 

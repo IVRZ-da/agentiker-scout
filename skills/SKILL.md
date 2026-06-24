@@ -1,5 +1,5 @@
 ---
-name: scout
+name: agentiker-scout
 description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 55 Tools, 69 Bug-Patterns, 3 Domains."
 version: 0.5.0
 author: agentiker

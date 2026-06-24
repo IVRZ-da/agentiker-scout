@@ -1,4 +1,4 @@
-# Contributing to agentiker-scout-plugin
+# Contributing to agentiker-scout
 
 ## Branch-Strategie
 
