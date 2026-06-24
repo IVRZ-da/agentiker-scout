@@ -141,8 +141,9 @@ plugins:
 Then install dependencies:
 
 ```bash
-# Ins Hermes-Venv installieren
-~/.hermes/hermes-agent/venv/bin/pip install -e /home/jo/.hermes/plugins/scout/
+# Ins Hermes-Venv installieren (vom Plugin-Ordner aus)
+cd ~/.hermes/plugins/agentiker-scout
+~/.hermes/hermes-agent/venv/bin/pip install -e .
 
 # Oder via Script
 ./scripts/install-deps.sh
@@ -199,7 +200,7 @@ Then install dependencies:
 ## 🧪 Development
 
 ```bash
-cd /home/jo/.hermes/plugins/scout
+cd ~/.hermes/plugins/agentiker-scout
 
 # Tests ausführen
 python3 -m pytest tests/ -q --tb=short
