@@ -65,3 +65,43 @@ class TestBuildIntentContext:
         ctx1 = _build_intent_context("code")
         ctx2 = _build_intent_context("code")
         assert ctx1 == ctx2
+
+
+class TestOnPreLlmCall:
+    """Testet die on_pre_llm_call Hook-Funktion."""
+
+    def test_no_messages(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call()
+        assert result is None
+
+    def test_empty_messages(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call(messages=[])
+        assert result is None
+
+    def test_no_user_message(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call(messages=[{"role": "assistant", "content": "hallo"}])
+        assert result is None
+
+    def test_no_relevant_keyword(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call(messages=[
+            {"role": "user", "content": "wie ist das Wetter heute?"}
+        ])
+        assert result is None
+
+    def test_with_bug_keyword(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call(messages=[
+            {"role": "user", "content": "analysiere den bug in der login funktion"}
+        ])
+        assert result is not None
+
+    def test_with_code_keyword(self):
+        from scout.shared.intent import on_pre_llm_call
+        result = on_pre_llm_call(messages=[
+            {"role": "user", "content": "zeig mir die codestruktur"}
+        ])
+        assert result is not None
