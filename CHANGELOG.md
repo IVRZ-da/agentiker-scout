@@ -1,5 +1,23 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.1] — 2026-06-25
+
+### Changed — Bughunt-Core-Split + Complexity-Refactoring
+
+**b1 — bughunt_core.py in core/ Subpackage gesplittet (796→64 Zeilen):**
+- `bughunt/core/model.py`: Finding, BugHuntSession, Konstanten
+- `bughunt/core/patterns.py`: Pattern-CRUD + init/getters
+- `bughunt/core/persistence.py`: Session I/O + cleanup
+- `bughunt/core/tracking.py`: BugHuntTracker + Reporting + validate_path
+- `bughunt/bughunt_core.py`: Re-Export Facade (64 Zeilen)
+- Test-Fixtures aktualisiert (namespace shims + DATA_DIR Isolation)
+
+**b2 — bug_hunt_scan() refactored (Complexity 30→12, Rank C→B):**
+- `_resolve_scan_patterns()`: Preset + Framework-Auflösung extrahiert
+- `_pattern_matches_frameworks()`: Framework-Filter als eigene Funktion
+- `_add_auto_findings()`: Finding-Erzeugung + Save extrahiert
+- `_build_scan_result()`: Ergebnis-Dict-Bau extrahiert
+
 ## [0.5.0] — 2026-06-24
 
 ### Changed — Coverage-Offensive + Infrastruktur (P0-P7)

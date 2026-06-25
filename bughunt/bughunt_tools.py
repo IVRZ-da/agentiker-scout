@@ -9,7 +9,8 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
+
 logger = logging.getLogger("scout.bughunt")
 
 # Import shared tool dispatch (analysis/tools/base.py)
