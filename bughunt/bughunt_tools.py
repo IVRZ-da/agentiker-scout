@@ -656,186 +656,206 @@ def bug_hunt_history(args: dict, **kwargs) -> str:
     return _ok(result)
 
 
+def _pattern_list(args: dict, core) -> str:
+    """Default: Alle Patterns listen (optional gefiltert nach Kategorie)."""
+    category = args.get("category", "")
+    patterns = core.get_patterns_by_category(category) if category else core.list_all_patterns()
+    patterns = [p.to_dict() if hasattr(p, 'to_dict') else p for p in patterns]
+    return _ok({"patterns": patterns, "count": len(patterns)})
+
+
+def _pattern_detail(args: dict, core) -> str:
+    """Detail eines einzelnen Patterns anzeigen."""
+    pid = args.get("pattern_id", "").strip()
+    if not pid:
+        return _err("pattern_id ist erforderlich")
+    pat = core.get_pattern(pid)
+    if not pat:
+        return _err(f"Pattern {pid} nicht gefunden")
+    return _ok({"pattern": pat.to_dict()})
+
+
+def _pattern_save(args: dict, core) -> str:
+    """Neues Custom Pattern speichern."""
+    try:
+        pid = core.save_custom_pattern({
+            "name": args.get("name", "").strip(),
+            "category": args.get("category", "other"),
+            "severity": args.get("severity", "P2").upper(),
+            "description": args.get("description", ""),
+            "scan_type": args.get("scan_type", ""),
+            "scan_query": args.get("scan_query", "").strip(),
+            "scan_file_glob": args.get("scan_file_glob", ""),
+            "scan_language": args.get("scan_language", ""),
+            "fix_description": args.get("fix_description", ""),
+            "false_positive_notes": args.get("false_positive_notes", ""),
+            "source_session": args.get("source_session", ""),
+            "source_project": args.get("source_project", ""),
+            "tags": args.get("tags", []),
+        })
+        return _ok({
+            "pattern_id": pid, "action": "save",
+            "instruction": f"Pattern {pid} gespeichert. Nutze bug_hunt_scan(patterns=['{pid}']) zum Scannen.",
+        })
+    except ValueError as e:
+        return _err(str(e))
+
+
+def _pattern_save_from_session(args: dict, core) -> str:
+    """Custom Pattern aus einem Finding extrahieren."""
+    session_id = args.get("session_id", "").strip()
+    if not session_id:
+        return _err("session_id ist erforderlich")
+    finding_id = args.get("finding_id", "").strip()
+    if not finding_id:
+        return _err("finding_id ist erforderlich")
+    auto_deduce = args.get("auto_deduce", True)
+
+    session = core.load_session(session_id)
+    if not session:
+        return _err(f"Session {session_id} nicht gefunden")
+    finding = None
+    for f in session.findings:
+        if f.get("id") == finding_id:
+            finding = f
+            break
+    if not finding:
+        return _err(f"Finding {finding_id} nicht in Session {session_id}")
+
+    pattern_data = _deduce_pattern_from_finding(finding, session_id, session, auto_deduce)
+
+    try:
+        pid = core.save_custom_pattern(pattern_data)
+        return _ok({
+            "pattern_id": pid, "action": "save_from_session",
+            "source_session": session_id, "source_finding_id": finding_id,
+            "deduced": pattern_data,
+            "instruction": (
+                f"Pattern {pid} aus Finding {finding_id} extrahiert. "
+                f"Prüfe scan_query und passe ggf. via erneutem save an."
+            ),
+        })
+    except ValueError as e:
+        return _err(str(e))
+
+
+def _deduce_pattern_from_finding(finding: dict, session_id: str, session, auto_deduce: bool) -> dict:
+    """Leitet Pattern-Daten aus einem Finding ab."""
+    pattern_data = {
+        "name": finding.get("title", ""),
+        "category": finding.get("category", "other"),
+        "severity": finding.get("severity", "P2"),
+        "description": finding.get("description", ""),
+        "fix_description": finding.get("suggested_fix", ""),
+        "source_session": session_id,
+        "source_project": session.project,
+        "source_finding_id": finding.get("id", ""),
+    }
+
+    if auto_deduce and finding.get("evidence"):
+        file_path = finding.get("file", "")
+        if file_path.endswith((".py", ".ts", ".tsx", ".js", ".go", ".rs")):
+            pattern_data["scan_type"] = "grep"
+            ev = finding.get("evidence", "")
+            if ev:
+                import re
+                m = re.search(r'(\w+(?:\.\w+)*\s*\()', ev)
+                if m:
+                    pattern_data["scan_query"] = m.group(1).strip()
+                else:
+                    words = ev.split()
+                    pattern_data["scan_query"] = words[0] if words else ev[:50]
+            if file_path:
+                ext = file_path.rsplit(".", 1)[-1]
+                pattern_data["scan_file_glob"] = f"**/*.{ext}"
+        else:
+            pattern_data["scan_type"] = "grep"
+    return pattern_data
+
+
+def _pattern_list_custom(args: dict, core) -> str:
+    """Nur Custom Patterns anzeigen."""
+    patterns = core.list_custom_patterns()
+    return _ok({"patterns": patterns, "count": len(patterns), "source": "custom"})
+
+
+def _pattern_delete_custom(args: dict, core) -> str:
+    """Custom Pattern löschen."""
+    pid = args.get("pattern_id", "").strip()
+    if not pid:
+        return _err("pattern_id ist erforderlich")
+    try:
+        deleted = core.delete_custom_pattern(pid)
+        if deleted:
+            return _ok({"pattern_id": pid, "action": "delete_custom", "deleted": True})
+        else:
+            return _err(f"Pattern {pid} nicht gefunden")
+    except ValueError as e:
+        return _err(str(e))
+
+
+def _pattern_import_from_session(args: dict, core) -> str:
+    """Bulk-Import von Findings als Custom Patterns."""
+    session_id = args.get("session_id", "").strip()
+    if not session_id:
+        return _err("session_id ist erforderlich")
+    session = core.load_session(session_id)
+    if not session:
+        return _err(f"Session {session_id} nicht gefunden")
+
+    findings = session.findings
+    imported = []
+    skipped = 0
+    for f in findings:
+        if args.get("filter_pattern_id"):
+            if f.get("pattern_id") != args["filter_pattern_id"]:
+                continue
+        try:
+            pid = core.save_custom_pattern({
+                "name": f.get("title", "Untitled"),
+                "category": f.get("category", "other"),
+                "severity": f.get("severity", "P2"),
+                "description": f.get("description", ""),
+                "scan_type": "grep",
+                "scan_query": (f.get("pattern_id") or f.get("title", ""))[:100],
+                "fix_description": f.get("suggested_fix", ""),
+                "source_session": session_id,
+                "source_project": session.project,
+                "source_finding_id": f.get("id", ""),
+            })
+            imported.append(pid)
+        except ValueError:
+            skipped += 1
+
+    return _ok({
+        "action": "import_from_session",
+        "session_id": session_id,
+        "imported_count": len(imported),
+        "skipped_count": skipped,
+        "imported_pattern_ids": imported,
+        "instruction": f"{len(imported)} Patterns importiert, {skipped} übersprungen (Duplikate/Fehler).",
+    })
+
+
 def bug_hunt_pattern(args: dict, **kwargs) -> str:
     """List, inspect, search, save, or manage bug patterns."""
     core = _get_core()
     action = args.get("action", "list")
 
-    # ─── Kategorie-Liste ────────────────────────────────────────────
-    if action == "list_categories":
-        return _ok({"categories": core.list_categories(), "count": len(core.list_categories())})
+    action_map = {
+        "list_categories": lambda a, c: _ok({"categories": c.list_categories(), "count": len(c.list_categories())}),
+        "detail": _pattern_detail,
+        "save": _pattern_save,
+        "save_from_session": _pattern_save_from_session,
+        "list_custom": _pattern_list_custom,
+        "delete_custom": _pattern_delete_custom,
+        "import_from_session": _pattern_import_from_session,
+    }
 
-    # ─── Detail ──────────────────────────────────────────────────────
-    if action == "detail":
-        pid = args.get("pattern_id", "").strip()
-        if not pid:
-            return _err("pattern_id ist erforderlich")
-        pat = core.get_pattern(pid)
-        if not pat:
-            return _err(f"Pattern {pid} nicht gefunden")
-        return _ok({"pattern": pat.to_dict()})
-
-    # ─── Save — Neues Custom Pattern speichern (v0.6.0) ────────────
-    if action == "save":
-        try:
-            pid = core.save_custom_pattern({
-                "name": args.get("name", "").strip(),
-                "category": args.get("category", "other"),
-                "severity": args.get("severity", "P2").upper(),
-                "description": args.get("description", ""),
-                "scan_type": args.get("scan_type", ""),
-                "scan_query": args.get("scan_query", "").strip(),
-                "scan_file_glob": args.get("scan_file_glob", ""),
-                "scan_language": args.get("scan_language", ""),
-                "fix_description": args.get("fix_description", ""),
-                "false_positive_notes": args.get("false_positive_notes", ""),
-                "source_session": args.get("source_session", ""),
-                "source_project": args.get("source_project", ""),
-                "tags": args.get("tags", []),
-            })
-            return _ok({
-                "pattern_id": pid, "action": "save",
-                "instruction": f"Pattern {pid} gespeichert. Nutze bug_hunt_scan(patterns=['{pid}']) zum Scannen.",
-            })
-        except ValueError as e:
-            return _err(str(e))
-
-    # ─── Save From Session — Aus Finding extrahieren (v0.6.0) ──────
-    if action == "save_from_session":
-        session_id = args.get("session_id", "").strip()
-        if not session_id:
-            return _err("session_id ist erforderlich")
-        finding_id = args.get("finding_id", "").strip()
-        if not finding_id:
-            return _err("finding_id ist erforderlich")
-        auto_deduce = args.get("auto_deduce", True)
-
-        session = core.load_session(session_id)
-        if not session:
-            return _err(f"Session {session_id} nicht gefunden")
-        finding = None
-        for f in session.findings:
-            if f.get("id") == finding_id:
-                finding = f
-                break
-        if not finding:
-            return _err(f"Finding {finding_id} nicht in Session {session_id}")
-
-        # Finding → Pattern mapping
-        pattern_data = {
-            "name": finding.get("title", ""),
-            "category": finding.get("category", "other"),
-            "severity": finding.get("severity", "P2"),
-            "description": finding.get("description", ""),
-            "fix_description": finding.get("suggested_fix", ""),
-            "source_session": session_id,
-            "source_project": session.project,
-            "source_finding_id": finding_id,
-        }
-
-        if auto_deduce and finding.get("evidence"):
-            # Heuristik: scan_type anhand der Datei-Extension ableiten
-            file_path = finding.get("file", "")
-            if file_path.endswith((".py", ".ts", ".tsx", ".js", ".go", ".rs")):
-                pattern_data["scan_type"] = "grep"
-                # Heuristik: ersten signifikanten Begriff aus evidence als scan_query
-                ev = finding.get("evidence", "")
-                if ev:
-                    # Extrahiere den ersten Function-Call oder Keyword
-                    import re
-                    m = re.search(r'(\w+(?:\.\w+)*\s*\()', ev)
-                    if m:
-                        pattern_data["scan_query"] = m.group(1).strip()
-                    else:
-                        # Fallback: erstes Wort nach Whitespace oder =
-                        words = ev.split()
-                        pattern_data["scan_query"] = words[0] if words else ev[:50]
-                if file_path:
-                    ext = file_path.rsplit(".", 1)[-1]
-                    pattern_data["scan_file_glob"] = f"**/*.{ext}"
-            else:
-                pattern_data["scan_type"] = "grep"
-
-        try:
-            pid = core.save_custom_pattern(pattern_data)
-            return _ok({
-                "pattern_id": pid, "action": "save_from_session",
-                "source_session": session_id, "source_finding_id": finding_id,
-                "deduced": pattern_data,
-                "instruction": (
-                    f"Pattern {pid} aus Finding {finding_id} extrahiert. "
-                    f"Prüfe scan_query und passe ggf. via erneutem save an."
-                ),
-            })
-        except ValueError as e:
-            return _err(str(e))
-
-    # ─── List Custom — Nur Custom Patterns (v0.6.0) ────────────────
-    if action == "list_custom":
-        patterns = core.list_custom_patterns()
-        return _ok({"patterns": patterns, "count": len(patterns), "source": "custom"})
-
-    # ─── Delete Custom — Custom Pattern löschen (v0.6.0) ────────────
-    if action == "delete_custom":
-        pid = args.get("pattern_id", "").strip()
-        if not pid:
-            return _err("pattern_id ist erforderlich")
-        try:
-            deleted = core.delete_custom_pattern(pid)
-            if deleted:
-                return _ok({"pattern_id": pid, "action": "delete_custom", "deleted": True})
-            else:
-                return _err(f"Pattern {pid} nicht gefunden")
-        except ValueError as e:
-            return _err(str(e))
-
-    # ─── Import From Session — Bulk-Import (v0.6.0) ────────────────
-    if action == "import_from_session":
-        session_id = args.get("session_id", "").strip()
-        if not session_id:
-            return _err("session_id ist erforderlich")
-        session = core.load_session(session_id)
-        if not session:
-            return _err(f"Session {session_id} nicht gefunden")
-
-        findings = session.findings
-        imported = []
-        skipped = 0
-        for f in findings:
-            if args.get("filter_pattern_id"):
-                if f.get("pattern_id") != args["filter_pattern_id"]:
-                    continue
-            try:
-                pid = core.save_custom_pattern({
-                    "name": f.get("title", "Untitled"),
-                    "category": f.get("category", "other"),
-                    "severity": f.get("severity", "P2"),
-                    "description": f.get("description", ""),
-                    "scan_type": "grep",
-                    "scan_query": (f.get("pattern_id") or f.get("title", ""))[:100],
-                    "fix_description": f.get("suggested_fix", ""),
-                    "source_session": session_id,
-                    "source_project": session.project,
-                    "source_finding_id": f.get("id", ""),
-                })
-                imported.append(pid)
-            except ValueError:
-                skipped += 1
-
-        return _ok({
-            "action": "import_from_session",
-            "session_id": session_id,
-            "imported_count": len(imported),
-            "skipped_count": skipped,
-            "imported_pattern_ids": imported,
-            "instruction": f"{len(imported)} Patterns importiert, {skipped} übersprungen (Duplikate/Fehler).",
-        })
-
-    # ─── Default: List ──────────────────────────────────────────────
-    category = args.get("category", "")
-    patterns = core.get_patterns_by_category(category) if category else core.list_all_patterns()
-    patterns = [p.to_dict() if hasattr(p, 'to_dict') else p for p in patterns]
-    return _ok({"patterns": patterns, "count": len(patterns)})
+    handler = action_map.get(action)
+    if handler:
+        return handler(args, core)
+    return _pattern_list(args, core)
 
 
 def bug_hunt_stats(args: dict, **kwargs) -> str:
