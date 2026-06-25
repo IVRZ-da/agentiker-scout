@@ -66,65 +66,134 @@ research_auto(query="Neueste Medusa v2 Features 2026", depth=3)
 
 ## 🛠 Tools
 
-<!-- AUTO-GENERATED -->
+<!-- README_AUTO -->
+
+[![Version](https://img.shields.io/badge/version-0.5.2-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-1652%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+
+**Version:** 0.5.2
+
+**Tests:** 1652 tests
+
+**Tools (55):**
+
+
+### Analysis — Code & Architecture (25 Tools)
+
 | Tool | Description |
 |------|-------------|
-| `analysis_architecture` | Full architecture analysis: workspace structure → dependency graph → hot paths → cycles |
-| `analysis_ask` | Natural language questions about a codebase — uses Honcho context |
-| `analysis_code_move` | Move symbol between files via AST extraction |
-| `analysis_code_query` | Smart query router — auto-selects best code intelligence tool |
-| `analysis_deadcode` | Finds unused imports, unused functions, orphaned error handlers |
-| `analysis_dependency_risk` | Code dependency health assessment with risk score (0-10) |
-| `analysis_diff` | Compare two analysis results — shows added/removed/changed findings |
-| `analysis_diff_analysis` | Compare two Git-refs: changed functions, complexity delta, blast radius |
-| `analysis_duplicates` | Find duplicate/similar code blocks via AST comparison |
-| `analysis_framework` | Framework profile detection — auto-detects tech stack with confidence scoring |
-| `analysis_graph` | Generates Mermaid diagrams from analysis reports |
-| `analysis_graph_query` | Knowledge graph queries: callers, callees, hot paths, cycles |
-| `analysis_inspect` | Multi-step analysis: symbols → definitions → references → call hierarchy → cycles in one call |
-| `analysis_migration` | YAML-based bulk pattern migrations with dry-run |
-| `analysis_pattern_discover` | Discover code patterns that look like bugs but aren't covered by existing patterns |
-| `analysis_performance` | Bottleneck analysis: complexity hotspots, slow paths, inlay hints |
-| `analysis_report` | Generate structured analysis report and persist in Honcho |
-| `analysis_review` | Automated code review: diff analysis + security + complexity delta |
-| `analysis_risk` | Multi-factor risk assessment combining dependency risk, complexity, dead code, security |
-| `analysis_security` | Scans for orphaned error handlers, vulnerability patterns, security anti-patterns |
-| `analysis_test_insight` | Test coverage analysis for a symbol or project |
-| `analysis_timeline` | Symbol evolution over git history — commits, complexity trend, author distribution |
-| `analysis_trend` | Trend analysis over time — queries Honcho for past analysis results |
-| `analysis_ui_gap` | Discovers UI layers (Next.js, Medusa admin, API routes, Go handlers) and compares against backend modules |
-| `analysis_watch` | Set up recurring cron-based analysis on a path with change detection |
-| `bug_hunt_close` | Close a session with optional summary |
-| `bug_hunt_export` | Export findings as JSON or Markdown |
-| `bug_hunt_finding` | Add a finding (title, severity P0-P3, category, evidence, fix) |
-| `bug_hunt_fix` | Generate auto-fix prompt for a finding |
-| `bug_hunt_history` | Search past bug-hunt sessions by project |
-| `bug_hunt_list` | List findings filtered by severity, status, category, or file |
-| `bug_hunt_pattern` | List, inspect, save, or manage bug patterns (45+ built-in) |
-| `bug_hunt_report` | Generate structured report (JSON/Markdown) grouped by severity |
-| `bug_hunt_scan` | Run automated scans using the 45+ pattern library |
-| `bug_hunt_start` | Start a new bug-hunt session with scope (quick/comprehensive/custom) |
-| `bug_hunt_stats` | Statistics about findings in a session |
-| `bug_hunt_triage` | Update finding severity/status with notes |
-| `bug_hunt_verify` | Verify if a finding's bug still exists in the code |
-| `research_auto` | Autonomous research: spawns a sub-agent that searches → scrapes → synthesizes → saves |
-| `research_cleanup` | Clean old or orphaned research data |
-| `research_compare` | Compare 2-3 research results side by side |
-| `research_delete` | Delete a research including plan and result files |
-| `research_export` | Export a research as Markdown or text |
-| `research_export_all` | Export ALL researches as JSON/Markdown/CSV |
-| `research_merge` | Merge 2-5 researches into one (deduplicated) |
-| `research_save` | Save results with summary, findings, sources, tags |
-| `research_schedule` | Schedule periodic research via Hermes cron |
-| `research_search` | Full-text search over saved research with BM25 ranking |
-| `research_start` | Start a new research — validates query, creates plan file |
-| `research_stats` | Metrics and statistics about all researches |
-| `research_status` | Show status and details of a research |
-| `research_synthesize` | Synthesize related research via Honcho |
-| `research_tag` | Manage tags for a research (add/remove/set/clear) |
-| `research_update` | Update an existing research (append findings/sources) |
-| `research_verify` | Verify source URLs and validate findings |
-<!-- END AUTO-GENERATED -->
+| `analysis_architecture` | Code & architecture analysis tool. |
+| `analysis_ask` | Code & architecture analysis tool. |
+| `analysis_code_move` | Code & architecture analysis tool. |
+| `analysis_code_query` | Code & architecture analysis tool. |
+| `analysis_deadcode` | Code & architecture analysis tool. |
+| `analysis_dependency_risk` | Code & architecture analysis tool. |
+| `analysis_diff` | Code & architecture analysis tool. |
+| `analysis_diff_analysis` | Code & architecture analysis tool. |
+| `analysis_duplicates` | Code & architecture analysis tool. |
+| `analysis_framework` | Code & architecture analysis tool. |
+| `analysis_graph` | Code & architecture analysis tool. |
+| `analysis_graph_query` | Code & architecture analysis tool. |
+| `analysis_inspect` | Code & architecture analysis tool. |
+| `analysis_migration` | Code & architecture analysis tool. |
+| `analysis_pattern_discover` | Code & architecture analysis tool. |
+| `analysis_performance` | Code & architecture analysis tool. |
+| `analysis_report` | Code & architecture analysis tool. |
+| `analysis_review` | Code & architecture analysis tool. |
+| `analysis_risk` | Code & architecture analysis tool. |
+| `analysis_security` | Code & architecture analysis tool. |
+| `analysis_test_insight` | Code & architecture analysis tool. |
+| `analysis_timeline` | Code & architecture analysis tool. |
+| `analysis_trend` | Code & architecture analysis tool. |
+| `analysis_ui_gap` | Code & architecture analysis tool. |
+| `analysis_watch` | Code & architecture analysis tool. |
+
+
+### Bug-Hunt — Vulnerability Scanning (13 Tools)
+
+| Tool | Description |
+|------|-------------|
+| `bug_hunt_start` | Start a new bug-hunt session. |
+| `bug_hunt_finding` | Add a finding to a session. |
+| `bug_hunt_list` | List findings for a session, filterable. |
+| `bug_hunt_close` | Close a bug-hunt session. |
+| `bug_hunt_scan` | Run automated scans using pattern library. |
+| `bug_hunt_triage` | Update severity/status for findings. |
+| `bug_hunt_verify` | Verify if a finding's bug still exists. |
+| `bug_hunt_fix` | Generate an auto-fix prompt for a bug finding. |
+| `bug_hunt_report` | Generate a structured bug-hunt report. |
+| `bug_hunt_export` | Export findings as JSON or Markdown. |
+| `bug_hunt_history` | Search past bug-hunt sessions. |
+| `bug_hunt_pattern` | List, inspect, search, save, or manage bug patterns. |
+| `bug_hunt_stats` | Statistics about findings in a session. |
+
+
+### Research — Web Research & Synthesis (17 Tools)
+
+| Tool | Description |
+|------|-------------|
+| `research_start` | Startet eine neue Recherche. |
+| `research_save` | Speichert die Ergebnisse einer Recherche. |
+| `research_delete` | Löscht eine Recherche inklusive Plan- und Ergebnis-Dateien. |
+| `research_cleanup` | Bereinigt alte oder verwaiste Research-Daten. |
+| `research_tag` | Verwaltet Tags für eine Recherche (add/remove/set/clear). |
+| `research_update` | Aktualisiert eine bestehende Recherche (erweitern/korrigieren). |
+| `research_verify` | Prüft Quellen-URLs auf Erreichbarkeit und validiert Findings. |
+| `research_auto` | Startet eine vollautonome Recherche. |
+| `research_search` | Durchsucht gespeicherte Research-Ergebnisse mit BM25-Volltextsuche. |
+| `research_status` | Zeigt Status und Details einer Recherche an. |
+| `research_stats` | Zeigt Metriken und Statistiken über alle Recherchen. |
+| `research_export` | Exportiert Research-Ergebnisse als Markdown oder Text. |
+| `research_compare` | Vergleicht 2-3 Research-IDs. |
+| `research_synthesize` | Synthetisiert passende Research-Ergebnisse via Honcho. |
+| `research_merge` | Fasst mehrere Recherchen zu einer zusammen (dedupliziert). |
+| `research_export_all` | Exportiert ALLE gespeicherten Recherchen als Bundle. |
+| `research_schedule` | Plant periodische Recherchen via Hermes cronjob. |
+
+### Recent Changelog
+
+## [0.5.2] — 2026-06-25
+- **Pre-Commit-Hook:** `_check_readme_tools()` auf per-plugin `scripts/generate_readme.py` umgestellt (alter zentraler Pfad entfernt)
+
+## [0.5.1] — 2026-06-25
+
+### Changed — Bughunt-Core-Split + Complexity-Refactoring
+
+**b1 — bughunt_core.py in core/ Subpackage gesplittet (796→64 Zeilen):**
+- `bughunt/core/model.py`: Finding, BugHuntSession, Konstanten
+- `bughunt/core/patterns.py`: Pattern-CRUD + init/getters
+- `bughunt/core/persistence.py`: Session I/O + cleanup
+- `bughunt/core/tracking.py`: BugHuntTracker + Reporting + validate_path
+- `bughunt/bughunt_core.py`: Re-Export Facade (64 Zeilen)
+- Test-Fixtures aktualisiert (namespace shims + DATA_DIR Isolation)
+
+**b2 — bug_hunt_scan() refactored (Complexity 30→12, Rank C→B):**
+- `_resolve_scan_patterns()`: Preset + Framework-Auflösung extrahiert
+- `_pattern_matches_frameworks()`: Framework-Filter als eigene Funktion
+- `_add_auto_findings()`: Finding-Erzeugung + Save extrahiert
+- `_build_scan_result()`: Ergebnis-Dict-Bau extrahiert
+
+## [0.5.0] — 2026-06-24
+
+### Changed — Coverage-Offensive + Infrastruktur (P0-P7)
+
+**P0 — Hotfix:**
+- `test_plugin_yaml_valid`/`test_plugin_yaml_is_valid`: assertion `"scout"` → `"agentiker-scout"` gefixt
+- `test_large_volume_performance`: Schwelle 500ms → 1000ms (stabilisiert mit --cov)
+- Import-Tests für `bughunt/__init__.py`, `research/__init__.py`, `research_tools.py` (0% → getestet)
+
+**P1 — Coverage shared/detectors/ (700+ Zeilen, 0%→100%):**
+- 5 neue Test-Dateien (base, catalog, dependency_data, generic, loader)
+- `detectors/`-Module: **0% → 81-100%** (base 93%, catalog 100%, dependency_data 100%, generic 84%, loader 81%, public 100%)
+- `yaml_rule_loader.py`: **0% → 78%** (Bonuseffekt)
+- `framework_query_move.py`: **13% → getestet** (3 Tests)
+
+**P2 — Coverage pattern_loader + yaml_rule_loader + dependency_scanner:**
+- `pattern_loader.py`: **23% → 99%**
+- `yaml_rule_loader.py`: **78% → 100%**
+- `dependency_scanner.py`: **21% → 98%**
+- 21 neue Edge-Case-Tests (invalid entries, non-list languages, cache, etc.)
+
+<!-- END README_AUTO -->
 
 ---
 

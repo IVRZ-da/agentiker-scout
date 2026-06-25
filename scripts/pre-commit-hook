@@ -841,31 +841,26 @@ def main():
 
 
 def _check_readme_tools(staged: list[str], repo_root: str) -> bool:
-    """Auto-generate README tool tables if tool registrations changed."""
-    # Nur laufen wenn Python-Dateien (Tool-Registrierungen) oder README.md staged sind
+    """Auto-generate README using the per-plugin generate_readme.py."""
     if not any(f.endswith((".py", "README.md")) for f in staged):
         return True
-    gen_script = os.path.expanduser("~/.hermes/scripts/generate-readme-tools.py")
+    gen_script = os.path.join(repo_root, "scripts/generate_readme.py")
     if not os.path.exists(gen_script):
         return True
     readme_path = os.path.join(repo_root, "README.md")
     if not os.path.exists(readme_path):
         return True
     try:
-        result = subprocess.run(
-            [sys.executable, gen_script, "--plugin-dir", repo_root, "--readme", readme_path],
-            capture_output=True, text=True, timeout=30,
-        )
-        if result.returncode != 0:
-            print(f"  ⚠️  README-Generator: {result.stdout.strip()}")
-            return False
-        if "aktualisiert" in result.stdout:
-            subprocess.run(["git", "add", "README.md"], cwd=repo_root, capture_output=True)
-            print(f"  📝 README.md aktualisiert (Tool-Tabelle) + gestaged")
-        return True
-    except Exception as e:
-        print(f"  ⚠️  README-Generator Exception: {e}")
-        return True
+        r = run_cmd([VENV_PYTHON, gen_script], timeout=30)
+        if r.returncode == 0:
+            subprocess.run(
+                ["git", "add", "README.md"],
+                capture_output=True, timeout=10, cwd=repo_root,
+            )
+            return True
+    except Exception:
+        pass
+    return True
 
 
 if __name__ == "__main__":

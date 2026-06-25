@@ -1,155 +1,76 @@
 #!/usr/bin/env python3
-"""generate_readme.py — Auto-Generierung der README.md für das scout Plugin.
-
-Liest plugin.yaml, CHANGELOG.md und scout_tool_registry.json und erzeugt
-eine README.md mit Tool-Übersicht, Status und aktuellen Changes.
+"""README auto-generator for scout — uses shared generate_readme_base.py.
 
 Usage:
-    python3 scripts/generate_readme.py
+    python3 scripts/generate_readme.py          # update README.md in place
+    python3 scripts/generate_readme.py --check  # exit 1 if README is stale
+    python3 scripts/generate_readme.py --verbose  # show debug info
 """
 
 import json
-import os
 import re
 import sys
+from pathlib import Path
 
-PLUGIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def read_plugin_yaml() -> dict:
-    """Read plugin.yaml, return {name, version, description, author}."""
-    path = os.path.join(PLUGIN_DIR, "plugin.yaml")
-    if not os.path.exists(path):
-        return {"name": "scout", "version": "?", "description": "", "author": "agentiker"}
-    with open(path) as f:
-        text = f.read()
-    result = {}
-    for key in ("name", "version", "description", "author"):
-        m = re.search(rf"^{key}:\s*(.+)", text, re.MULTILINE)
-        result[key] = m.group(1).strip().strip("\"'") if m else "?"
-    return result
+BASE = Path.home() / ".hermes" / "scripts" / "generate_readme_base.py"
+sys.path.insert(0, str(BASE.parent))
+from generate_readme_base import ReadmeGenerator  # noqa: E402, I001
 
 
-def read_changelog() -> str:
-    """Return the latest CHANGELOG entry (everything up to the next ##)."""
-    path = os.path.join(PLUGIN_DIR, "CHANGELOG.md")
-    if not os.path.exists(path):
-        return "—"
-    with open(path) as f:
-        text = f.read()
-    # Find first ## [version] block
-    pattern = r'^(#{2,3})\s+\[?([\d.]+)\]?(.*?)(?=\n#{2,3}\s+\[|\Z)'
-    m = re.search(pattern, text, re.DOTALL | re.MULTILINE)
-    if m:
-        return m.group(0).strip()
-    return text[:500] + "…" if len(text) > 500 else text
+PLUGIN_DIR = Path(__file__).resolve().parent.parent
 
 
-def read_tool_registry() -> dict:
-    """Read scout_tool_registry.json, return {domain: [(name, desc)]}."""
-    path = os.path.join(PLUGIN_DIR, "scout_tool_registry.json")
-    if not os.path.exists(path):
-        return {}
-    with open(path) as f:
-        data = json.load(f)
-    result = {}
-    for domain, tools in data.items():
-        entries = []
-        for t in tools:
-            schema = t.get("schema", {})
-            desc = schema.get("description", "") if isinstance(schema, dict) else ""
-            entries.append((t["name"], desc[:80] + "…" if len(desc) > 80 else desc))
-        result[domain] = entries
-    return result
+class ScoutReadmeGenerator(ReadmeGenerator):
 
+    def get_tools(self) -> list[dict]:
+        """Extract tools from scout_tool_registry.json + analysis_tools.py."""
+        tools = []
 
-def make_tool_table(entries: list[tuple[str, str]]) -> str:
-    """Format tool list as markdown table."""
-    if not entries:
-        return "_Keine Tools registriert_"
-    lines = [
-        "| Tool | Description |",
-        "|------|-------------|",
-    ]
-    for name, desc in entries:
-        lines.append(f"| `{name}` | {desc} |")
-    return "\n".join(lines)
+        # Analysis tools from analysis/analysis_tools.py
+        analysis_file = self.plugin_dir / "analysis" / "analysis_tools.py"
+        if analysis_file.exists():
+            text = analysis_file.read_text("utf-8")
+            analysis_names = re.findall(r'"(analysis_\w+)"', text)
+            existing = self._read_existing_descriptions()
+            for name in sorted(set(analysis_names)):
+                desc = existing.get(name, "Code & architecture analysis tool.")
+                tools.append({"name": name, "description": desc, "category": "Analysis — Code & Architecture"})
 
+        # Bughunt + Research from registry
+        registry_file = self.plugin_dir / "scout_tool_registry.json"
+        if registry_file.exists():
+            with open(registry_file) as f:
+                registry = json.load(f)
+            DOMAIN_LABELS = {
+                "bughunt": "Bug-Hunt — Vulnerability Scanning",
+                "research": "Research — Web Research & Synthesis",
+            }
+            for domain, entries in registry.items():
+                label = DOMAIN_LABELS.get(domain, domain)
+                for entry in entries:
+                    name = entry.get("name", "?")
+                    schema = entry.get("schema", {})
+                    desc = schema.get("description", "") if isinstance(schema, dict) else ""
+                    if desc:
+                        desc = desc.split(".")[0] + "." if "." in desc else desc[:120]
+                    tools.append({"name": name, "description": desc, "category": label})
 
-def generate() -> str:
-    meta = read_plugin_yaml()
-    changelog = read_changelog()
-    registry = read_tool_registry()
+        return tools
 
-    total_tools = sum(len(v) for v in registry.values())
+    def _read_existing_descriptions(self) -> dict[str, str]:
+        """Read tool descriptions from current README table."""
+        if not self.readme_path.exists():
+            return {}
+        from generate_readme_base import read_existing_descriptions
+        return read_existing_descriptions(self.readme_path)
 
-    lines = [
-        f"# {meta.get('name', 'scout').title()} Plugin — Hermes Agent",
-        "",
-        meta.get("description", ""),
-        "",
-        f"- **Version:** {meta.get('version', '?')}",
-        f"- **Author:** {meta.get('author', 'agentiker')}",
-        "- **License:** MIT",
-        f"- **Total Tools:** {total_tools}",
-        "",
-        "---",
-        "",
-        "## Tool-Übersicht",
-        "",
-    ]
+    def get_profiles(self) -> list[dict]:
+        return []
 
-    # Domain sections
-    domain_labels = {
-        "analysis": "Analysis — Code & Architecture Analysis",
-        "bughunt": "Bug-Hunt — Automated Bug Pattern Scanning",
-        "research": "Research — Web Research & Synthesis",
-    }
-    for domain, label in domain_labels.items():
-        entries = registry.get(domain, [])
-        lines.append(f"### {label} ({len(entries)} Tools)")
-        lines.append("")
-        lines.append(make_tool_table(entries))
-        lines.append("")
-
-    lines.extend([
-        "---",
-        "",
-        "## Latest Changes",
-        "",
-        changelog,
-        "",
-        "---",
-        "",
-        "## Development",
-        "",
-        "### Setup",
-        "",
-        "```bash",
-        "# Pre-commit hook aktivieren",
-        "git config core.hooksPath .githooks",
-        "",
-        "# Tests ausführen",
-        "python3 -m pytest tests/ -q --tb=short",
-        "",
-        "# Ruff Lint",
-        "python3 -m ruff check . --select F,E,T,W,I",
-        "```",
-        "",
-        "Siehe `CONTRIBUTING.md` und `BRANCHING.md` für Details.",
-    ])
-
-    return "\n".join(lines)
-
-
-def main():
-    readme = generate()
-    out_path = os.path.join(PLUGIN_DIR, "README.md")
-    with open(out_path, "w") as f:
-        f.write(readme)
-    print(f"✅ README.md generated ({len(readme)} chars)")  # noqa: T201
-    return 0
+    def get_languages(self) -> list[str]:
+        return []
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    gen = ScoutReadmeGenerator(PLUGIN_DIR)
+    sys.exit(gen.run())

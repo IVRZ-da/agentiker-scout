@@ -1,5 +1,8 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.2] — 2026-06-25
+- **Pre-Commit-Hook:** `_check_readme_tools()` auf per-plugin `scripts/generate_readme.py` umgestellt (alter zentraler Pfad entfernt)
+
 ## [0.5.1] — 2026-06-25
 
 ### Changed — Bughunt-Core-Split + Complexity-Refactoring
