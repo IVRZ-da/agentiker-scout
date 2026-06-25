@@ -331,7 +331,7 @@ def analysis_dependency_risk_tool(args: dict, **kwargs) -> str:
 def analysis_risk_tool(args: dict, **kwargs) -> str:
     """Multi-Faktor Risk Assessment für ein Projekt.
 
-    Kombiniert dependency_risk + complexity + deadcode + security + duplicates.
+    Kombiniert dependency_risk + complexity + deadcode + security + hotspots + duplicates.
     """
     from scout._fmt import fmt_err, fmt_ok
 
@@ -355,80 +355,39 @@ def analysis_risk_tool(args: dict, **kwargs) -> str:
     }
     scores: list[float] = []
 
-    # 1. Dependencies
-    if include_all or "dependencies" in categories:
+    # Definition der Risiko-Checks (data-driven — ersetzt 6 Repeat-Blöcke)
+    risk_checks = [
+        ("dependencies", "code_dependency_risk", {},
+         lambda r: float(r.get("risk_score", r.get("score", 0))),
+         lambda r, s: {"score": s, "level": r.get("risk_level", "")}),
+        ("complexity", "code_complexity", {"directory": True},
+         lambda r: min(float(r.get("max_complexity", r.get("max", 0))) / 20.0, 10.0),
+         lambda r, s: {"score": round(s, 1), "max": r.get("max_complexity", r.get("max", 0))}),
+        ("deadcode", "code_unused_finder", {"kinds": ["all"], "max_files": 200, "timeout": 30},
+         lambda r: min(len(r.get("unused", r.get("data", [])) if isinstance(r.get("unused", r.get("data", [])), list) else []), 10),
+         lambda r, s: {"unused_count": len(r.get("unused", r.get("data", [])) if isinstance(r.get("unused", r.get("data", [])), list) else []), "score": s}),
+        ("security", "code_security_scan", {"severity": "HIGH"},
+         lambda r: min(len(r.get("findings", []) if isinstance(r.get("findings", []), list) else []) * 2, 10),
+         lambda r, s: {"findings": len(r.get("findings", []) if isinstance(r.get("findings", []), list) else []), "score": s}),
+        ("hotspots", "code_hot_paths", {"top_n": 5},
+         lambda r: min(len(r.get("hot_paths", r.get("paths", [])) if isinstance(r.get("hot_paths", r.get("paths", [])), list) else []) * 2, 10),
+         lambda r, s: {"count": len(r.get("hot_paths", r.get("paths", [])) if isinstance(r.get("hot_paths", r.get("paths", [])), list) else []), "score": s}),
+        ("duplicates", "code_duplicates", {"min_lines": 5, "top_n": 10},
+         lambda r: min(len(r.get("duplicates", r.get("data", [])) if isinstance(r.get("duplicates", r.get("data", [])), list) else []), 10),
+         lambda r, s: {"count": len(r.get("duplicates", r.get("data", [])) if isinstance(r.get("duplicates", r.get("data", [])), list) else []), "score": s}),
+    ]
+
+    for name, tool_name, extra_kwargs, score_fn, component_fn in risk_checks:
+        if not (include_all or name in categories):
+            continue
         try:
-            dep = _call_tool("code_dependency_risk", path=path)
-            if isinstance(dep, dict):
-                s = float(dep.get("risk_score", dep.get("score", 0)))
+            r = _call_tool(tool_name, path=path, **extra_kwargs)
+            if isinstance(r, dict):
+                s = float(score_fn(r))
                 scores.append(s)
-                result["components"]["dependencies"] = {"score": s, "level": dep.get("risk_level", "")}
+                result["components"][name] = component_fn(r, s)
         except Exception as e:
-            logger.debug("dependency_risk skipped: %s", e)
-
-    # 2. Complexity
-    if include_all or "complexity" in categories:
-        try:
-            c = _call_tool("code_complexity", path=path, directory=True)
-            if isinstance(c, dict):
-                max_c = float(c.get("max_complexity", c.get("max", 0)))
-                s = min(max_c / 20.0, 10.0)
-                scores.append(s)
-                result["components"]["complexity"] = {"score": round(s, 1), "max": max_c}
-        except Exception as e:
-            logger.debug("complexity skipped: %s", e)
-
-    # 3. Dead Code
-    if include_all or "deadcode" in categories:
-        try:
-            u = _call_tool("code_unused_finder", path=path, kinds=["all"], max_files=200, timeout=30)
-            if isinstance(u, dict):
-                unused = u.get("unused", u.get("data", []))
-                count = len(unused) if isinstance(unused, list) else 0
-                s = min(count, 10)
-                scores.append(float(s))
-                result["components"]["deadcode"] = {"unused_count": count, "score": s}
-        except Exception as e:
-            logger.debug("unused_finder skipped: %s", e)
-
-    # 4. Security
-    if include_all or "security" in categories:
-        try:
-            sec = _call_tool("code_security_scan", path=path, severity="HIGH")
-            if isinstance(sec, dict):
-                findings = sec.get("findings", [])
-                count = len(findings) if isinstance(findings, list) else 0
-                s = min(count * 2, 10)
-                scores.append(float(s))
-                result["components"]["security"] = {"findings": count, "score": s}
-        except Exception as e:
-            logger.debug("security_scan skipped: %s", e)
-
-    # 5. Hotspots
-    if include_all or "hotspots" in categories:
-        try:
-            h = _call_tool("code_hot_paths", path=path, top_n=5)
-            if isinstance(h, dict):
-                paths_list = h.get("hot_paths", h.get("paths", []))
-                count = len(paths_list) if isinstance(paths_list, list) else 0
-                s = min(count * 2, 10)
-                scores.append(float(s))
-                result["components"]["hotspots"] = {"count": count, "score": s}
-        except Exception as e:
-            logger.debug("hot_paths skipped: %s", e)
-
-    # 6. Duplicates
-    if include_all or "duplicates" in categories:
-        try:
-            d = _call_tool("code_duplicates", path=path, min_lines=5, top_n=10)
-            if isinstance(d, dict):
-                blocks = d.get("duplicates", d.get("data", []))
-                count = len(blocks) if isinstance(blocks, list) else 0
-                s = min(count, 10)
-                scores.append(float(s))
-                result["components"]["duplicates"] = {"count": count, "score": s}
-        except Exception as e:
-            logger.debug("duplicates skipped: %s", e)
+            logger.debug("%s skipped: %s", name, e)
 
     # Gesamt-Score
     if scores:
