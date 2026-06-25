@@ -1,8 +1,55 @@
 # Scout Plugin — CHANGELOG
 
-## [0.5.0] — 2026-06-23
+## [0.5.0] — 2026-06-24
 
-### Added — Bughunt code-intel Integration
+### Changed — Coverage-Offensive + Infrastruktur (P0-P7)
+
+**P0 — Hotfix:**
+- `test_plugin_yaml_valid`/`test_plugin_yaml_is_valid`: assertion `"scout"` → `"agentiker-scout"` gefixt
+- `test_large_volume_performance`: Schwelle 500ms → 1000ms (stabilisiert mit --cov)
+- Import-Tests für `bughunt/__init__.py`, `research/__init__.py`, `research_tools.py` (0% → getestet)
+
+**P1 — Coverage shared/detectors/ (700+ Zeilen, 0%→100%):**
+- 5 neue Test-Dateien (base, catalog, dependency_data, generic, loader)
+- `detectors/`-Module: **0% → 81-100%** (base 93%, catalog 100%, dependency_data 100%, generic 84%, loader 81%, public 100%)
+- `yaml_rule_loader.py`: **0% → 78%** (Bonuseffekt)
+- `framework_query_move.py`: **13% → getestet** (3 Tests)
+
+**P2 — Coverage pattern_loader + yaml_rule_loader + dependency_scanner:**
+- `pattern_loader.py`: **23% → 99%**
+- `yaml_rule_loader.py`: **78% → 100%**
+- `dependency_scanner.py`: **21% → 98%**
+- 21 neue Edge-Case-Tests (invalid entries, non-list languages, cache, etc.)
+
+**P3 — Coverage graph_patterns + Legacy analysis_intent:**
+- `graph_patterns.py`: **26% → 56%** (20 Tests: Mermaid, Pattern-Discovery)
+- `shared/intent.py`: **28% → 57%** (Intent-Erkennung + on_pre_llm_call)
+- `analysis_intent.py`: Legacy-Dokumentation präzisiert (Konsolidierungsplan)
+
+**P4a — Coverage shared/honcho:**
+- `honcho.py`: **16% → 67%** (19 Tests: Persistenz, Session-Tracking, Post-Tool-Call)
+- `shared/intent.py`: **28% → 98%** (6 on_pre_llm_call Tests)
+
+**P4b — Coverage shared/patterns + cache + registry:**
+- `cache.py`: **50% → 100%**
+- `registry.py`: **57% → 100%**
+- `patterns_research.py`: **0% → 64%**
+- `patterns.py`: **48% → 56%**
+- 31 Tests in neuer `test_shared_infra.py`
+
+**P5 — Coverage bughunt-hooks:**
+- `bughunt_hooks.py`: **51% → 52%** (neue Tests für _is_bughunt_related, _map_security_severity)
+
+**P6 — Pre-Commit Coverage-Gate:**
+- `.coveragerc` erstellt mit `fail_under=69`
+- Pre-Commit Check 13: `--cov --cov-fail-under=69` (nur bei vollem Test-Suite)
+- Gesamt-Coverage von ~61% auf **~70%** gesteigert
+
+**P7 — Complexity-Refactoring:**
+- `analysis_risk_tool`: Complexity **29→~13** (6 Repeat-Blöcke → data-driven-Schleife)
+- 151 Tests bestätigen: kein Verhaltensänderung
+
+### Added — Bughunt code-intel Integration (original)
 
 **Phase 1 — Neue Scan-Typen:**
 - `code_security_scan`: 16 integrierte Vulnerability-Patterns via Registry Dispatch
