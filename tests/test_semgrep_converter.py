@@ -12,8 +12,6 @@ Testet:
 from __future__ import annotations
 
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -55,24 +53,8 @@ def quality_patterns() -> list[dict]:
 
 
 class TestScriptExecutable:
-    """Das convert_semgrep_rules.py Script muss ausführbar sein."""
-
-    def test_script_exists(self):
-        """Script existiert."""
-        path = SCRIPTS_DIR / "convert_semgrep_rules.py"
-        assert path.exists(), f"Script nicht gefunden: {path}"
-
-    def test_script_runs(self):
-        """Script lässt sich ausführen (python3 script.py --help oder dry-run)."""
-        path = SCRIPTS_DIR / "convert_semgrep_rules.py"
-        # Just check it imports cleanly
-        result = subprocess.run(
-            [sys.executable, "-c", f"import importlib.util; spec = importlib.util.spec_from_file_location('convert', '{path}'); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        assert result.returncode == 0, f"Script import failed: {result.stderr}"
+    """Kein Script mehr — wurde gelöscht (Dead Code)."""
+    pass
 
 
 class TestYamlFiles:

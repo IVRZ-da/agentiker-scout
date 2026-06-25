@@ -1,6 +1,6 @@
 """Shared intent detection — single pre_llm_call hook for all 3 domains.
 
-Fasst die Keyword-Detection aus analysis (analysis_intent.py),
+Fasst die Keyword-Detection aus analysis (intent_helpers.py),
 bughunt (bughunt_hooks.py pre_llm_call) und deep-research (research_hooks.py pre_llm_call)
 zusammen. Vermeidet 3× Hook-Overhead + dedupliziert Keywords.
 """

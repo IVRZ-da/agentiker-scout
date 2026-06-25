@@ -467,13 +467,13 @@ class TestEdgeCases:
 class TestAIIntentDetection:
 
     def test_ai_cache_empty_initially(self):
-        from scout.analysis.analysis_intent import _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_intent_cache
         _ai_intent_cache.clear()
         assert len(_ai_intent_cache) == 0
 
     def test_ai_detect_returns_none_on_exception(self):
         """Ohne Honcho-Service sollte _ai_detect_intent None zurückgeben."""
-        from scout.analysis.analysis_intent import _ai_detect_intent
+        from scout.analysis.intent_helpers import _ai_detect_intent
         result = _ai_detect_intent("random gibberish xyz")
         assert result is None
 
@@ -483,7 +483,7 @@ class TestCrossSessionCache:
 
     def test_honcho_cache_file_defined(self):
         """_HONCHO_CACHE_FILE ist ein gültiger Pfad."""
-        from scout.analysis.analysis_intent import _HONCHO_CACHE_FILE
+        from scout.analysis.intent_helpers import _HONCHO_CACHE_FILE
         assert _HONCHO_CACHE_FILE
         assert _HONCHO_CACHE_FILE.endswith(".honcho_cache.json")
 
@@ -491,7 +491,7 @@ class TestCrossSessionCache:
         """_save_honcho_cache und _load_honcho_cache funktionieren."""
         import os
 
-        from scout.analysis.analysis_intent import (
+        from scout.analysis.intent_helpers import (
             _HONCHO_CACHE_FILE,
             _honcho_cache,
             _load_honcho_cache,
@@ -527,7 +527,7 @@ class TestCrossSessionCache:
 
     def test_cache_nonexistent_file(self):
         """_load_honcho_cache crasht nicht bei fehlender Datei."""
-        from scout.analysis.analysis_intent import _honcho_cache, _load_honcho_cache
+        from scout.analysis.intent_helpers import _honcho_cache, _load_honcho_cache
         orig = dict(_honcho_cache)
         try:
             _honcho_cache.clear()
@@ -538,7 +538,7 @@ class TestCrossSessionCache:
 
     def test_cache_is_exported_from_core(self):
         """Cache-Funktionen sind in analysis_core re-exportiert."""
-        from scout.analysis.analysis_intent import _load_honcho_cache, _save_honcho_cache
+        from scout.analysis.intent_helpers import _load_honcho_cache, _save_honcho_cache
         assert callable(_load_honcho_cache)
         assert callable(_save_honcho_cache)
 
@@ -706,7 +706,7 @@ class TestInjectContextEdgeCases:
         """Wenn history_ctx vorhanden, wird es eingebaut."""
         import time
 
-        from scout.analysis.analysis_intent import _honcho_cache
+        from scout.analysis.intent_helpers import _honcho_cache
         cache_key = f"honcho_analysis:{hash('test query')%10000}"
         _honcho_cache[cache_key] = ("vorherige Analyse gefunden", time.time())
         try:
@@ -724,7 +724,7 @@ class TestInjectContextEdgeCases:
         """history_ctx = 'None' wird als leer betrachtet."""
         import time
 
-        from scout.analysis.analysis_intent import _honcho_cache
+        from scout.analysis.intent_helpers import _honcho_cache
         cache_key = f"honcho_analysis:{hash('test query')%10000}"
         _honcho_cache[cache_key] = ("None", time.time())
         try:
@@ -739,7 +739,7 @@ class TestInjectContextEdgeCases:
         """history_ctx = '[]' wird als leer betrachtet."""
         import time
 
-        from scout.analysis.analysis_intent import _honcho_cache
+        from scout.analysis.intent_helpers import _honcho_cache
         cache_key = f"honcho_analysis:{hash('test query')%10000}"
         _honcho_cache[cache_key] = ("[]", time.time())
         try:
@@ -898,7 +898,7 @@ class TestIntentDetectionAI:
         """Cache-Treffer in _ai_detect_intent gibt gecachten Wert zurück."""
         import hashlib
 
-        from scout.analysis.analysis_intent import _ai_detect_intent, _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_detect_intent, _ai_intent_cache
         key = hashlib.md5(b"test text").hexdigest()[:16]
         _ai_intent_cache[key] = ("code", 9999999999.0)
         result = _ai_detect_intent("test text")
@@ -908,7 +908,7 @@ class TestIntentDetectionAI:
         """Abgelaufener Cache wird gelöscht und neu evaluiert."""
         import hashlib
 
-        from scout.analysis.analysis_intent import _ai_detect_intent, _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_detect_intent, _ai_intent_cache
         key = hashlib.md5(b"stale text").hexdigest()[:16]
         _ai_intent_cache[key] = ("code", 0.0)  # alte Timestamp
         result = _ai_detect_intent("stale text")
@@ -920,7 +920,7 @@ class TestIntentDetectionAI:
         """Wenn das Result mit { oder [ beginnt, wird None zurückgegeben."""
         import hashlib
 
-        from scout.analysis.analysis_intent import _ai_detect_intent, _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_detect_intent, _ai_intent_cache
         # Cache so setzen dass registry nicht aufgerufen wird
         key = hashlib.md5(b"json result").hexdigest()[:16]
         _ai_intent_cache.pop(key, None)
@@ -940,7 +940,7 @@ class TestIntentDetectionAI:
         """Wenn honcho Result 'architecture' enthält, wird es erkannt."""
         import hashlib
 
-        from scout.analysis.analysis_intent import _ai_detect_intent, _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_detect_intent, _ai_intent_cache
         key = hashlib.md5(b"arch intent").hexdigest()[:16]
         _ai_intent_cache.pop(key, None)
 
@@ -963,7 +963,7 @@ class TestIntentDetectionAI:
         """Fehler in _ai_detect_intent geben None zurück."""
         import hashlib
 
-        from scout.analysis.analysis_intent import _ai_detect_intent, _ai_intent_cache
+        from scout.analysis.intent_helpers import _ai_detect_intent, _ai_intent_cache
         key = hashlib.md5(b"error test").hexdigest()[:16]
         _ai_intent_cache.pop(key, None)
 
@@ -986,7 +986,7 @@ class TestSaveHonchoCache:
         """Schreibfehler in _save_honcho_cache wird abgefangen."""
         import os
 
-        from scout.analysis.analysis_intent import (
+        from scout.analysis.intent_helpers import (
             _HONCHO_CACHE_FILE,
             _honcho_cache,
             _save_honcho_cache,
@@ -1012,7 +1012,7 @@ class TestSaveHonchoCache:
         """Leerer Cache beim Speichern ist ok."""
         import os
 
-        from scout.analysis.analysis_intent import (
+        from scout.analysis.intent_helpers import (
             _HONCHO_CACHE_FILE,
             _honcho_cache,
             _save_honcho_cache,
@@ -1032,7 +1032,7 @@ class TestSaveHonchoCache:
         """Beschädigte Cache-Datei beim Laden wird abgefangen."""
         import os
 
-        from scout.analysis.analysis_intent import (
+        from scout.analysis.intent_helpers import (
             _HONCHO_CACHE_FILE,
             _honcho_cache,
             _load_honcho_cache,
@@ -1054,7 +1054,7 @@ class TestSaveHonchoCache:
         """Cache-Datei mit falschem Format wird abgefangen."""
         import os
 
-        from scout.analysis.analysis_intent import (
+        from scout.analysis.intent_helpers import (
             _HONCHO_CACHE_FILE,
             _honcho_cache,
             _load_honcho_cache,
@@ -1074,13 +1074,13 @@ class TestSaveHonchoCache:
     def test_load_cache_module_level_call(self):
         """Module-level _load_honcho_cache() ist exportiert."""
         # Wird bereits beim Import von analysis_intent ausgeführt
-        from scout.analysis.analysis_intent import _load_honcho_cache as lhc
+        from scout.analysis.intent_helpers import _load_honcho_cache as lhc
         assert callable(lhc)
 
     def test_honcho_cache_query_failure(self):
         """Fehler in _query_honcho_analysis_history gibt None zurück."""
 
-        from scout.analysis.analysis_intent import _honcho_cache, _query_honcho_analysis_history
+        from scout.analysis.intent_helpers import _honcho_cache, _query_honcho_analysis_history
         # Cache-Eintrag löschen damit er neu geladen wird
         cache_key = f"honcho_analysis:{hash('fail query')%10000}"
         _honcho_cache.pop(cache_key, None)

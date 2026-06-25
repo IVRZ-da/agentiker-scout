@@ -6,7 +6,7 @@ Funktionen:
   - persist_analysis_session: on_session_end — persistiert in Honcho
 
 Importiert Sub-Module:
-  - analysis_intent: Keywords + Intent-Detection + File-Refs + Recommendations
+  - intent_helpers: Keywords + Intent-Detection + File-Refs + Recommendations
   - analysis_session: AnalysisSession + Session-State
   - analysis_profiles: Profile + Subagent-Steering + Patching
 """
@@ -20,7 +20,7 @@ import time
 from datetime import datetime
 from typing import Any, Optional
 
-from scout.analysis.analysis_intent import (
+from scout.analysis.intent_helpers import (
     ANALYSIS_TOOLS,
     _build_tool_recommendations,
     _detect_intent,

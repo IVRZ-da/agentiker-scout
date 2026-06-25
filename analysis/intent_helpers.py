@@ -1,15 +1,9 @@
-"""analysis_intent — Intent-Erkennung und Keyword-Detection für das Analyse-Plugin.
+"""intent_helpers — Helfer für Intent-Erkennung (genutzt von analysis_core.py).
 
-STATUS: Aktiver Code — wird von analysis_core.py importiert (5 Funktionen).
-Überschneidet sich teilweise mit shared/intent.py (_detect_intent), bietet aber
-zusätzlich _extract_file_refs, _is_analysis_query, _build_tool_recommendations
+Enthält _extract_file_refs, _is_analysis_query, _build_tool_recommendations
 und _query_honcho_analysis_history, die in shared/intent.py nicht existieren.
 
-Eine vollständige Konsolidierung mit shared/intent.py erfordert:
-  1. Migration der 4 exklusiven Funktionen nach shared/intent.py
-  2. Umstellung von analysis_core.py auf shared/intent.py
-  3. Entfernen dieser Datei
-Dies ist ein eigenständiges Refactoring, das nicht Teil der Coverage-Phase ist."""
+Der pre_llm_call Hook lebt in shared/intent.py — diese Datei ist nur Helper."""
 
 from __future__ import annotations
 
