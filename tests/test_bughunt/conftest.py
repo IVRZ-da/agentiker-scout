@@ -112,6 +112,23 @@ if _spc and _spc.loader:
 @pytest.fixture
 def bh(tmp_path):
     """Fresh bughunt_core module with isolated data dir."""
+    # 1. Setup core submodules in namespace
+    core_dir = _bd / "core"
+    core_mod = types.ModuleType("scout.bughunt.core")
+    core_mod.__path__ = [str(core_dir)]
+    sys.modules["scout.bughunt.core"] = core_mod
+
+    for sub_name in ["model", "patterns", "persistence", "tracking"]:
+        sub_path = core_dir / f"{sub_name}.py"
+        sub_mod_name = f"scout.bughunt.core.{sub_name}"
+        sub_spec = importlib.util.spec_from_file_location(sub_mod_name, sub_path)
+        sub_mod = importlib.util.module_from_spec(sub_spec)
+        sub_mod.__package__ = "scout.bughunt.core"
+        sys.modules[sub_mod_name] = sub_mod
+        sub_spec.loader.exec_module(sub_mod)
+        setattr(core_mod, sub_name, sub_mod)
+
+    # 2. Load bughunt_core (facade) via importlib
     source = _bd / "bughunt_core.py"
     mod_name = f"scout.bughunt.bughunt_core.{tmp_path.name}"
     spec = importlib.util.spec_from_file_location(mod_name, source)
@@ -126,6 +143,13 @@ def bh(tmp_path):
     mod.PATTERNS_DIR = mod.DATA_DIR / "patterns"
     mod.PATTERNS_DIR.mkdir(exist_ok=True)
     mod.PLUGIN_DIR = tmp_path
+    # Also update core submodules' paths
+    for sub_name in ["model", "patterns", "persistence", "tracking"]:
+        sm = sys.modules[f"scout.bughunt.core.{sub_name}"]
+        sm.DATA_DIR = mod.DATA_DIR
+        sm.SESSIONS_DIR = mod.SESSIONS_DIR
+        sm.PATTERNS_DIR = mod.PATTERNS_DIR
+        sm.PLUGIN_DIR = tmp_path
     return mod
 
 

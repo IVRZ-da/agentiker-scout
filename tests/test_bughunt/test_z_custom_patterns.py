@@ -24,28 +24,80 @@ def core(tmp_path):
         fmt.fmt_err = lambda m, **kw: str(m)
         sys.modules["_fmt"] = fmt
 
-    # bughunt package falls nötig
+    # scout + bughunt namespace shims
+    scout_root = Path(__file__).parent.parent.parent
+    if "scout" not in sys.modules:
+        sp = types.ModuleType("scout")
+        sp.__path__ = [str(scout_root)]
+        sys.modules["scout"] = sp
+
+    # bughunt package
+    bughunt_dir = scout_root / "bughunt"
     if "bughunt" not in sys.modules:
         pkg = types.ModuleType("bughunt")
-        pkg.__path__ = [str(Path(__file__).parent.parent.parent / "bughunt")]
+        pkg.__path__ = [str(bughunt_dir)]
         sys.modules["bughunt"] = pkg
         sys.modules["bughunt._fmt"] = sys.modules.get("_fmt", types.ModuleType("_fmt"))
+
+    # scout.bughunt namespace + core submodules
+    if "scout.bughunt" not in sys.modules:
+        bp = types.ModuleType("scout.bughunt")
+        bp.__path__ = [str(bughunt_dir)]
+        sys.modules["scout.bughunt"] = bp
+    if "scout.bughunt.core" not in sys.modules:
+        core_dir = bughunt_dir / "core"
+        cm = types.ModuleType("scout.bughunt.core")
+        cm.__path__ = [str(core_dir)]
+        sys.modules["scout.bughunt.core"] = cm
+        for sub_name in ["model", "patterns", "persistence", "tracking"]:
+            sub_path = core_dir / f"{sub_name}.py"
+            sub_mod_name = f"scout.bughunt.core.{sub_name}"
+            sub_spec = importlib.util.spec_from_file_location(sub_mod_name, sub_path)
+            sub_mod = importlib.util.module_from_spec(sub_spec)
+            sub_mod.__package__ = "scout.bughunt.core"
+            sys.modules[sub_mod_name] = sub_mod
+            sub_spec.loader.exec_module(sub_mod)
+            setattr(cm, sub_name, sub_mod)
+
+    # bughunt_patterns Shim (wird von core/patterns.py importiert)
+    if "scout.bughunt.bughunt_patterns" not in sys.modules:
+        bp_mod = types.ModuleType("scout.bughunt.bughunt_patterns")
+        # Minimal shim für die Funktionen, die core/patterns.py braucht
+        bp_mod.PATTERNS_BY_ID = {}
+        bp_mod.PATTERNS_BY_CATEGORY = {}
+        bp_mod.ALL_PATTERNS = []
+        from scout.bughunt.data.patterns_data import BugPattern
+        bp_mod.BugPattern = BugPattern
+        sys.modules["scout.bughunt.bughunt_patterns"] = bp_mod
 
     mod_name = f"bughunt.bughunt_core.{tmp_path.name}"
     if mod_name in sys.modules:
         return sys.modules[mod_name]
 
-    source = Path(__file__).parent.parent.parent / "bughunt" / "bughunt_core.py"
+    source = bughunt_dir / "bughunt_core.py"
     spec = importlib.util.spec_from_file_location(mod_name, source)
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = "bughunt"
     sys.modules[mod_name] = mod
     spec.loader.exec_module(mod)
 
-    # PATTERNS_DIR auf tmp_path isolieren (damit keine Kreuz-Kontamination)
-    mod.PATTERNS_DIR = tmp_path / "patterns"
-    mod.PATTERNS_DIR.mkdir(parents=True, exist_ok=True)
-    mod.CUSTOM_PATTERNS_FILE = mod.PATTERNS_DIR / "custom_patterns.json"
+    # Isolierte DATA_DIR für Test
+    mod.DATA_DIR = tmp_path / "data"
+    mod.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    mod.SESSIONS_DIR = mod.DATA_DIR / "sessions"
+    mod.SESSIONS_DIR.mkdir(exist_ok=True)
+    mod.PATTERNS_DIR = mod.DATA_DIR / "patterns"
+    mod.PATTERNS_DIR.mkdir(exist_ok=True)
+    # Auch in core submodules setzen
+    for sub_name in ["model", "patterns", "persistence", "tracking"]:
+        sm = sys.modules.get(f"scout.bughunt.core.{sub_name}")
+        if sm:
+            sm.DATA_DIR = mod.DATA_DIR
+            sm.SESSIONS_DIR = mod.SESSIONS_DIR
+            sm.PATTERNS_DIR = mod.PATTERNS_DIR
+            if hasattr(sm, "CUSTOM_PATTERNS_FILE"):
+                sm.CUSTOM_PATTERNS_FILE = sm.PATTERNS_DIR / "custom_patterns.json"
+
     return mod
 
 
