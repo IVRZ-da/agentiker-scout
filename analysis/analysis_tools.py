@@ -69,6 +69,7 @@ from .tools.schemas import (
     ANALYSIS_TIMELINE_SCHEMA,
     ANALYSIS_TREND_SCHEMA,
     ANALYSIS_UI_GAP_SCHEMA,
+    ANALYSIS_UI_INSPECT_SCHEMA,
     ANALYSIS_WATCH_SCHEMA,
 )
 from .tools.test_insight import analysis_test_insight_tool
@@ -87,6 +88,7 @@ from .tools.timeline import analysis_timeline_tool
 # analysis_ui_gap und analysis_pattern_discover sind noch im monolith —
 # werden in Phase 2 ebenfalls migriert.
 from .tools.ui_gap import analysis_ui_gap_tool  # noqa: E402, F811
+from .tools.ui_inspect import analysis_ui_inspect_tool  # noqa: E402
 
 TOOL_HANDLERS: dict[str, tuple[dict, Any]] = {
     "analysis_inspect": (ANALYSIS_INSPECT_SCHEMA, analysis_inspect_tool),
@@ -114,6 +116,7 @@ TOOL_HANDLERS: dict[str, tuple[dict, Any]] = {
     "analysis_graph_query": (ANALYSIS_GRAPH_QUERY_SCHEMA, analysis_graph_query_tool),
     "analysis_test_insight": (ANALYSIS_TEST_INSIGHT_SCHEMA, analysis_test_insight_tool),
     "analysis_migration": (ANALYSIS_MIGRATION_SCHEMA, analysis_migration_tool),
+    "analysis_ui_inspect": (ANALYSIS_UI_INSPECT_SCHEMA, analysis_ui_inspect_tool),
 }
 
 def _mermaid_from_dependency(data):

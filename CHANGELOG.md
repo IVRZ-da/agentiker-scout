@@ -1,5 +1,11 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.6] — 2026-06-27
+### UI-Element-Analyse
+- **analysis_ui_inspect:** Neues Tool fuer UI-Element-Analyse via Chrome DevTools MCP
+- A11y Tree + DOM-Inspektion + Console/Network-Check + Presence-Check
+- Graceful Degradation: kein MCP -> Instructions
+
 ## [0.5.5] — 2026-06-27
 ### Chrome DevTools MCP Integration (optional)
 - **bughunt_scanrunner:** `is_mcp_devtools_available()` Registry-Check + `console_errors`/`network_errors` Scan-Typen

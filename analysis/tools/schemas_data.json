@@ -792,5 +792,31 @@
         "path"
       ]
     }
+  },
+  "ANALYSIS_UI_INSPECT_SCHEMA": {
+    "name": "analysis_ui_inspect",
+    "description": "UI-Element-Analyse einer Webseite: Accessibility Tree + DOM-Inspektion + Console/Network-Check. Nutzt Chrome DevTools MCP wenn verfuegbar.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL der zu analysierenden Webseite."
+        },
+        "include_dom": {
+          "type": "boolean",
+          "description": "DOM-Inspektion (computed styles, Positionen, Sichtbarkeit).",
+          "default": true
+        },
+        "check_presence": {
+          "type": "boolean",
+          "description": "Pruefen ob erwartete UI-Elemente vorhanden sind.",
+          "default": false
+        }
+      },
+      "required": [
+        "url"
+      ]
+    }
   }
 }
