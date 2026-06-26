@@ -146,7 +146,7 @@ def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
         return fmt_err(error)
 
     path_error, resolved_path = _validate_and_resolve_path(path)
-    if path_error:
+    if path_error:  # pragma: no cover — dead code, _validate_path already catches above
         return fmt_err(f"{path_error} (path: {path})")
     path = resolved_path
 

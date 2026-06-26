@@ -43,10 +43,8 @@ line-length = 100
 select = ["F", "E", "T", "W", "I"]
 ignore = ["E501", "F403", "F405", "T201"]
 
-[tool.coverage.run]
-source = ["scout"]
-omit = ["tests/*", "scripts/*", ".hermes/*"]
-relative_files = true
+[tool.coverage]
+run = {source = [".", "shared", "analysis", "bughunt", "research"], omit = ["tests/*", "scripts/*", ".hermes/*"], relative_files = true}
 
 [tool.coverage.report]
 exclude_lines = [

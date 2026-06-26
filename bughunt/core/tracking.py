@@ -126,7 +126,7 @@ def validate_path(path: str, allowed_base=None) -> Optional[str]:
     return None  # path is valid
 
 
-def _generate_markdown_report(session: BugHuntSession,
+def generate_markdown_report(session: BugHuntSession,
                                group_by: str = "severity") -> str:
     """Generiert einen Markdown-Report für eine Session."""
     lines = [

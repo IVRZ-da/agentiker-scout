@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from hermes_cli.plugins import PluginContext
@@ -29,7 +29,7 @@ TOOL_SCHEMAS: dict[str, dict] = {}
 # ─── Tool-Registrierung ──────────────────────────────────────────────
 
 def _register_tools(ctx: PluginContext) -> None:
-    '''Register all tools via ctx.register_tool() from scout_tool_registry.json.'''
+    """Register all tools via ctx.register_tool() from scout_tool_registry.json."""
     import json  # lazy import — structure test erzwingt das
 
     # Lade Schema-Map aus JSON (wenn vorhanden)
@@ -38,7 +38,7 @@ def _register_tools(ctx: PluginContext) -> None:
     if _schemas_path.exists():
         try:
             _registry_map = json.loads(_schemas_path.read_text())
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             logger.debug("scout_tool_registry.json konnte nicht geladen werden")
 
     # ── Analysis (13 Tools) ──────────────────────────────────────────
@@ -49,7 +49,7 @@ def _register_tools(ctx: PluginContext) -> None:
             ctx.register_tool(name, "analysis", schema, handler, description=desc)
             TOOL_DESCRIPTIONS[name] = desc
             TOOL_SCHEMAS[name] = schema
-    except Exception as e:
+    except ImportError as e:
         logger.debug("Konnte analysis tools nicht registrieren: %s", e)
 
     # ── Bughunt (13 Tools) ───────────────────────────────────────────
@@ -82,13 +82,13 @@ def _register_domain_tools(
         TOOL_SCHEMAS[name] = schema
 
 
-def _resolve_handler(module_path: str, handler_name: str) -> Any:
+def _resolve_handler(module_path: str, handler_name: str) -> object:
     """Lazy-import a handler function by dotted module path."""
     try:
         import importlib
         mod = importlib.import_module(module_path)
         return getattr(mod, handler_name, None)
-    except Exception as e:
+    except (ImportError, AttributeError) as e:
         logger.debug("Handler-Import fehlgeschlagen: %s.%s (%s)",
                      module_path, handler_name, e)
         return None
@@ -101,14 +101,14 @@ def _register_hooks(ctx: PluginContext) -> None:
     try:
         from scout.shared import intent as intent_mod
         ctx.register_hook("pre_llm_call", intent_mod.on_pre_llm_call)
-    except Exception as e:
+    except ImportError as e:
         logger.debug("pre_llm_call hook nicht registriert: %s", e)
 
     try:
         from scout.shared import honcho as honcho_mod
         ctx.register_hook("post_tool_call", honcho_mod.on_post_tool_call)
         ctx.register_hook("on_session_end", honcho_mod.on_session_end)
-    except Exception as e:
+    except ImportError as e:
         logger.debug("honcho hooks nicht registriert: %s", e)
 
 
@@ -196,7 +196,7 @@ def _ensure_deps() -> None:
         )
         logger.info("✅ Dependencies auto-installiert: %s", missing)
         return
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         pass
 
     # Versuch 2: --user Fallback (für systemd/root/Docker)
@@ -207,7 +207,7 @@ def _ensure_deps() -> None:
         )
         logger.info("✅ Dependencies via --user installiert: %s", missing)
         return
-    except Exception as e:
+    except (subprocess.CalledProcessError, OSError) as e:
         logger.error("❌ Auto-Install fehlgeschlagen: %s. Manuell: %s -m pip install %s",
                      e, sys.executable, " ".join(missing))
 
@@ -217,7 +217,6 @@ def _ensure_deps() -> None:
 def register(ctx: PluginContext) -> None:
     """Plugin entry point — registers hooks + tools."""
     _ensure_deps()
-    from hermes_cli.plugins import PluginContext  # noqa: F401 — lazy import
 
     # tools.registry Shim (für 19 Stellen in Domain-Modulen)
     # Ersetzt das fehlende `tools.registry` Modul.

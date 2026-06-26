@@ -1,5 +1,13 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.4] — 2026-06-26
+### Coverage-Sprint + Bug-Hunt Fixes (5 Phasen)
+- **P1 — Coverage P2-Module:** framework_query_move.py 43%→100%, bughunt_patterns.py 40%→100%, persistence.py 68%→100%
+- **P2 — Coverage P3-Module:** duplicates.py 74%→100%, test_insight.py 74%→100%, crud.py 75%→98%
+- **P3 — BLE001 Fix:** 7 Exception-Handler in __init__.py auf spezifische Typen umgestellt (JSONDecodeError, ImportError, CalledProcessError)
+- **P4 — Ruff Cleanup:** Q002/D300 Docstring-Fix, RUF100 unused noqa entfernt, ANN401 Any→object, T201 print() entfernt
+- **P5 — SLF001 + Coverage:** _generate_markdown_report→generate_markdown_report, _fmt.py 76%→100%
+
 ## [0.5.3] — 2026-06-26
 ### Bug-Hunt Fixes (8 Findings)
 - **P1 — Silent Catches (5×):** schemas.py, generic.py (3× Detectors), loader.py — `except Exception: pass` durch `logger.debug/warning()` ersetzt

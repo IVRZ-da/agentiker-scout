@@ -597,7 +597,7 @@ def bug_hunt_report(args: dict, **kwargs) -> str:
     group_by = args.get("group_by", "severity")
     if report_format == "markdown":
         return _ok({"session_id": session_id, "format": "markdown",
-                    "report": core._generate_markdown_report(session, group_by)})
+                    "report": core.generate_markdown_report(session, group_by)})
     return _ok({
         "session_id": session_id, "project": session.project,
         "scope": session.scope, "status": session.status,
@@ -624,7 +624,7 @@ def bug_hunt_export(args: dict, **kwargs) -> str:
     export_format = args.get("format", "json")
     output = args.get("output", "")
     if export_format == "markdown":
-        content = core._generate_markdown_report(session, "severity")
+        content = core.generate_markdown_report(session, "severity")
     else:
         content = json.dumps(session.to_dict(), ensure_ascii=False, indent=2)
     result = {"session_id": session_id, "format": export_format, "content": content}

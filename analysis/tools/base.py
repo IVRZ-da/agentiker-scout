@@ -141,6 +141,36 @@ def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -
         return {"error": str(e), "tool": name}
 
 
+def _call_tool_direct(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -> Any:
+    """Ruft ein Tool direkt OHNE Thread-Executor auf.
+
+    Verwendet registry.dispatch() im aktuellen Thread.
+    Notwendig für Tools die signal.signal()/signal.alarm() verwenden
+    (z.B. code_unused_finder) — diese funktionieren nicht im Thread.
+
+    Args:
+        name: Tool-Name (z.B. "code_symbols")
+        timeout: Timeout in Sekunden
+        **kwargs: Tool-Argumente
+
+    Returns:
+        Tool-Ergebnis oder {"error": ...} bei Fehler.
+    """
+    try:
+        from tools.registry import registry
+
+        result = registry.dispatch(name, kwargs)
+        if isinstance(result, str):
+            try:
+                return json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                return result
+        return result
+    except Exception as e:
+        logger.warning("direct tool call %s failed: %s", name, e)
+        return {"error": str(e), "tool": name}
+
+
 # ---------------------------------------------------------------------------
 # Shared Pattern Integration (P3)
 # ---------------------------------------------------------------------------

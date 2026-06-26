@@ -1,7 +1,12 @@
 [run]
-source = scout
+source = /home/jo/.hermes/plugins/scout
+relative_files = True
 omit = tests/*, scripts/*, .hermes/*
-relative_files = true
+
+[paths]
+source =
+    /home/jo/.hermes/plugins/scout
+    .
 
 [report]
 exclude_lines =
@@ -10,8 +15,4 @@ exclude_lines =
     if __name__ == .__main__.:
     raise AssertionError
     raise NotImplementedError
-show_missing = true
-skip_covered = true
-
-[html]
-directory = coverage_html
+show_missing = True

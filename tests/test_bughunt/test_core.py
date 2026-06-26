@@ -430,7 +430,7 @@ class TestWorkflow:
         bh.save_session(loaded)
 
         # 5. Report
-        report = bh._generate_markdown_report(loaded, "severity")
+        report = bh.generate_markdown_report(loaded, "severity")
         assert "# Bug-Hunt Report" in report
         assert "execSync" in report
         assert "console.log" in report
@@ -471,7 +471,7 @@ class TestWorkflow:
         """Markdown-Report enthält Summary-Zeile wenn gesetzt."""
         session = bh.BugHuntSession(project="/app")
         session.close(summary="3 Issues gefunden und gefixt")
-        report = bh._generate_markdown_report(session, "severity")
+        report = bh.generate_markdown_report(session, "severity")
         assert "Summary" in report
         assert "3 Issues" in report
 
@@ -482,7 +482,7 @@ class TestWorkflow:
                               file="api.ts", pattern_id="S004"))
         session.add_finding(bh.Finding(title="console.log", severity="P2", category="code-quality",
                               file="ui.ts", pattern_id="C002"))
-        report = bh._generate_markdown_report(session, "category")
+        report = bh.generate_markdown_report(session, "category")
         assert "Security" in report or "security" in report.lower()
         assert "Code-quality" in report or "code-quality" in report.lower()
         assert "SQLi" in report
@@ -493,7 +493,7 @@ class TestWorkflow:
         session = bh.BugHuntSession(project="/app")
         session.add_finding(bh.Finding(title="Bug A", severity="P1", file="src/a.ts"))
         session.add_finding(bh.Finding(title="Bug B", severity="P2", file="src/b.ts"))
-        report = bh._generate_markdown_report(session, "file")
+        report = bh.generate_markdown_report(session, "file")
         assert "src/a.ts" in report
         assert "src/b.ts" in report
         assert "Bug A" in report

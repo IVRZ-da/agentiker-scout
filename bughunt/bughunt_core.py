@@ -50,8 +50,8 @@ from scout.bughunt.core.tracking import (  # noqa: F401
     BugHuntTracker,
     _err,
     _finding_md,
-    _generate_markdown_report,
     _ok,
+    generate_markdown_report,
     get_tracker,
     validate_path,
 )

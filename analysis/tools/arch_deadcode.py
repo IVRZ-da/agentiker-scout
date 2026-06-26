@@ -19,6 +19,7 @@ from scout._fmt import fmt_err, fmt_ok
 
 from .base import (
     _call_tool,
+    _call_tool_direct,
     _parallel_dispatch,
     _persist_analysis,
     _try_create_bughunt_finding,
@@ -139,7 +140,7 @@ def analysis_deadcode_tool(args: dict, **kwargs) -> str:
     # 1. Unused Finder
     if "imports" in kinds or "all" in kinds:
         try:
-            unused = _call_tool("code_unused_finder", path=path, kinds=["imports"], max_files=max_files, timeout=timeout)
+            unused = _call_tool_direct("code_unused_finder", path=path, kinds=["imports"], max_files=max_files, timeout=timeout)
             if unused:
                 report["findings"]["unused_imports"] = unused
                 if isinstance(unused, dict):
@@ -149,7 +150,7 @@ def analysis_deadcode_tool(args: dict, **kwargs) -> str:
 
     if "functions" in kinds or "all" in kinds:
         try:
-            unused_funcs = _call_tool("code_unused_finder", path=path, kinds=["functions"], max_files=max_files, timeout=timeout)
+            unused_funcs = _call_tool_direct("code_unused_finder", path=path, kinds=["functions"], max_files=max_files, timeout=timeout)
             if unused_funcs:
                 report["findings"]["unused_functions"] = unused_funcs
                 if isinstance(unused_funcs, dict):
