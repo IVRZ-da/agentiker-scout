@@ -812,6 +812,16 @@
           "type": "boolean",
           "description": "Pruefen ob erwartete UI-Elemente vorhanden sind.",
           "default": false
+        },
+        "store_baseline": {
+          "type": "boolean",
+          "description": "Aktuellen Screenshot als Baseline speichern (fuer spaeteren Vergleich).",
+          "default": false
+        },
+        "compare_baseline": {
+          "type": "boolean",
+          "description": "Mit gespeicherter Baseline vergleichen (Unterschiede erkennen).",
+          "default": false
         }
       },
       "required": [

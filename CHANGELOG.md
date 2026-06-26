@@ -1,5 +1,11 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.7] — 2026-06-27
+### Baseline-Vergleich + Tests
+- **analysis_ui_inspect:** Baseline speichern (store_baseline) + vergleichen (compare_baseline)
+- JSON-basierte Differenz: DOM-Info, Console-Messages, Network-Requests
+- 17 Tests (Baseline, DOM, Presence, MCP-Dispatch, Graceful Degradation)
+
 ## [0.5.6] — 2026-06-27
 ### UI-Element-Analyse
 - **analysis_ui_inspect:** Neues Tool fuer UI-Element-Analyse via Chrome DevTools MCP

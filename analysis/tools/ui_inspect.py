@@ -7,7 +7,21 @@ Graceful Degradation: kein MCP -> Instructions.
 
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+
 from scout._fmt import fmt_err, fmt_ok
+
+# Baseline-Verzeichnis (relativ zum Plugin-Root)
+_BASELINE_DIR = Path(__file__).resolve().parent.parent / "data" / "baselines"
+
+
+def _baseline_path(url: str) -> Path:
+    """Erzeugt einen eindeutigen Dateipfad fuer die Baseline einer URL."""
+    _BASELINE_DIR.mkdir(parents=True, exist_ok=True)
+    url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()[:16]
+    return _BASELINE_DIR / f"{url_hash}.json"
 
 
 def analysis_ui_inspect_tool(args: dict, **kwargs) -> str:
@@ -18,6 +32,8 @@ def analysis_ui_inspect_tool(args: dict, **kwargs) -> str:
 
     include_dom = args.get("include_dom", True)
     check_presence = args.get("check_presence", False)
+    store_baseline = args.get("store_baseline", False)
+    compare_baseline = args.get("compare_baseline", False)
 
     # Pruefen ob Chrome DevTools MCP verfuegbar ist
     try:
@@ -42,14 +58,81 @@ def analysis_ui_inspect_tool(args: dict, **kwargs) -> str:
 
     # MCP ist verfuegbar -> UI-Analyse durchfuehren
     try:
-        result = _run_ui_inspection(url, include_dom, check_presence)
+        result = _run_ui_inspection(url, include_dom, check_presence,
+                                    store_baseline, compare_baseline)
         return result
     except Exception as e:
         return fmt_err(f"UI-Inspektion fehlgeschlagen: {e}")
 
 
+# ─── Baseline-Funktionen ──────────────────────────────────────────
+
+def _store_baseline(url: str, data: dict) -> None:
+    """Speichert die aktuelle UI-Inspektion als Baseline."""
+    import time
+    baseline = {
+        "url": url,
+        "timestamp": time.time(),
+        "data": data,
+    }
+    path = _baseline_path(url)
+    path.write_text(json.dumps(baseline, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _compare_with_baseline(url: str, current: dict) -> str:
+    """Vergleicht aktuelle UI-Inspektion mit gespeicherter Baseline.
+
+    Returns:
+        Textuelle Unterschiede oder 'Keine Baseline' / 'Keine Unterschiede'.
+    """
+    path = _baseline_path(url)
+    if not path.exists():
+        return "Keine Baseline vorhanden. Nutze store_baseline=True zum Erstellen."
+
+    try:
+        baseline = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return "Baseline-Datei korrupt oder nicht lesbar."
+
+    old = baseline.get("data", {})
+    diffs = []
+
+    # Element-Anzahl vergleichen
+    old_elements = old.get("dom_info", "")
+    cur_elements = current.get("dom_info", "")
+    if old_elements != cur_elements:
+        diffs.append("DOM-Info geaendert")
+
+    # Console-Vergleich
+    old_console = old.get("console_messages", "")
+    cur_console = current.get("console_messages", "")
+    if old_console != cur_console:
+        diffs.append("Console-Messages unterschiedlich")
+
+    # Network-Vergleich
+    old_net = old.get("network_requests", "")
+    cur_net = current.get("network_requests", "")
+    if old_net != cur_net:
+        diffs.append("Network-Requests unterschiedlich")
+
+    if not diffs:
+        return "✅ Keine Unterschiede zur Baseline."
+
+    baseline_time = baseline.get("timestamp", 0)
+    import time
+    age_min = (time.time() - baseline_time) / 60
+    return (
+        f"⚠️ {len(diffs)} Unterschied(e) zur Baseline (vor {age_min:.0f} Min):\\n"
+        + "\\n".join(f"  - {d}" for d in diffs)
+    )
+
+
+# ─── Haupt-Inspektions-Funktion ───────────────────────────────────
+
 def _run_ui_inspection(url: str, include_dom: bool,
-                       check_presence: bool) -> str:
+                       check_presence: bool,
+                       store_baseline: bool = False,
+                       compare_baseline: bool = False) -> str:
     """Fuehrt die UI-Inspektion via MCP-Tools durch."""
     from tools.registry import registry
 
@@ -78,7 +161,22 @@ def _run_ui_inspection(url: str, include_dom: bool,
     if check_presence:
         presence_info = _check_ui_presence(registry)
 
-    return fmt_ok({
+    # 7. Baseline speichern/vergleichen
+    data = {
+        "dom_info": dom_info,
+        "console_messages": console,
+        "network_requests": network,
+        "presence_check": presence_info,
+        "snapshot": snapshot,
+    }
+    baseline_result = ""
+    if store_baseline:
+        _store_baseline(url, data)
+        baseline_result = "✅ Baseline gespeichert."
+    elif compare_baseline:
+        baseline_result = _compare_with_baseline(url, data)
+
+    result = {
         "url": url,
         "mcp_available": True,
         "navigation": nav_result,
@@ -87,13 +185,16 @@ def _run_ui_inspection(url: str, include_dom: bool,
         "network_requests": network,
         "dom_info": dom_info,
         "presence_check": presence_info,
+        "baseline": baseline_result,
         "instruction": (
             f"UI-Inspektion fuer {url} abgeschlossen.\n"
             f"A11y Tree: UI-Elemente mit Rollen und Hierarchie.\n"
             f"Console: {len(console or '')} Zeilen\n"
             f"Network: {len(network or '')} Requests\n"
+            f"{baseline_result}"
         ),
-    })
+    }
+    return fmt_ok(result)
 
 
 def _call_mcp(registry, tool_name: str, args: dict) -> str:
