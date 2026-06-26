@@ -6,16 +6,19 @@ Die Daten wurden aus dieser Datei nach schemas_data.json extrahiert
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger("scout.schemas")
 
 _SCHEMAS: dict[str, Any] = {}
 _json_path = Path(__file__).resolve().parent / "schemas_data.json"
 if _json_path.exists():
     try:
         _SCHEMAS = json.loads(_json_path.read_text(encoding="utf-8"))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("schemas_data.json konnte nicht geladen werden: %s", e)
 
 # ── Module-Level-Re-Export ──────────────────────────────────────
 # Alle 25 Schemas werden auf Modulebene bereitgestellt, damit

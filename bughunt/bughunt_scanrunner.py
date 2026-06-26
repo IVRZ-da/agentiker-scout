@@ -146,13 +146,22 @@ def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
             logger.debug("code_intel scan skipped — %s not registered", tool_name)
             return {"findings": [], "tool_status": f"{tool_name} nicht verfügbar (Plugin?)"}
 
-        result = entry.handler(kwargs)
+        # Handle both handler signatures:
+        # (args: dict, **kwargs) — standard Hermes pattern
+        # (**kwargs) — some tools only accept keyword args
+        try:
+            result = entry.handler(kwargs)
+        except TypeError:
+            result = entry.handler(**kwargs)
         if isinstance(result, str):
             import json
             try:
                 result = json.loads(result)
             except (json.JSONDecodeError, TypeError):
-                return {"findings": [], "tool_status": f"{tool_name}: parse error"}
+                # Rich-format output (e.g. code_intel fmt_ok Panels) —
+                # cannot be parsed as JSON automatically.
+                # The user can run the tool manually via the instruction.
+                return {"findings": [], "tool_status": f"{tool_name}: rich output (nicht automatisch parsebar)"}
 
         extractor = scan_config["finding_extractor"]
         findings = extractor(result) if callable(extractor) else []

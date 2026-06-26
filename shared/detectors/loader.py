@@ -191,8 +191,8 @@ class FrameworkDetector:
                     if cat not in self._profile.frameworks:
                         self._profile.frameworks[cat] = []
                     self._profile.frameworks[cat].append(result)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Detector %s failed: %s", type(detector).__name__, e)
 
         self._compute_confidence()
         return self._profile

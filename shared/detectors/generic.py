@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -15,6 +16,8 @@ from .dependency_data import (
     _TOP_PYPI,
     _lookup_category,
 )
+
+logger = logging.getLogger("scout.detectors")
 
 
 class GenericDependencyDetector:
@@ -100,7 +103,8 @@ class GenericDependencyDetector:
         results: List[DetectedFramework] = []
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except Exception as e:
+            logger.debug("could not parse %s: %s", path.name, e)
             return results
 
         for line in content.splitlines():
@@ -146,7 +150,8 @@ class GenericDependencyDetector:
         results: List[DetectedFramework] = []
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except Exception as e:
+            logger.debug("could not parse %s: %s", path.name, e)
             return results
 
         in_require = False
@@ -208,7 +213,8 @@ class GenericDependencyDetector:
         results: List[DetectedFramework] = []
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except Exception as e:
+            logger.debug("could not parse %s: %s", path.name, e)
             return results
 
         in_dependencies = False

@@ -134,7 +134,7 @@ def extract(path: str) -> List[Dict[str, Any]]:
                 content = f.read()
             rel_path = os.path.relpath(filepath, path)
             routes.extend(_parse_route_patterns(content, rel_path))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("route file parsing failed: %s", e)
 
     return routes

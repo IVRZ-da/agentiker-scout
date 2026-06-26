@@ -1,5 +1,13 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.3] — 2026-06-26
+### Bug-Hunt Fixes (8 Findings)
+- **P1 — Silent Catches (5×):** schemas.py, generic.py (3× Detectors), loader.py — `except Exception: pass` durch `logger.debug/warning()` ersetzt
+- **P2 — Silent Catches (2×):** nextjs.py, go_handler.py — `logger.debug()` ergänzt
+- **P1 — Scanner-Dispatch:** `entry.handler(kwargs)` → try/except Fallback auf `**kwargs` (fix für `_handle_code_security` TypeError)
+- **P3 — Pattern-Qualität:** C009 Regex von `^except.*:\\s*$` auf `except(\\s+\\w+)?\\s*:\\s*pass\\s*$` verfeinert
+- **P2 — Scan-Typen:** C022 Merge-Konflikt als grep-Pattern, C021/C024 als code_search manual instructions
+
 ## [0.5.2] — 2026-06-25
 - **Pre-Commit-Hook:** `_check_readme_tools()` auf per-plugin `scripts/generate_readme.py` umgestellt (alter zentraler Pfad entfernt)
 

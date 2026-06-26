@@ -53,8 +53,8 @@ def detect(path: str) -> bool:
                 pkg = json.load(f)
             deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
             has_next_dep = "next" in deps
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("package.json read failed: %s", e)
 
     return (has_app_dir and has_next_dep) or (has_next_config and has_app_dir)
 
