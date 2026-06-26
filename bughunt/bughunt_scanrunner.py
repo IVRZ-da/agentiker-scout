@@ -116,7 +116,119 @@ _CODE_INTEL_SCAN_MAP = {
             for m in (r.get("matches", r.get("data", [])) if isinstance(r, dict) else [])
         ],
     },
+    "console_errors": {
+        "tool": "mcp_chrome_devtools_list_console_messages",
+        "kwargs": {},
+        "finding_extractor": lambda r: _extract_console_errors(r),
+    },
+    "network_errors": {
+        "tool": "mcp_chrome_devtools_list_network_requests",
+        "kwargs": {},
+        "finding_extractor": lambda r: _extract_network_errors(r),
+    },
 }
+
+
+def is_mcp_devtools_available() -> bool:
+    """Prüft ob Chrome DevTools MCP Tools in der Hermes Registry verfügbar sind.
+
+    Returns:
+        True wenn mcp_chrome_devtools Tools registriert sind.
+    """
+    try:
+        from tools.registry import registry
+        return registry.get_entry("mcp_chrome_devtools_list_console_messages") is not None
+    except (ImportError, AttributeError):
+        return False
+
+
+def _extract_console_errors(result) -> list[dict]:
+    """Extrahiert Console Error/Warning Findings aus list_console_messages Ergebnis.
+
+    Erwartet Ergebnis von mcp_chrome_devtools_list_console_messages():
+    {"result": "## Console messages\\n<Message level=error ...>\\n..."}
+    oder strukturiertes Format.
+
+    Returns:
+        Liste von Finding-Dicts (leer wenn keine Fehler).
+    """
+    if not result:
+        return []
+    findings = []
+    # Textuelles Format parsen (Fallback)
+    if isinstance(result, str):
+        for line in result.split("\n"):
+            if any(level in line.lower() for level in ("error", "warning", "warn")):
+                findings.append({
+                    "file": "browser_console",
+                    "line": 0,
+                    "evidence": line[:200],
+                    "severity": "P1" if "error" in line.lower() else "P2",
+                })
+    elif isinstance(result, dict):
+        # Strukturiertes Format (JSON-Response)
+        raw = _get_result_text(result)
+        if raw:
+            for line in raw.split("\n"):
+                if any(level in line.lower() for level in ("error", "warning", "warn")):
+                    findings.append({
+                        "file": "browser_console",
+                        "line": 0,
+                        "evidence": line[:200],
+                        "severity": "P1" if "error" in line.lower() else "P2",
+                    })
+    return findings
+
+
+def _get_result_text(result: dict) -> str:
+    """Hilfsfunktion: Extrahiert Text aus verschiedenen MCP-Response-Formaten."""
+    if not isinstance(result, dict):
+        return ""
+    # MCP-Format: result["result"]["content"][...]["text"]
+    res = result.get("result", result)
+    if isinstance(res, dict):
+        content = res.get("content")
+        if isinstance(content, list):
+            texts = []
+            for c in content:
+                if isinstance(c, dict):
+                    texts.append(c.get("text", ""))
+            return "\n".join(t for t in texts if t)
+        text = res.get("text", "")
+        if text:
+            return text
+    # Roh-Format: result["result"] ist String
+    if isinstance(res, str):
+        return res
+    return ""
+
+
+def _extract_network_errors(result) -> list[dict]:
+    """Extrahiert 4xx/5xx Network Findings aus list_network_requests Ergebnis.
+
+    Erwartet Ergebnis von mcp_chrome_devtools_list_network_requests().
+    Parst textuelles Format mit Status-Codes.
+    """
+    if not result:
+        return []
+    findings = []
+    raw = result if isinstance(result, str) else _get_result_text(result or {})
+    if not raw:
+        return []
+    for line in raw.split("\n"):
+        # Format: reqid=N METHOD URL [STATUS]
+        match = re.search(r"\[(\d{3})\]", line)
+        if match:
+            status = int(match.group(1))
+            if status >= 400:
+                severity = "P1" if status >= 500 else "P2"
+                findings.append({
+                    "file": "browser_network",
+                    "line": 0,
+                    "evidence": line.strip()[:200],
+                    "severity": severity,
+                })
+    return findings
 
 
 def _map_security_severity(sev: str) -> str:

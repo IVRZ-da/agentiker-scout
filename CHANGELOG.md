@@ -1,5 +1,13 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.5] — 2026-06-27
+### Chrome DevTools MCP Integration (optional)
+- **bughunt_scanrunner:** `is_mcp_devtools_available()` Registry-Check + `console_errors`/`network_errors` Scan-Typen
+- **bughunt_hooks:** `on_post_tool_call()` trackt jetzt `mcp_chrome_devtools_*` prefix
+- **shared/detectors/base:** `FrameworkProfile.metadata: dict` für Runtime-Informationen
+- **shared/intent:** Neue "debug" Domain mit Keywords und DevTools-Kontext
+- **Tests:** 43 neue Tests für MCP DevTools Integration
+
 ## [0.5.4] — 2026-06-26
 ### Coverage-Sprint + Bug-Hunt Fixes (5 Phasen)
 - **P1 — Coverage P2-Module:** framework_query_move.py 43%→100%, bughunt_patterns.py 40%→100%, persistence.py 68%→100%

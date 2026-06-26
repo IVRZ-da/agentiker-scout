@@ -219,7 +219,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
         return
 
     tool_name = kwargs.get("tool_name", "")
-    if not tool_name.startswith(("code_", "bug_hunt_")):
+    if not tool_name.startswith(("code_", "bug_hunt_", "mcp_chrome_devtools_")):
         # 🔴 F3: Auch analysis_security verarbeiten
         if tool_name != "analysis_security":
             return

@@ -177,6 +177,32 @@ class TestPostToolCall:
         assert "/src/main.ts" in tracker.files_touched
         tracker.reset()
 
+    def test_tracks_mcp_devtools_tools(self):
+        """mcp_chrome_devtools_* Tools werden in aktiver Session getrackt."""
+        import bughunt_core as core
+        tracker = core.get_tracker()
+        s = core.BugHuntSession(project="/test")
+        core.save_session(s)
+        tracker.start(s.session_id)
+
+        on_post_tool_call(tool_name="mcp_chrome_devtools_navigate_page",
+                          args={"url": "https://example.com"})
+        assert len(tracker.tools_used) == 1
+        assert tracker.tools_used[0]["tool_name"] == "mcp_chrome_devtools_navigate_page"
+        tracker.reset()
+
+    def test_ignores_non_mcp_devtools(self):
+        """Nicht-MCP-DevTools werden nicht getrackt (kein aktiver Session-Bezug)."""
+        import bughunt_core as core
+        tracker = core.get_tracker()
+        s = core.BugHuntSession(project="/test")
+        core.save_session(s)
+        tracker.start(s.session_id)
+
+        on_post_tool_call(tool_name="mcp_not_devtools_test", args={})
+        assert len(tracker.tools_used) == 0
+        tracker.reset()
+
 
 # ======================================================================
 # on_session_end Tests

@@ -59,6 +59,13 @@ INTENT_MAP: dict[str, set[str]] = {
         "welche technologien", "was wird verwendet",
         "project profile", "project analysis",
     },
+    "debug": {
+        "console", "browser console", "devtools", "ui error",
+        "ui debug", "ui debugging", "runtime error",
+        "network error", "seite lädt nicht", "page not loading",
+        "javascript fehler", "js error", "browser error",
+        "layout kaputt", "seite kaputt",
+    },
 }
 
 # Reverse-Map: Keyword → Domain (für schnellen Lookup)
@@ -117,12 +124,21 @@ _INTENT_CONTEXTS: dict[str, str] = {
         "- bug_hunt_scan(patterns, frameworks=...) — Framework-spezifischer Scan\n"
         "- bug_hunt_scan(preset='medusa-full') — Preset-Scan für erkannten Stack"
     ),
+    "debug": (
+        "[SCOUT] Debug-/UI-Intent erkannt. Chrome DevTools MCP verfügbar:\n"
+        "- mcp_chrome_devtools_navigate_page(url) — Seite laden\n"
+        "- mcp_chrome_devtools_list_console_messages() — Console Errors prüfen\n"
+        "- mcp_chrome_devtools_list_network_requests() — 4xx/5xx prüfen\n"
+        "- mcp_chrome_devtools_take_snapshot() — A11y Tree\n"
+        "- mcp_chrome_devtools_evaluate_script(fn) — JS ausführen\n"
+        "- bug_hunt_scan(patterns=['console_errors']) — Auto-Scan via Bughunt"
+    ),
 }
 
 # ─── Intent Detection (Single pre_llm_call) ──────────────────────────────
 
-_DOMAIN_PRIORITY = ["bug", "research", "framework", "db", "web", "code"]
-_DOMAIN_PRIORITY_WEIGHTS = {"bug": 10, "research": 8, "framework": 7, "db": 6, "web": 4, "code": 2}
+_DOMAIN_PRIORITY = ["bug", "research", "framework", "db", "debug", "web", "code"]
+_DOMAIN_PRIORITY_WEIGHTS = {"bug": 10, "research": 8, "framework": 7, "db": 6, "debug": 5, "web": 4, "code": 2}
 
 def _detect_intent(message: str) -> str | None:
     """Detect which domain(s) a message belongs to. Returns most specific domain.

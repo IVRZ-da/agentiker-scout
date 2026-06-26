@@ -19,7 +19,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("scout.framework_detector")
 
@@ -93,6 +93,7 @@ class FrameworkProfile:
     # categories: backend, frontend, ui_library, database, language, testing, infra, ci, package_manager
     overall_confidence: float = 0.0
     errors: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -103,6 +104,7 @@ class FrameworkProfile:
             },
             "overall_confidence": self.overall_confidence,
             "errors": self.errors,
+            "metadata": self.metadata,
         }
 
     def has_framework(self, name: str) -> bool:
