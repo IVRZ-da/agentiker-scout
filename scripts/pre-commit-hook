@@ -687,10 +687,18 @@ def run_tests(test_files: list[str]) -> bool:
         print(f"  ✅ Tests bestanden ({summary[-1] if summary else 'OK'})")
         return True
     else:
-        failures = [l for l in (r.stderr or "").strip().split("\n") if "FAILED" in l]
-        print(f"  ❌ {len(failures)} Test(s) fehlgeschlagen:")
-        for f in failures[:10]:
-            print(f"     {f}")
+        combined = (r.stdout or "") + "\n" + (r.stderr or "")
+        failures = [l for l in combined.strip().split("\n") if "FAILED" in l]
+        if not failures:
+            # Fallback: zeige letzte 5 Zeilen von stdout/stderr
+            lines = combined.strip().split("\n")[-5:]
+            print(f"  ❌ Unbekannter Fehler (exit code {r.returncode}):")
+            for l in lines:
+                print(f"     {l}")
+        else:
+            print(f"  ❌ {len(failures)} Test(s) fehlgeschlagen:")
+            for f in failures[:10]:
+                print(f"     {f}")
         print("\n  Commit abgebrochen — Fehler beheben vor erneutem Commit.")
         print("  (git commit --no-verify zum Überspringen)")
         return False
