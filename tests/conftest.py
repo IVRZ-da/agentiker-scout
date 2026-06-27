@@ -2,6 +2,9 @@
 
 Vereinheitlicht die Mock-Infrastruktur aus 3 Quell-Plugins.
 Bietet MockPluginContext, MockRegistry und _fmt Mock.
+
+Coverage wird vor sys.modules Shim gestartet, damit
+auch ueber Shims geladene Module getrackt werden.
 """
 
 from __future__ import annotations
@@ -15,6 +18,14 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+
+# Coverage manuell starten (bevor sys.modules Shims injected werden)
+try:
+    import coverage
+    _cov = coverage.Coverage(source_pkg=["scout"])
+    _cov.start()
+except Exception:
+    pass
 
 # ─── DeprecationWarning-Filter (importlib __package__ != __spec__.parent) ─
 warnings.filterwarnings("ignore", message=".*__package__.*")

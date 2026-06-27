@@ -1,52 +1,31 @@
 [build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy._Backend"
 
 [project]
-name = "agentiker-scout"
-version = "0.5.2"
-description = "Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline for Hermes Agent"
-authors = [
-    {name = "Johannes Lettner"},
-]
-license = {text = "MIT"}
-readme = "README.md"
-requires-python = ">=3.12"
-
+name = "scout"
+version = "0.5.7"
+description = "Unified analysis, bug-hunt, and web-research plugin for Hermes Agent"
+authors = [{ name = "agentiker" }]
+license = { text = "MIT" }
+requires-python = ">=3.11"
 dependencies = [
-    "rich>=13.0",
     "PyYAML>=6.0",
-    "packaging>=24.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov",
-    "pytest-xdist",
-    "ruff>=0.6.0",
+    "packaging>=23.0",
 ]
 
 [tool.pytest.ini_options]
-pythonpath = [".."]
 testpaths = ["tests"]
-addopts = "-n auto"
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
 
-[tool.ruff]
-line-length = 100
-
-[tool.ruff.lint]
-select = ["F", "E", "T", "W", "I"]
-ignore = ["E501", "F403", "F405", "T201"]
-
-[tool.coverage]
-run = {source = [".", "shared", "analysis", "bughunt", "research"], omit = ["tests/*", "scripts/*", ".hermes/*"], relative_files = true}
+[tool.coverage.run]
+source = ["."]
+relative_files = true
+omit = ["tests/*", "scripts/*", ".hermes/*"]
 
 [tool.coverage.report]
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -54,3 +33,11 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I"]
+ignore = ["E501"]
