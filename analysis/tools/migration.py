@@ -42,6 +42,8 @@ def analysis_migration_tool(args: dict, **kwargs) -> str:
             rules=rules,
             dry_run=dry_run,
         )
+        if isinstance(migration, dict) and "error" in migration:
+            return fmt_err(f"{migration['error']} (tool: {migration.get('tool', 'code_migration')})")
         if migration:
             result["status"] = migration if isinstance(migration, dict) else {"raw": str(migration)[:500]}
     except Exception as e:

@@ -99,11 +99,16 @@ def analysis_code_move_tool(args: dict, **kwargs) -> str:
         if error:
             return fmt_err(f"{error} (path: {p})")
 
-    result = _call_tool(
-        "code_move",
-        source=source,
-        symbol=symbol,
-        target=target,
-        dry_run=dry_run,
-    )
-    return fmt_ok(result) if isinstance(result, dict) else result
+    try:
+        result = _call_tool(
+            "code_move",
+            source=source,
+            symbol=symbol,
+            target=target,
+            dry_run=dry_run,
+        )
+        if isinstance(result, dict) and "error" in result:
+            return fmt_err(f"{result['error']} (tool: {result.get('tool', 'code_move')})")
+        return fmt_ok(result) if isinstance(result, dict) else result
+    except Exception as e:
+        return fmt_err(f"code_move failed: {e}")

@@ -466,9 +466,15 @@ def bug_hunt_triage(args: dict, **kwargs) -> str:
     severity = args.get("severity", "").upper()
     status = args.get("status", "")
     if severity and not core.Finding.validate_severity(severity):
-        return _err(f"Ungültige severity: {severity}")
+        return _err(
+            f"Ungültige severity: '{severity}'. "
+            f"Gültige Werte: {', '.join(core.SEVERITY_VALUES)}"
+        )
     if status and not core.Finding.validate_status(status):
-        return _err(f"Ungültiger status: {status}")
+        return _err(
+            f"Ungültiger status: '{status}'. "
+            f"Gültige Werte: {', '.join(core.FINDING_STATUSES)}"
+        )
     updates = {}
     if severity:
         updates["severity"] = severity
