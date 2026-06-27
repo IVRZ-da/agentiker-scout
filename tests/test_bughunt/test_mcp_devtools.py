@@ -21,22 +21,22 @@ class TestMcpDevtoolsAvailability:
         from tools.registry import registry
 
         from scout.bughunt.bughunt_scanrunner import is_mcp_devtools_available
-        registry.entries["mcp_chrome_devtools_list_console_messages"] = {"tool": "mocked"}
+        registry.register("mcp_chrome_devtools_list_console_messages")
         try:
             assert is_mcp_devtools_available() is True
         finally:
-            registry.entries.pop("mcp_chrome_devtools_list_console_messages", None)
+            registry.deregister("mcp_chrome_devtools_list_console_messages")
 
     def test_other_tool_does_not_trigger(self):
         """Nur das spezifische MCP-Tool zaehlt."""
         from tools.registry import registry
 
         from scout.bughunt.bughunt_scanrunner import is_mcp_devtools_available
-        registry.entries["mcp_something_else"] = {"tool": "mocked"}
+        registry.register("mcp_something_else")
         try:
             assert is_mcp_devtools_available() is False
         finally:
-            registry.entries.pop("mcp_something_else", None)
+            registry.deregister("mcp_something_else")
 
 
 class TestConsoleErrorsExtraction:

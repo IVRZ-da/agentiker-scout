@@ -7,17 +7,20 @@ from __future__ import annotations
 
 import os
 import sys
-import types
+
+# tools.delegate_tool Mock — scouts eigene tools.registry erhalten
+import types as _types
 
 import pytest
 
 # sys.modules Mocks werden von conftest.py gesetzt (vor diesem Import)
 from scout.analysis import analysis_core as core
 
-# tools.delegate_tool Mock — scout/tests/conftest.py setzt keinen tools-Mock
-_tools_mock = types.ModuleType("tools")
+_tools_mock = _types.ModuleType("tools")
+# Vorhandene tools.registry aus sys.modules übernehmen (für Kompatibilität)
+_tools_mock.registry = sys.modules.get("tools.registry", _types.ModuleType("tools.registry"))
 sys.modules["tools"] = _tools_mock
-_delegate_mock = types.ModuleType("tools.delegate_tool")
+_delegate_mock = _types.ModuleType("tools.delegate_tool")
 _delegate_mock.DEFAULT_TOOLSETS = ["terminal", "file"]
 _delegate_mock._build_child_system_prompt = lambda *a, **kw: "base prompt"
 sys.modules["tools.delegate_tool"] = _delegate_mock

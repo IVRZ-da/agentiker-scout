@@ -47,6 +47,44 @@ class MockRegistry:
         return list(self._entries.keys())
 
 
+class RealDispatchRegistry:
+    """Vollständige Registry-Implementierung für Integrationstests.
+
+    Unterstützt register(handler, schema) und dispatch(name, args).
+    Anders als MockRegistry: dispatch() ruft handler(args, **kwargs)
+    statt handler(args) — für Kompatibilität mit echten Handlern
+    die **kwargs erwarten. Liefert DICT zurück (kein 'mocked').
+    """
+
+    def __init__(self):
+        self._entries: dict[str, tuple[Callable, dict]] = {}
+
+    def register(self, name: str, handler: Callable,
+                 schema: dict | None = None) -> None:
+        self._entries[name] = (handler, schema or {})
+
+    def get_entry(self, name: str) -> tuple[Callable, dict] | None:
+        return self._entries.get(name)
+
+    def dispatch(self, name: str, args: dict | None = None,
+                 **kwargs: Any) -> Any:
+        entry = self._entries.get(name)
+        if entry is None:
+            return {"error": f"Unknown tool: {name}", "tool": name}
+        handler, _ = entry
+        try:
+            result = handler(args or {}, **kwargs)
+            return result
+        except Exception as e:
+            return {"error": str(e), "tool": name}
+
+    def get_all_tool_names(self) -> list[str]:
+        return list(self._entries.keys())
+
+    def deregister(self, name: str) -> None:
+        self._entries.pop(name, None)
+
+
 def create_registry(
     with_devtools: bool = False,
     custom_entries: dict[str, Callable | None] | None = None,
@@ -121,14 +159,28 @@ def create_fmt_mock() -> dict[str, Callable]:
 # ─── PluginContext Fake ───────────────────────────────────────────
 
 class MockPluginContext:
-    """Simuliert hermes_cli.plugins.PluginContext für register()."""
+    """Simuliert hermes_cli.plugins.PluginContext für register().
+
+    register_tool und register_hook sind MagicMock-Instanzen, damit
+    Tests .assert_called_once() / .assert_not_called() nutzen können.
+    Die echte Implementierung ist über .tools und .hooks zugänglich.
+    """
 
     def __init__(self):
         self.hooks: dict[str, Any] = {}
         self.skills: list[dict] = []
         self.tools: dict[str, Any] = {}
+        self.register_tool = MagicMock(side_effect=self._register_tool_impl)
+        self.register_hook = MagicMock(side_effect=self._register_hook_impl)
 
-    def register_hook(self, name: str, cb: Callable) -> None:
+    def _register_tool_impl(self, name: str, toolset: str, schema: dict,
+                            handler: Callable, **kwargs: Any) -> None:
+        self.tools[name] = {
+            "toolset": toolset, "schema": schema, "handler": handler,
+            **kwargs,
+        }
+
+    def _register_hook_impl(self, name: str, cb: Callable) -> None:
         self.hooks[name] = cb
 
     def register_skill(self, name: str, path: str,
@@ -136,10 +188,3 @@ class MockPluginContext:
         self.skills.append({
             "name": name, "path": path, "description": description,
         })
-
-    def register_tool(self, name: str, toolset: str, schema: dict,
-                      handler: Callable, **kwargs: Any) -> None:
-        self.tools[name] = {
-            "toolset": toolset, "schema": schema, "handler": handler,
-            **kwargs,
-        }

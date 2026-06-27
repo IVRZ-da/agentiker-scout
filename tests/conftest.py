@@ -15,22 +15,14 @@ import json
 import sys
 import types
 import warnings
-from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 
-# Coverage manuell starten (bevor sys.modules Shims injected werden)
-try:
-    import coverage
-    _cov = coverage.Coverage(source_pkg=["scout"])
-    _cov.start()
-except Exception:
-    pass
-
+# Coverage wird via --cov (pytest-cov) gemessen — KEINE manuelle Coverage
+# Manuelle coverage.Coverage() in conftest kollidiert mit pytest-cov
+# siehe https://github.com/nedbat/coveragepy/issues/1582
 from tests.fakes import (
-    MockEntry,
     MockPluginContext,
     MockRegistry,
     create_fmt_mock,
@@ -139,3 +131,25 @@ def mock_fmt() -> dict[str, Any]:
 def mock_plugin_context() -> MockPluginContext:
     """Erzeugt einen MockPluginContext fuer register()-Tests."""
     return MockPluginContext()
+
+
+@pytest.fixture
+def real_registry():
+    """Erzeugt eine RealDispatchRegistry mit echten Scout-Tool-Handlern.
+
+    Registriert ausgewählte Handler aus analysis_tools.TOOL_HANDLERS.
+    sys.modules-Patching übernimmt test_integration.py selbst.
+    """
+    from scout.analysis.analysis_tools import TOOL_HANDLERS as ANALYSIS_HANDLERS
+    from tests.fakes import RealDispatchRegistry
+
+    reg = RealDispatchRegistry()
+    for tool_name in ("analysis_diff", "analysis_report", "analysis_inspect",
+                      "analysis_architecture", "analysis_deadcode",
+                      "analysis_performance", "analysis_security",
+                      "analysis_framework", "analysis_risk", "analysis_review"):
+        if tool_name in ANALYSIS_HANDLERS:
+            schema, handler = ANALYSIS_HANDLERS[tool_name]
+            reg.register(tool_name, handler, schema)
+
+    return reg

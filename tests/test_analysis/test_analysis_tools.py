@@ -75,6 +75,8 @@ class TestToolRegistration:
             "analysis_graph_query",
             "analysis_test_insight",
             "analysis_migration",
+            # UI Inspect
+            "analysis_ui_inspect",
         }
         registered = set(tools.TOOL_HANDLERS.keys())
         missing = expected - registered

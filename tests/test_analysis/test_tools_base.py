@@ -170,9 +170,12 @@ class TestCallToolDirect:
             assert "error" in result
 
     def test_returns_result(self) -> None:
-        # Conftest already mocks registry; test the call works
+        # Conftest already mocks registry — registriere test_tool
+        from tools.registry import registry
+        registry.register("test_tool", handler=lambda args, **kw: {"status": "ok"})
         result = _call_tool_direct("test_tool")
-        assert result is not None or isinstance(result, (dict, str))
+        assert result is not None
+        assert isinstance(result, (dict, str))
 
     def test_json_result_parsed(self) -> None:
         with patch(

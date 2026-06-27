@@ -43,6 +43,7 @@ class MockRegistry:
     def __init__(self): self.entries = {}
     def get_entry(self, name): return self.entries.get(name)
     def register(self, name, **kw): self.entries[name] = MockEntry(kw.get("schema", {"description": ""}))
+    def deregister(self, name): self.entries.pop(name, None)
     def dispatch(self, name, args): return json.dumps({"tool": name, "status": "mocked", "args": args})
 
 

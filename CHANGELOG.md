@@ -1,5 +1,14 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.10] — 2026-06-27
+### Coverage 78.5% → 90% + 38 Test-Failures gefixt
+- **38 Test-Failures gefixt:** test_init.py (4), test_integration.py (14 Errors), test_tools_base.py (1), test_mcp_devtools.py (2), test_persistence.py (16), test_analysis_tools.py (1)
+- **Coverage-Messung gefixt:** `--cov=.` statt `--cov=scout` misst sys.modules-Shim-Module korrekt
+- **0%-Module auf 92-100%:** detectors/base.py 95%, generic.py 92%, loader.py 92%, catalog/public/dependency_data/framework/yaml_rule 100%
+- **Gesamt-Coverage: 90%** (7143 stmts, 687 missing)
+- **Fakes verbessert:** MockPluginContext mit MagicMock, RealDispatchRegistry, deregister in MockRegistry
+- **Test-Isolation gefixt:** patch.object statt patch("scout.bughunt.core.persistence.*") für Stabilität nach bh-Fixture
+
 ## [0.5.7] — 2026-06-27
 ### Baseline-Vergleich + Tests
 - **analysis_ui_inspect:** Baseline speichern (store_baseline) + vergleichen (compare_baseline)

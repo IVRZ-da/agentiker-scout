@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
+# ─── Persistenz-Modul-Referenz (für patch.object — stabil gegen bh-Fixture-Overwrite) ─
+import scout.bughunt.core.persistence as _persistence_mod
 from scout.bughunt.core.model import BugHuntSession
 from scout.bughunt.core.persistence import (
     _atomic_write_json,
@@ -26,10 +28,14 @@ from scout.bughunt.core.persistence import (
 
 @pytest.fixture
 def tmp_sessions(tmp_path):
-    """Patch SESSIONS_DIR to a temp directory for session tests."""
+    """Patch SESSIONS_DIR to a temp directory for session tests.
+
+    Verwendet patch.object auf dem ORIGINALEN Modul (vor bh-Fixture-Overwrite),
+    damit der Patch auf der korrekten Modul-Referenz landet.
+    """
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()
-    with patch("scout.bughunt.core.persistence.SESSIONS_DIR", sessions_dir):
+    with patch.object(_persistence_mod, "SESSIONS_DIR", sessions_dir):
         yield sessions_dir
 
 
@@ -48,7 +54,7 @@ class TestEnsureDirs:
         """SESSIONS_DIR wird angelegt, wenn es nicht existiert."""
         target = tmp_path / "new_sessions"
         assert not target.exists()
-        with patch("scout.bughunt.core.persistence.SESSIONS_DIR", target):
+        with patch.object(_persistence_mod, "SESSIONS_DIR", target):
             _ensure_dirs()
             assert target.exists()
 
@@ -56,7 +62,7 @@ class TestEnsureDirs:
         """Schlägt nicht fehl, wenn Verzeichnis bereits existiert."""
         target = tmp_path / "existing"
         target.mkdir()
-        with patch("scout.bughunt.core.persistence.SESSIONS_DIR", target):
+        with patch.object(_persistence_mod, "SESSIONS_DIR", target):
             _ensure_dirs()  # should not raise
             assert target.exists()
 
@@ -109,7 +115,7 @@ class TestSaveSession:
         assert data["scope"] == "quick"
 
     def test_calls_ensure_dirs(self, tmp_sessions: Path, fresh_session: BugHuntSession) -> None:
-        with patch("scout.bughunt.core.persistence._ensure_dirs") as mock_ensure:
+        with patch.object(_persistence_mod, "_ensure_dirs") as mock_ensure:
             save_session(fresh_session)
             mock_ensure.assert_called_once()
 
@@ -316,12 +322,12 @@ class TestValidatePath:
         assert error is None
 
     def test_oserror_on_unresolvable_path(self) -> None:
-        with patch("scout.bughunt.core.persistence.Path.resolve", side_effect=OSError("mock error")):
+        with patch.object(_persistence_mod.Path, "resolve", side_effect=OSError("mock error")):
             error = validate_path("/some/path")
             assert error is not None
 
     def test_value_error_on_unresolvable_path(self) -> None:
-        with patch("scout.bughunt.core.persistence.Path.resolve", side_effect=ValueError("mock error")):
+        with patch.object(_persistence_mod.Path, "resolve", side_effect=ValueError("mock error")):
             error = validate_path("/some/path")
             assert error is not None
 

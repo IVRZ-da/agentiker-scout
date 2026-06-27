@@ -34,7 +34,7 @@ class TestDispatchMechanism:
         Der Handler gibt die empfangenen args als JSON zurück —
         perfekt zum Testen ob Dispatch und Argument-Übergabe funktionieren.
         """
-        from tests.conftest import RealDispatchRegistry
+        from tests.fakes import RealDispatchRegistry
 
         reg = RealDispatchRegistry()
 
@@ -190,7 +190,21 @@ class TestRealDispatchWithRealHandlers:
     aber nur für Handler die keine schweren File-Scans machen.
     """
 
-    def test_dispatch_analysis_diff(self, real_registry, tmp_path):
+    @pytest.fixture
+    def patched_registry(self, real_registry, monkeypatch):
+        """Patch sys.modules damit _call_tool die real_registry nutzt."""
+        import sys
+        import types as _types
+
+        _t = _types.ModuleType("tools")
+        _t.registry = _types.ModuleType("tools.registry")
+        _t.registry.registry = real_registry
+        _t.registry.dispatch = real_registry.dispatch
+        monkeypatch.setitem(sys.modules, "tools", _t)
+        monkeypatch.setitem(sys.modules, "tools.registry", _t.registry)
+        return real_registry
+
+    def test_dispatch_analysis_diff(self, patched_registry, tmp_path):
         """analysis_diff testet echten Dispatch mit minimalen Daten."""
         report_a = {"tool": "test_a", "path": str(tmp_path), "summary": {"files": 5}}
         report_b = {"tool": "test_b", "path": str(tmp_path), "summary": {"files": 10}}
@@ -208,7 +222,7 @@ class TestRealDispatchWithRealHandlers:
             summary = result.get("summary", {})
             assert changes or summary
 
-    def test_dispatch_analysis_report(self, real_registry):
+    def test_dispatch_analysis_report(self, patched_registry):
         """analysis_report testet echten Dispatch ohne File-IO."""
         result = _call_tool(
             "analysis_report",
@@ -219,22 +233,22 @@ class TestRealDispatchWithRealHandlers:
         if isinstance(result, dict):
             assert "scope" in result or "status" in result
 
-    def test_registry_contains_scout_tools(self, real_registry):
+    def test_registry_contains_scout_tools(self, patched_registry):
         """Scout-eigene Tools sind registriert."""
-        tools = real_registry.get_all_tool_names()
+        tools = patched_registry.get_all_tool_names()
         assert "analysis_diff" in tools
         assert "analysis_report" in tools
         assert "analysis_inspect" in tools
 
-    def test_dispatch_with_real_registry_object(self, real_registry):
+    def test_dispatch_with_real_registry_object(self, patched_registry):
         """Fixture returned einen RealDispatchRegistry (duck-typing)."""
         # Check duck-typing statt isinstance (conftest module caching issue)
-        assert hasattr(real_registry, "dispatch")
-        assert hasattr(real_registry, "register")
-        assert hasattr(real_registry, "get_entry")
-        assert hasattr(real_registry, "get_all_tool_names")
+        assert hasattr(patched_registry, "dispatch")
+        assert hasattr(patched_registry, "register")
+        assert hasattr(patched_registry, "get_entry")
+        assert hasattr(patched_registry, "get_all_tool_names")
 
-    def test_path_validation_in_dispatch(self, real_registry):
+    def test_path_validation_in_dispatch(self, patched_registry):
         """Echter _validate_path wird durchlaufen."""
         result = _call_tool("analysis_inspect", path="/nonexistent/path/12345xyz")
         if isinstance(result, dict):
@@ -245,7 +259,7 @@ class TestRealDispatchWithRealHandlers:
             parsed = json.loads(result)
             assert parsed.get("status") == "error"
 
-    def test_real_registry_dispatch_unknown(self, real_registry):
+    def test_real_registry_dispatch_unknown(self, patched_registry):
         """Unbekanntes Tool im real_registry gibt Fehler."""
         result = _call_tool("analysis_nonexistent_tool")
         assert isinstance(result, dict)
