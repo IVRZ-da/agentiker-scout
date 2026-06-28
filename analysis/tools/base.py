@@ -221,7 +221,7 @@ def _run_shared_pattern_scans(
             grep_cmd = ["grep", "-rn"]
             if scan_file_glob:
                 grep_cmd.extend(["--include", scan_file_glob])
-            grep_cmd.append(scan_query)
+            grep_cmd.extend(["-e", scan_query])
             grep_cmd.append(path)
 
             result = subprocess.run(

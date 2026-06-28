@@ -7,8 +7,8 @@ Ordnerstruktur und CI/CD-Konfiguration. Inspiriert von specfy/stack-analyser.
 Usage:
     detector = FrameworkDetector("/path/to/project")
     result = detector.detect()
-    print(result.frameworks)
-    print(result.confidence)
+    logger.info("Detected frameworks: %s", result.frameworks)
+    logger.info("Detection confidence: %s", result.confidence)
 """
 
 from __future__ import annotations

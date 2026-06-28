@@ -278,7 +278,7 @@ def _discover_python_patterns(
     if q1 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", q1, path, "--include=*.py"],
+                ["grep", "-rn", "-e", q1, path, "--include=*.py"],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:
@@ -304,7 +304,7 @@ def _discover_python_patterns(
     if q2 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", "-E", q2, path, "--include=*.py"],
+                ["grep", "-rn", "-E", "-e", q2, path, "--include=*.py"],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:
@@ -342,7 +342,7 @@ def _discover_ts_patterns(
     if q1 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", "-E", q1, path, ts_glob, tsx_glob, "--include=*.js", "--include=*.jsx"],
+                ["grep", "-rn", "-E", "-e", q1, path, ts_glob, tsx_glob, "--include=*.js", "--include=*.jsx"],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:
@@ -368,7 +368,7 @@ def _discover_ts_patterns(
     if q2 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", "-E", q2, path, ts_glob, tsx_glob],
+                ["grep", "-rn", "-E", "-e", q2, path, ts_glob, tsx_glob],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:
@@ -394,7 +394,7 @@ def _discover_ts_patterns(
     if q3 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", "-E", q3, path, ts_glob, tsx_glob],
+                ["grep", "-rn", "-E", "-e", q3, path, ts_glob, tsx_glob],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:
@@ -429,7 +429,7 @@ def _discover_go_patterns(
     if q1 not in existing_queries:
         try:
             r = subprocess.run(
-                ["grep", "-rn", "-E", q1, path, "--include=*.go"],
+                ["grep", "-rn", "-E", "-e", q1, path, "--include=*.go"],
                 capture_output=True, text=True, timeout=15
             )
             if r.returncode == 0:

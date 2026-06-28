@@ -171,18 +171,25 @@ def _ensure_deps() -> None:
     """Auto-install fehlender Dependencies beim ersten Plugin-Start."""
     import importlib
     import logging
+    import re
+    import shlex
     import subprocess
     import sys
     logger = logging.getLogger(__name__)
 
     missing: list[str] = []
-    for pkg_name, import_name in [
+    allowed_pkgs = [
         ("PyYAML", "yaml"),
         ("packaging", "packaging"),
-    ]:
+    ]
+    for pkg_name, import_name in allowed_pkgs:
         try:
             importlib.import_module(import_name)
         except ImportError:
+            # Package-Name validieren: nur alphanumerisch + - + .
+            if not re.match(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$", pkg_name):
+                logger.warning("Überspringe ungültigen Package-Namen: %s", pkg_name)
+                continue
             missing.append(pkg_name)
 
     if not missing:
@@ -196,8 +203,8 @@ def _ensure_deps() -> None:
         )
         logger.info("✅ Dependencies auto-installiert: %s", missing)
         return
-    except (subprocess.CalledProcessError, OSError):
-        pass
+    except (subprocess.CalledProcessError, OSError) as e:
+        logger.warning("Auto-Install (venv) fehlgeschlagen: %s. Versuche --user ...", e)
 
     # Versuch 2: --user Fallback (für systemd/root/Docker)
     try:
@@ -208,8 +215,11 @@ def _ensure_deps() -> None:
         logger.info("✅ Dependencies via --user installiert: %s", missing)
         return
     except (subprocess.CalledProcessError, OSError) as e:
-        logger.error("❌ Auto-Install fehlgeschlagen: %s. Manuell: %s -m pip install %s",
-                     e, sys.executable, " ".join(missing))
+        safe_cmd = "%s -m pip install %s" % (
+            shlex.quote(sys.executable),
+            " ".join(shlex.quote(p) for p in missing),
+        )
+        logger.error("❌ Auto-Install fehlgeschlagen: %s. Manuell: %s", e, safe_cmd)
 
 
 # ─── Plugin Entry Point ──────────────────────────────────────────────

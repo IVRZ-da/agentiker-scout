@@ -414,6 +414,72 @@ def research_tag(args: dict, **kwargs) -> str:
 # research_update
 # ---------------------------------------------------------------------------
 
+def _update_summary(data: dict, args: dict) -> bool:
+    """Extrahiert und setzt summary aus args."""
+    if "summary" in args and isinstance(args.get("summary"), str):
+        data["summary"] = args["summary"].strip()
+        return True
+    return False
+
+
+def _update_status(data: dict, args: dict) -> str | None:
+    """Extrahiert und validiert status aus args. Gibt Fehler-String oder None zurück."""
+    if "status" not in args:
+        return None
+    status = args["status"]
+    valid = {"completed", "partial", "failed"}
+    if status not in valid:
+        return "status muss 'completed', 'partial' oder 'failed' sein"
+    data["status"] = status
+    return None  # success
+
+
+def _parse_items(raw) -> list:
+    """Parst append_findings/append_sources aus str oder list."""
+    items = raw
+    if isinstance(items, str):
+        try:
+            items = json.loads(items)
+        except (json.JSONDecodeError, TypeError):
+            items = []
+    return items if isinstance(items, list) else []
+
+
+def _append_findings(data: dict, args: dict) -> bool:
+    """Hängt Findings an bestehende Recherche an."""
+    raw = args.get("append_findings")
+    if raw is None:
+        return False
+    items = _parse_items(raw)
+    for f in items:
+        if isinstance(f, dict):
+            data.setdefault("findings", []).append({
+                "finding": str(f.get("finding", "")),
+                "sources": [str(s) for s in (f.get("sources") or [])],
+            })
+        elif isinstance(f, str):
+            data.setdefault("findings", []).append({"finding": f, "sources": []})
+    return True
+
+
+def _append_sources(data: dict, args: dict) -> bool:
+    """Hängt Quellen an bestehende Recherche an."""
+    raw = args.get("append_sources")
+    if raw is None:
+        return False
+    items = _parse_items(raw)
+    for s in items:
+        if isinstance(s, dict):
+            data.setdefault("sources", []).append({
+                "url": str(s.get("url", "")),
+                "title": str(s.get("title", "")),
+                "relevance": float(s.get("relevance", 0.5)),
+            })
+        elif isinstance(s, str):
+            data.setdefault("sources", []).append({"url": s, "title": s, "relevance": 0.5})
+    return True
+
+
 def research_update(args: dict, **kwargs) -> str:
     """Aktualisiert eine bestehende Recherche (erweitern/korrigieren)."""
     research_id = args.get("research_id", "").strip()
@@ -425,9 +491,8 @@ def research_update(args: dict, **kwargs) -> str:
         return _err(err)
 
     result_path = RESULTS_DIR / f"{research_id}.json"
-    PLANS_DIR / f"{research_id}.json"
+    PLANS_DIR / f"{research_id}.json"  # noqa: ensure dir referenced
 
-    # Nur gespeicherte Ergebnisse updatebar
     if not result_path.exists():
         return _err(f"Keine gespeicherte Recherche mit ID '{research_id}' gefunden. "
                      "research_save zuerst aufrufen oder research_start für neue Recherche.")
@@ -436,59 +501,19 @@ def research_update(args: dict, **kwargs) -> str:
     if not data:
         return _err(f"Recherche '{research_id}' ist korrupt. Mit research_delete löschen.")
 
-    updated = False
+    updated = _update_summary(data, args)
 
-    # Summary aktualisieren
-    if "summary" in args and isinstance(args["summary"], str):
-        data["summary"] = args["summary"].strip()
-        updated = True
-
-    # Status aktualisieren
+    status_err = _update_status(data, args)
+    if status_err:
+        return _err(status_err)
     if "status" in args:
-        status = args["status"]
-        if status not in ("completed", "partial", "failed"):
-            return _err("status muss 'completed', 'partial' oder 'failed' sein")
-        data["status"] = status
         updated = True
 
-    # Findings anhängen
-    if "append_findings" in args:
-        new_findings = args["append_findings"]
-        if isinstance(new_findings, str):
-            try:
-                new_findings = json.loads(new_findings)
-            except (json.JSONDecodeError, TypeError):
-                new_findings = []
-        if isinstance(new_findings, list):
-            for f in new_findings:
-                if isinstance(f, dict):
-                    data.setdefault("findings", []).append({
-                        "finding": str(f.get("finding", "")),
-                        "sources": [str(s) for s in (f.get("sources") or [])],
-                    })
-                elif isinstance(f, str):
-                    data.setdefault("findings", []).append({"finding": f, "sources": []})
-            updated = True
+    if _append_findings(data, args):
+        updated = True
 
-    # Sources anhängen
-    if "append_sources" in args:
-        new_sources = args["append_sources"]
-        if isinstance(new_sources, str):
-            try:
-                new_sources = json.loads(new_sources)
-            except (json.JSONDecodeError, TypeError):
-                new_sources = []
-        if isinstance(new_sources, list):
-            for s in new_sources:
-                if isinstance(s, dict):
-                    data.setdefault("sources", []).append({
-                        "url": str(s.get("url", "")),
-                        "title": str(s.get("title", "")),
-                        "relevance": float(s.get("relevance", 0.5)),
-                    })
-                elif isinstance(s, str):
-                    data.setdefault("sources", []).append({"url": s, "title": s, "relevance": 0.5})
-            updated = True
+    if _append_sources(data, args):
+        updated = True
 
     if not updated:
         return _err("Keine Änderungen vorgenommen. Unterstützte Felder: summary, status, append_findings, append_sources")

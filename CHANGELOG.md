@@ -1,5 +1,14 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.11] — 2026-06-27
+### Bug-Hunt Fixes (6 Findings)
+- **P1 — Security:** `__init__.py` — Package-Namen validiert (Regex), `shlex.quote()` für Error-Message, silent `pass` → `logger.warning()` in `_ensure_deps()` (COMMAND_INJECTION-1)
+- **P2 — Security:** `analysis/tools/base.py` — `-e` grep-Flag für Pattern-Query, verhindert Flag-Injection (unsanitized scan_query)
+- **P2 — Security:** `analysis/tools/graph_patterns.py` — `-e` Flag bei allen 6 grep-Calls (Python/TS/Go Pattern Discovery)
+- **P3 — Code-Quality:** `shared/detectors/base.py` — `print()` → `logger.info()` im Docstring
+- **P3 — Complexity:** `research/tools/crud.py` — `research_update` (Complexity 30→~12): 5 Helfer extrahiert (`_update_summary`, `_update_status`, `_parse_items`, `_append_findings`, `_append_sources`)
+- **Tests:** 2182 passed, 45 skipped, 0 failures
+
 ## [0.5.10] — 2026-06-27
 ### Coverage 78.5% → 90% + 38 Test-Failures gefixt
 - **38 Test-Failures gefixt:** test_init.py (4), test_integration.py (14 Errors), test_tools_base.py (1), test_mcp_devtools.py (2), test_persistence.py (16), test_analysis_tools.py (1)
