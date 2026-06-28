@@ -19,8 +19,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import yaml
-
 logger = logging.getLogger("scout.yaml_rule_loader")
 
 # ---------------------------------------------------------------------------
@@ -176,22 +174,12 @@ class YamlRuleLoader:
         return list(self._cache[cache_key]["by_category"].get(category, []))
 
     def to_detector(self, rule: YamlRule) -> object:
-        """Erzeugt ein ``_TechDetector``-ähnliches Objekt aus einer YamlRule (gecached).
+        """Wandelt eine YAML-Regel in einen _TechDetector um."""
+        import yaml  # noqa: F401 (used below for yaml.safe_load)
 
-        Das zurückgegebene Objekt hat die Attribute ``name``, ``category``,
-        ``markers`` und die Methode ``detect(root)``, die mit dem
-        existierenden ``_TechDetector.detect()`` kompatibel ist.
-
-        Results werden in ``_detector_cache`` gecached — bei wiederholtem
-        Aufruf mit derselben Rule wird die bereits erzeugte Instanz
-        zurückgegeben (vermeidet teure ``type()``-Aufrufe).
-
-        Args:
-            rule: Eine validierte YamlRule
-
-        Returns:
-            Ein Objekt mit ``_TechDetector``-Interface
-        """
+        # Das zurückgegebene Objekt hat die Attribute name, category,
+        # markers und detect(root) Methode.
+        # Results werden in _detector_cache gecached.
         if rule.name in self._detector_cache:
             return self._detector_cache[rule.name]
 
@@ -240,6 +228,7 @@ class YamlRuleLoader:
 
     def _load_file(self, yaml_path: Path) -> List[YamlRule]:
         """Lädt und validiert Rules aus einer einzelnen YAML-Datei."""
+        import yaml
         with open(yaml_path, "r", encoding="utf-8") as fh:
             raw = yaml.safe_load(fh)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from scout.bughunt.bughunt_tools import _err, _ok
+from scout.bughunt.tools.base import _err, _ok
 
 
 class TestBughuntToolsHelpers:

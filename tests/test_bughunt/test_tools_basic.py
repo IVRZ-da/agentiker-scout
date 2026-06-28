@@ -429,7 +429,7 @@ class TestGetCoreLoadsPatterns:
         if parent not in _sys.path:
             _sys.path.insert(0, parent)
 
-        from scout.bughunt.bughunt_tools import _get_core
+        from scout.bughunt.tools.base import _get_core
         core = _get_core()
         assert len(core.PATTERNS_BY_ID) > 0, "_get_core() muss Patterns laden"
         cats = core.list_categories()
@@ -445,7 +445,7 @@ class TestGetCoreLoadsPatterns:
         if parent not in _sys.path:
             _sys.path.insert(0, parent)
 
-        from scout.bughunt.bughunt_tools import _get_core
+        from scout.bughunt.tools.base import _get_core
         core = _get_core()
         cats = {c["category"] for c in core.list_categories()}
         expected = {"security", "code-quality", "typescript", "go", "rust",
@@ -462,6 +462,6 @@ class TestGetCoreLoadsPatterns:
         if parent not in _sys.path:
             _sys.path.insert(0, parent)
 
-        from scout.bughunt.bughunt_tools import _get_core
+        from scout.bughunt.tools.base import _get_core
         core = _get_core()
         assert len(core.PATTERNS_BY_ID) == 71, f"Erwartet 71 Patterns, habe {len(core.PATTERNS_BY_ID)}"

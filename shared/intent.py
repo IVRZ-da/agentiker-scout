@@ -143,25 +143,23 @@ _DOMAIN_PRIORITY_WEIGHTS = {"bug": 10, "research": 8, "framework": 7, "db": 6, "
 def _detect_intent(message: str) -> str | None:
     """Detect which domain(s) a message belongs to. Returns most specific domain.
 
-    Bei Mehrfachmatches (z.B. "analysiere den bug" → code + bug) gewinnt
-    die spezifischere Domain (bug > code, research > code).
+    Single-pass detection: findet den höchstpriorisierten Match.
+    Kombiniert Gate-Check + Detection in einem Durchlauf.
     """
     msg_lower = message.lower()
-    matched_domains: list[tuple[str, int]] = []
+    best_domain: str | None = None
+    best_score = 0
 
     for domain, keywords in INTENT_MAP.items():
         for kw in keywords:
             if kw in msg_lower:
                 score = _DOMAIN_PRIORITY_WEIGHTS.get(domain, 1)
-                matched_domains.append((domain, score))
+                if score > best_score:
+                    best_score = score
+                    best_domain = domain
                 break  # Ein Keyword pro Domain reicht
 
-    if not matched_domains:
-        return None
-
-    # Sort by priority (highest score wins)
-    matched_domains.sort(key=lambda x: x[1], reverse=True)
-    return matched_domains[0][0]
+    return best_domain
 
 def _build_intent_context(domain: str) -> str | None:
     """Return cached context for a detected domain."""
@@ -194,20 +192,7 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[str]:
     if not last_user_msg:
         return None
 
-    # Quick gate: if no relevant keywords, skip everything
-    msg_lower = last_user_msg.lower()
-    has_relevant_keyword = False
-    for domain_kws in INTENT_MAP.values():
-        for kw in domain_kws:
-            if kw in msg_lower:
-                has_relevant_keyword = True
-                break
-        if has_relevant_keyword:
-            break
-
-    if not has_relevant_keyword:
-        return None
-
+    # Single-pass detection: findet besten Domain-Match
     domain = _detect_intent(last_user_msg)
     if not domain:
         return None

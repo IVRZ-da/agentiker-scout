@@ -32,8 +32,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import yaml
-
 logger = logging.getLogger("scout.pattern_loader")
 
 # ---------------------------------------------------------------------------
@@ -282,6 +280,7 @@ class PatternLoader:
         seen_ids: Dict[str, str],
     ) -> List[BugPattern]:
         """Lädt und validiert Patterns aus einer einzelnen YAML-Datei."""
+        import yaml
         with open(yaml_path, "r", encoding="utf-8") as fh:
             raw = yaml.safe_load(fh)
 
