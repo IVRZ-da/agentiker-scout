@@ -37,6 +37,4 @@ data/
 data/sessions/
 data/patterns/
 
-# Temp / generated registry
-scout_tool_registry.json
 **.honcho_cache.json

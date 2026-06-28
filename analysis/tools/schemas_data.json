@@ -1,13 +1,13 @@
 {
   "ANALYSIS_ARCHITECTURE_SCHEMA": {
     "name": "analysis_architecture",
-    "description": "Full architecture analysis: workspace structure → dependency graph → hot paths → cycle detection → complexity hotspots. Persists in Honcho.",
+    "description": "Full architecture analysis: structure, dependencies, cycles, hotspots.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Absolute path to project root directory."
+          "description": "Project root path."
         },
         "format": {
           "type": "string",
@@ -16,12 +16,12 @@
             "mermaid",
             "json"
           ],
-          "description": "Output format (default: text).",
+          "description": "Format: text or json.",
           "default": "text"
         },
         "depth": {
           "type": "integer",
-          "description": "Analysis depth (1-3).",
+          "description": "Depth (1-3).",
           "default": 2,
           "minimum": 1,
           "maximum": 3
@@ -34,7 +34,7 @@
   },
   "ANALYSIS_ASK_SCHEMA": {
     "name": "analysis_ask",
-    "description": "Ask a natural language question about a codebase. Uses code analysis and Honcho context to answer questions about code structure, dependencies, and behavior.",
+    "description": "Ask a natural language question about code.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -44,7 +44,7 @@
         },
         "path": {
           "type": "string",
-          "description": "Optional path to file or directory to analyze as context."
+          "description": "Optional path for context."
         }
       },
       "required": [
@@ -54,7 +54,7 @@
   },
   "ANALYSIS_CODE_MOVE_SCHEMA": {
     "name": "analysis_code_move",
-    "description": "Verschiebt ein Symbol (Funktion/Klasse) zwischen Dateien via AST-Extraktion.",
+    "description": "Move a symbol between files via AST extraction.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -72,7 +72,7 @@
         },
         "dry_run": {
           "type": "boolean",
-          "description": "Preview changes without writing (default: True)"
+          "description": "Dry run (default: True)"
         }
       },
       "required": [
@@ -84,25 +84,25 @@
   },
   "ANALYSIS_CODE_QUERY_SCHEMA": {
     "name": "analysis_code_query",
-    "description": "Smart Query Router für Code-Intelligence. Stellt eine Frage über Code und wählt automatisch das beste Tool.",
+    "description": "Smart query router for code intelligence.",
     "parameters": {
       "type": "object",
       "properties": {
         "intent": {
           "type": "string",
-          "description": "What you want: find_usage, definition, understand, overview, tests, diagnostics, callers, callees, structure, search_pattern"
+          "description": "Intent: find_usage, definition, understand, etc."
         },
         "path": {
           "type": "string",
-          "description": "Absolute file or directory path"
+          "description": "File or directory path."
         },
         "line": {
           "type": "integer",
-          "description": "Optional 1-based line number"
+          "description": "Line number (1-based)."
         },
         "language": {
           "type": "string",
-          "description": "Optional language override"
+          "description": "Language override."
         }
       },
       "required": [
@@ -112,7 +112,7 @@
   },
   "ANALYSIS_DEADCODE_SCHEMA": {
     "name": "analysis_deadcode",
-    "description": "Dead code analysis: finds unused imports, unused functions, orphaned error handlers, and impact analysis for removal.",
+    "description": "Find unused imports, functions, and error handlers.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -131,7 +131,7 @@
               "all"
             ]
           },
-          "description": "What kinds of dead code to find (default: ['all']).",
+          "description": "Dead code types: imports, functions, errors, all.",
           "default": [
             "all"
           ]
@@ -143,12 +143,12 @@
         },
         "max_files": {
           "type": "integer",
-          "description": "Maximum files to scan (default: 500, max: 1000).",
+          "description": "Max files (default: 500).",
           "default": 500
         },
         "timeout": {
           "type": "integer",
-          "description": "Maximum seconds for scanning (default: 60, max: 300).",
+          "description": "Timeout in seconds (default: 60).",
           "default": 60
         }
       },
@@ -159,7 +159,7 @@
   },
   "ANALYSIS_DEPENDENCY_RISK_SCHEMA": {
     "name": "analysis_dependency_risk",
-    "description": "Bewertet Abhängigkeitsrisiken einer Datei oder eines Projekts. Kombiniert code_dependency_risk + code_complexity + code_hot_paths zu einem gewichteten Risk Score (0-10) mit Breakdown nach Kategorien.",
+    "description": "Evaluate dependency risk with weighted score.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -184,7 +184,7 @@
   },
   "ANALYSIS_DIFF_ANALYSIS_SCHEMA": {
     "name": "analysis_diff_analysis",
-    "description": "Vergleicht zwei Git-Refs und zeigt geänderte Funktionen mit Complexity-Delta und Blast Radius. Nutzt code_diff_analysis + code_impact + code_git_diff_file.",
+    "description": "Compare git refs, show changed functions and impact.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -194,17 +194,17 @@
         },
         "base": {
           "type": "string",
-          "description": "Base ref (commit/branch/tag). Default: 'main'.",
+          "description": "Base ref (default: main).",
           "default": "main"
         },
         "head": {
           "type": "string",
-          "description": "Head ref. Default: current HEAD.",
+          "description": "Head ref (default: HEAD).",
           "default": "HEAD"
         },
         "max_files": {
           "type": "integer",
-          "description": "Max files to analyze in depth (default: 5).",
+          "description": "Max files (default: 5).",
           "default": 5
         }
       },
@@ -215,21 +215,21 @@
   },
   "ANALYSIS_DIFF_SCHEMA": {
     "name": "analysis_diff",
-    "description": "Compare two analysis results and show what changed. Accepts report dicts from analysis_inspect, analysis_architecture, or analysis_deadcode. Returns a structured diff with added/removed/changed findings.",
+    "description": "Compare two analysis results.",
     "parameters": {
       "type": "object",
       "properties": {
         "report_a": {
           "type": "object",
-          "description": "First analysis result (dict from analysis_inspect/architecture/deadcode)."
+          "description": "First analysis report dict."
         },
         "report_b": {
           "type": "object",
-          "description": "Second analysis result (dict from analysis_inspect/architecture/deadcode)."
+          "description": "Second analysis report dict."
         },
         "scope": {
           "type": "string",
-          "description": "Optional scope label (e.g. 'module:user-service before/after').",
+          "description": "Scope label.",
           "default": ""
         },
         "format": {
@@ -238,7 +238,7 @@
             "text",
             "json"
           ],
-          "description": "Output format (default: text).",
+          "description": "Format: text or json.",
           "default": "text"
         }
       },
@@ -250,7 +250,7 @@
   },
   "ANALYSIS_DUPLICATES_SCHEMA": {
     "name": "analysis_duplicates",
-    "description": "Findet duplizierte/ähnliche Code-Blöcke via AST-Vergleich. Nutzt code_duplicates für AST-basierte Duplikat-Erkennung mit konfigurierbarer Mindestlänge und Ähnlichkeitsschwelle.",
+    "description": "Find duplicate code blocks via AST comparison.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -260,17 +260,17 @@
         },
         "min_lines": {
           "type": "integer",
-          "description": "Minimum lines for a duplicate block (default: 5).",
+          "description": "Min lines (default: 5).",
           "default": 5
         },
         "similarity_threshold": {
           "type": "number",
-          "description": "Similarity ratio for near-duplicate detection (default: 0.8).",
+          "description": "Similarity threshold (default: 0.8).",
           "default": 0.8
         },
         "top_n": {
           "type": "integer",
-          "description": "Number of top results (default: 10).",
+          "description": "Top N results (default: 10).",
           "default": 10
         }
       },
@@ -281,17 +281,17 @@
   },
   "ANALYSIS_FRAMEWORK_SCHEMA": {
     "name": "analysis_framework",
-    "description": "Zeigt das Framework-Profil eines Projekts an. Erkennt automatisch Technologie-Stack (Medusa, Next.js, React, Go, Docker, etc.) mit Confidence-Scoring und Evidence-Tracking.",
+    "description": "Detect project technology stack automatically.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Absoluter Pfad zum Projekt-Root."
+          "description": "Project root path."
         },
         "fast": {
           "type": "boolean",
-          "description": "Wenn True, nur High-Confidence-Marker scannen (schneller).",
+          "description": "Fast mode (high-confidence only).",
           "default": false
         }
       },
@@ -302,7 +302,7 @@
   },
   "ANALYSIS_GRAPH_QUERY_SCHEMA": {
     "name": "analysis_graph_query",
-    "description": "Durchsucht den Knowledge Graph eines Projekts. Baut via code_index einen SQLite-persistenten ImportGraph auf und erlaubt Abfragen zu Callern, Callees, Hot Paths, Zyklen und Dependency-Health.",
+    "description": "Query the project knowledge graph.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -324,7 +324,7 @@
         },
         "symbol": {
           "type": "string",
-          "description": "File path or symbol name (for callers/callees)."
+          "description": "File or symbol for callers/callees."
         },
         "top_n": {
           "type": "integer",
@@ -345,7 +345,7 @@
   },
   "ANALYSIS_GRAPH_SCHEMA": {
     "name": "analysis_graph",
-    "description": "Generate a Mermaid diagram from analysis results. Takes a report from analysis_inspect, analysis_architecture, or analysis_deadcode and produces a Mermaid flowchart or graph showing dependencies, cycles, and hot paths.",
+    "description": "Generate a Mermaid diagram from analysis results.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -360,7 +360,7 @@
             "cycles",
             "summary"
           ],
-          "description": "Type of graph to generate (default: dependency).",
+          "description": "Graph type: dependency, cycles, summary.",
           "default": "dependency"
         }
       },
@@ -371,17 +371,17 @@
   },
   "ANALYSIS_INSPECT_SCHEMA": {
     "name": "analysis_inspect",
-    "description": "Multi-step code analysis: symbol extraction → definition → references → call hierarchy → cycle detection → dependency graph in one call. Depth 1-5. Persists results in Honcho.",
+    "description": "Multi-step code analysis with configurable depth.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Absolute path to file or directory to analyze."
+          "description": "File or directory path."
         },
         "symbol": {
           "type": "string",
-          "description": "Optional specific symbol (function/class) to focus analysis on."
+          "description": "Optional symbol to focus on."
         },
         "depth": {
           "type": "integer",
@@ -403,13 +403,13 @@
   },
   "ANALYSIS_MIGRATION_SCHEMA": {
     "name": "analysis_migration",
-    "description": "Führt YAML-basierte Bulk-Migrationen über ein Projekt aus. Nutzt code_migration für AST-gewahrte Pattern-Replacements mit Dry-Run und detailliertem Reporting.",
+    "description": "Apply YAML-based bulk pattern migrations.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Project root or directory to apply migrations to."
+          "description": "Project root."
         },
         "rules": {
           "type": "array",
@@ -458,7 +458,7 @@
   },
   "ANALYSIS_PATTERN_DISCOVER_SCHEMA": {
     "name": "analysis_pattern_discover",
-    "description": "Discover code patterns that look like bugs but aren't covered by any existing shared pattern. Scans a project for structural anomalies and compares them against the shared pattern repository. Returns candidate patterns for registration via bug_hunt_pattern(save).",
+    "description": "Discover code patterns not covered by existing rules.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -468,12 +468,12 @@
         },
         "scan_language": {
           "type": "string",
-          "description": "Optional language filter (e.g. 'python', 'typescript', 'go').",
+          "description": "Language filter (python, typescript, go).",
           "default": ""
         },
         "min_frequency": {
           "type": "integer",
-          "description": "Minimum occurrences to consider a pattern meaningful (default: 3).",
+          "description": "Min occurrences (default: 3).",
           "default": 3
         }
       },
@@ -484,13 +484,13 @@
   },
   "ANALYSIS_PERFORMANCE_SCHEMA": {
     "name": "analysis_performance",
-    "description": "Performance analysis: finds bottlenecks, complexity hotspots, and slow paths in a file or project. Combines code_complexity, code_hot_paths, and code_inlay_hints in one call.",
+    "description": "Find bottlenecks and complexity hotspots.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Absolute path to file or directory to analyze."
+          "description": "File or directory path."
         },
         "persist": {
           "type": "boolean",
@@ -505,24 +505,24 @@
   },
   "ANALYSIS_REPORT_SCHEMA": {
     "name": "analysis_report",
-    "description": "Generate a structured analysis report from findings and persist it in Honcho for future reference.",
+    "description": "Generate a structured analysis report.",
     "parameters": {
       "type": "object",
       "properties": {
         "scope": {
           "type": "string",
-          "description": "Analysis scope (e.g. 'module:user-service', 'architecture:checkout')."
+          "description": "Scope label."
         },
         "findings": {
           "type": "object",
-          "description": "Key findings from the analysis."
+          "description": "Key findings."
         },
         "recommendations": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Optional recommendations based on findings."
+          "description": "Recommendations."
         },
         "persist": {
           "type": "boolean",
@@ -538,7 +538,7 @@
   },
   "ANALYSIS_REVIEW_SCHEMA": {
     "name": "analysis_review",
-    "description": "Automated Code Review für Änderungen zwischen Git-Refs. Kombiniert code_review_assistant + code_security_scan + code_diff_analysis für vollständigen PR-Review mit Diff-Analyse, Security-Check und Complexity-Delta.",
+    "description": "Automated code review between git refs.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -558,12 +558,12 @@
         },
         "max_files": {
           "type": "integer",
-          "description": "Max files to analyze in depth (default: 10).",
+          "description": "Max files (default: 10).",
           "default": 10
         },
         "include_security": {
           "type": "boolean",
-          "description": "Include security scan (default: true).",
+          "description": "Include security scan.",
           "default": true
         }
       },
@@ -574,7 +574,7 @@
   },
   "ANALYSIS_RISK_SCHEMA": {
     "name": "analysis_risk",
-    "description": "Multi-Faktor Risk Assessment für ein Projekt. Kombiniert dependency_risk + complexity + unused_finder + security_scan + hot_paths + duplicates zu einem Gesamt-Risk-Score (0-10).",
+    "description": "Multi-factor risk assessment for a project.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -597,7 +597,7 @@
   },
   "ANALYSIS_SECURITY_SCHEMA": {
     "name": "analysis_security",
-    "description": "Security analysis: scans for orphaned error handlers, vulnerability patterns, and security anti-patterns in source code.",
+    "description": "Security analysis for vulnerabilities.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -633,7 +633,7 @@
   },
   "ANALYSIS_TEST_INSIGHT_SCHEMA": {
     "name": "analysis_test_insight",
-    "description": "Analysiert die Testabdeckung eines Symbols oder Projekts. Nutzt code_tests_for_symbol + code_generate_tests um vorhandene Tests zu finden und fehlende Test-Scaffolds zu generieren.",
+    "description": "Analyze test coverage for a symbol or project.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -643,7 +643,7 @@
         },
         "symbol": {
           "type": "string",
-          "description": "Optional symbol name to focus analysis on."
+          "description": "Optional symbol name."
         },
         "generate": {
           "type": "boolean",
@@ -658,7 +658,7 @@
   },
   "ANALYSIS_TIMELINE_SCHEMA": {
     "name": "analysis_timeline",
-    "description": "Zeigt die Evolution eines Symbols oder Projekts über die Git-History. Nutzt code_timeline + code_git_log_symbol + code_diff_analysis um kompakte Timeline mit Autor, Datum, Änderungsart und Complexity-Trend zu liefern.",
+    "description": "Show symbol evolution across git history.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -668,11 +668,11 @@
         },
         "symbol": {
           "type": "string",
-          "description": "Optional symbol name (function/class) für fokussierte Timeline."
+          "description": "Optional symbol name (function/class) f\u00fcr fokussierte Timeline."
         },
         "max_commits": {
           "type": "integer",
-          "description": "Max commits to show (default: 10).",
+          "description": "Max commits (default: 10).",
           "default": 10
         }
       },
@@ -683,7 +683,7 @@
   },
   "ANALYSIS_TREND_SCHEMA": {
     "name": "analysis_trend",
-    "description": "Trend analysis over time: queries Honcho for past analysis results and shows how metrics (symbol count, unused code, complexity hotspots, cycles) have changed over days/weeks.",
+    "description": "Analysis trend over time via Honcho history.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -706,7 +706,7 @@
         },
         "days": {
           "type": "integer",
-          "description": "Number of days to look back (default: 30).",
+          "description": "Days to look back (default: 30).",
           "default": 30,
           "minimum": 1,
           "maximum": 365
@@ -717,7 +717,7 @@
   },
   "ANALYSIS_UI_GAP_SCHEMA": {
     "name": "analysis_ui_gap",
-    "description": "UI Gap Analysis: discovers all UI layers in a project (Next.js storefront, Medusa admin, API routes, Go handlers), extracts routes and backend modules, then compares them to identify coverage gaps. Shows which backend modules lack admin/storefront pages, which admin pages have no backend module (orphans), and which CRUD entities are missing detail views.",
+    "description": "UI Gap Analysis: compare backend vs frontend coverage.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -732,7 +732,7 @@
             "json",
             "mermaid"
           ],
-          "description": "Output format (default: text).",
+          "description": "Format: text or json.",
           "default": "text"
         },
         "include_storefront": {
@@ -753,17 +753,17 @@
   },
   "ANALYSIS_WATCH_SCHEMA": {
     "name": "analysis_watch",
-    "description": "Set up or manage an analysis watch (cron job). Creates a recurring cron job that periodically runs analysis_inspect or analysis_deadcode on a specified path and reports changes via Hermes cron.",
+    "description": "Set up recurring code analysis.",
     "parameters": {
       "type": "object",
       "properties": {
         "path": {
           "type": "string",
-          "description": "Absolute path to the file or directory to watch."
+          "description": "Path to watch."
         },
         "frequency": {
           "type": "string",
-          "description": "Cron frequency: 'daily', 'hourly', or a cron expression (default: 'daily').",
+          "description": "Frequency: daily, hourly, or cron expr.",
           "default": "daily"
         },
         "depth": {
@@ -780,7 +780,7 @@
             "list",
             "remove"
           ],
-          "description": "Action: create a watch, list active watches, or remove one.",
+          "description": "Action: create, list, remove.",
           "default": "create"
         },
         "name": {
@@ -795,22 +795,22 @@
   },
   "ANALYSIS_UI_INSPECT_SCHEMA": {
     "name": "analysis_ui_inspect",
-    "description": "UI-Element-Analyse einer Webseite: Accessibility Tree + DOM-Inspektion + Console/Network-Check. Nutzt Chrome DevTools MCP wenn verfuegbar.",
+    "description": "UI element analysis via A11y tree and DOM inspection.",
     "parameters": {
       "type": "object",
       "properties": {
         "url": {
           "type": "string",
-          "description": "URL der zu analysierenden Webseite."
+          "description": "URL to analyze."
         },
         "include_dom": {
           "type": "boolean",
-          "description": "DOM-Inspektion (computed styles, Positionen, Sichtbarkeit).",
+          "description": "Include DOM inspection.",
           "default": true
         },
         "check_presence": {
           "type": "boolean",
-          "description": "Pruefen ob erwartete UI-Elemente vorhanden sind.",
+          "description": "Check expected elements.",
           "default": false
         },
         "store_baseline": {

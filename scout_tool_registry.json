@@ -1,0 +1,1064 @@
+{
+  "bughunt": [
+    {
+      "name": "bug_hunt_start",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_start",
+      "schema": {
+        "name": "bug_hunt_start",
+        "description": "Start a bug-hunt session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "type": "string",
+              "description": "Project path or name."
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "quick",
+                "comprehensive",
+                "custom"
+              ],
+              "description": "Scope: quick, comprehensive, custom.",
+              "default": "quick"
+            },
+            "focus_areas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Focus areas for the session.",
+              "default": []
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_finding",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_finding",
+      "schema": {
+        "name": "bug_hunt_finding",
+        "description": "Add a finding to a session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "title": {
+              "type": "string",
+              "description": "Finding title."
+            },
+            "severity": {
+              "type": "string",
+              "enum": [
+                "P0",
+                "P1",
+                "P2",
+                "P3",
+                "INFO"
+              ],
+              "description": "Severity.",
+              "default": "P2"
+            },
+            "category": {
+              "type": "string",
+              "description": "Category."
+            },
+            "file": {
+              "type": "string",
+              "description": "File path."
+            },
+            "line": {
+              "type": "integer",
+              "description": "Line number.",
+              "default": 0
+            },
+            "description": {
+              "type": "string",
+              "description": "Description."
+            },
+            "evidence": {
+              "type": "string",
+              "description": "Evidence."
+            },
+            "pattern_id": {
+              "type": "string",
+              "description": "Pattern ID."
+            },
+            "suggested_fix": {
+              "type": "string",
+              "description": "Fix suggestion."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status.",
+              "default": "open"
+            }
+          },
+          "required": [
+            "session_id",
+            "title"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_list",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_list",
+      "schema": {
+        "name": "bug_hunt_list",
+        "description": "List findings for a session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "severity": {
+              "type": "string",
+              "description": "Filter by severity."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status filter."
+            },
+            "category": {
+              "type": "string",
+              "description": "Filter by category."
+            },
+            "file": {
+              "type": "string",
+              "description": "Filter by file path."
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_close",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_close",
+      "schema": {
+        "name": "bug_hunt_close",
+        "description": "Close a bug-hunt session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Optional close summary."
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_scan",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_scan",
+      "schema": {
+        "name": "bug_hunt_scan",
+        "description": "Run automated scans using pattern library.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Pattern IDs or categories."
+            },
+            "path": {
+              "type": "string",
+              "description": "Custom scan path."
+            },
+            "auto_add_findings": {
+              "type": "boolean",
+              "description": "Auto-add findings to session.",
+              "default": true
+            }
+          },
+          "required": [
+            "session_id",
+            "patterns"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_triage",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_triage",
+      "schema": {
+        "name": "bug_hunt_triage",
+        "description": "Update severity/status for findings.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "finding_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Finding IDs to update."
+            },
+            "severity": {
+              "type": "string",
+              "enum": [
+                "P0",
+                "P1",
+                "P2",
+                "P3",
+                "INFO"
+              ],
+              "description": "New severity."
+            },
+            "status": {
+              "type": "string",
+              "description": "New status."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Triage notes."
+            }
+          },
+          "required": [
+            "session_id",
+            "finding_ids"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_verify",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_verify",
+      "schema": {
+        "name": "bug_hunt_verify",
+        "description": "Verify if a finding's bug still exists.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "finding_id": {
+              "type": "string",
+              "description": "Finding ID to verify."
+            }
+          },
+          "required": [
+            "session_id",
+            "finding_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_fix",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_fix",
+      "schema": {
+        "name": "bug_hunt_fix",
+        "description": "Generate an auto-fix prompt for a bug.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "finding_id": {
+              "type": "string",
+              "description": "Finding ID to fix."
+            },
+            "fix_instruction": {
+              "type": "string",
+              "description": "Override instruction."
+            }
+          },
+          "required": [
+            "session_id",
+            "finding_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_report",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_report",
+      "schema": {
+        "name": "bug_hunt_report",
+        "description": "Generate a structured bug-hunt report.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "json",
+                "markdown"
+              ],
+              "description": "Report format.",
+              "default": "json"
+            },
+            "group_by": {
+              "type": "string",
+              "description": "Group findings by field.",
+              "default": "severity"
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_export",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_export",
+      "schema": {
+        "name": "bug_hunt_export",
+        "description": "Export findings as JSON or Markdown.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "json",
+                "markdown"
+              ],
+              "description": "Format.",
+              "default": "json"
+            },
+            "output": {
+              "type": "string",
+              "description": "Output path."
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_history",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_history",
+      "schema": {
+        "name": "bug_hunt_history",
+        "description": "Search past bug-hunt sessions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Specific session ID."
+            },
+            "project": {
+              "type": "string",
+              "description": "Project name filter."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max results.",
+              "default": 10
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_pattern",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_pattern",
+      "schema": {
+        "name": "bug_hunt_pattern",
+        "description": "List, inspect, save, or manage bug patterns.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "list",
+                "detail",
+                "save",
+                "save_from_session",
+                "list_categories",
+                "list_custom",
+                "delete_custom",
+                "import_from_session"
+              ],
+              "description": "Action.",
+              "default": "list"
+            },
+            "pattern_id": {
+              "type": "string",
+              "description": "Pattern ID (for detail/delete)."
+            },
+            "name": {
+              "type": "string",
+              "description": "Pattern name."
+            },
+            "category": {
+              "type": "string",
+              "description": "Category."
+            },
+            "severity": {
+              "type": "string",
+              "description": "Severity."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description."
+            },
+            "scan_type": {
+              "type": "string",
+              "description": "Scan type."
+            },
+            "scan_query": {
+              "type": "string",
+              "description": "Grep query."
+            },
+            "scan_file_glob": {
+              "type": "string",
+              "description": "File glob."
+            },
+            "scan_language": {
+              "type": "string",
+              "description": "Language filter."
+            },
+            "fix_description": {
+              "type": "string",
+              "description": "Fix description."
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Session ID (for save_from_session)."
+            },
+            "finding_id": {
+              "type": "string",
+              "description": "Finding ID (for save_from_session)."
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "bug_hunt_stats",
+      "handler_module": "scout.bughunt.bughunt_tools",
+      "handler_name": "bug_hunt_stats",
+      "schema": {
+        "name": "bug_hunt_stats",
+        "description": "Statistics about findings in a session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID."
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    }
+  ],
+  "research": [
+    {
+      "name": "research_start",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_start",
+      "schema": {
+        "name": "research_start",
+        "description": "Start a new research session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Research query (3-2000 chars)."
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Depth (1-5).",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 5
+            },
+            "max_sources": {
+              "type": "integer",
+              "description": "Max sources (1-50).",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_save",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_save",
+      "schema": {
+        "name": "research_save",
+        "description": "Save research results.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Summary."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "completed",
+                "partial",
+                "failed"
+              ],
+              "description": "Status: completed, partial, or failed.",
+              "default": "completed"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Findings list."
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Sources list."
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags."
+            }
+          },
+          "required": [
+            "research_id",
+            "summary"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_delete",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_delete",
+      "schema": {
+        "name": "research_delete",
+        "description": "Delete a research session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            }
+          },
+          "required": [
+            "research_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_cleanup",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_cleanup",
+      "schema": {
+        "name": "research_cleanup",
+        "description": "Cleanup old research data.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "plans",
+                "all"
+              ],
+              "description": "Cleanup action.",
+              "default": "plans"
+            },
+            "older_than_days": {
+              "type": "integer",
+              "description": "Age in days.",
+              "default": 30,
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "research_tag",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_tag",
+      "schema": {
+        "name": "research_tag",
+        "description": "Manage tags for a research session.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags to manage."
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "add",
+                "remove",
+                "set",
+                "clear"
+              ],
+              "description": "Tag action.",
+              "default": "add"
+            }
+          },
+          "required": [
+            "research_id",
+            "tags"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_update",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_update",
+      "schema": {
+        "name": "research_update",
+        "description": "Update existing research data.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "summary": {
+              "type": "string",
+              "description": "Updated summary."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "completed",
+                "partial",
+                "failed"
+              ],
+              "description": "Updated status."
+            },
+            "append_findings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Append findings."
+            },
+            "append_sources": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Append sources."
+            }
+          },
+          "required": [
+            "research_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_verify",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_verify",
+      "schema": {
+        "name": "research_verify",
+        "description": "Verify source URLs and findings.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            }
+          },
+          "required": [
+            "research_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_auto",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_auto",
+      "schema": {
+        "name": "research_auto",
+        "description": "Autonomous web research agent.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Research query."
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Depth (1-5).",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 5
+            },
+            "max_sources": {
+              "type": "integer",
+              "description": "Max sources (1-20).",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_search",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_search",
+      "schema": {
+        "name": "research_search",
+        "description": "Search saved research results.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max results 1-50.",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 50
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags filter."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status filter."
+            },
+            "date_from": {
+              "type": "string",
+              "description": "From date (ISO)."
+            },
+            "date_to": {
+              "type": "string",
+              "description": "To date (ISO)."
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "research_status",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_status",
+      "schema": {
+        "name": "research_status",
+        "description": "Show research status and details.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "show_orphans": {
+              "type": "boolean",
+              "description": "Show orphaned plans.",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "research_stats",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_stats",
+      "schema": {
+        "name": "research_stats",
+        "description": "Show research metrics and statistics.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    {
+      "name": "research_export",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_export",
+      "schema": {
+        "name": "research_export",
+        "description": "Export research as Markdown or text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "text"
+              ],
+              "description": "Format.",
+              "default": "markdown"
+            }
+          },
+          "required": [
+            "research_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_compare",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_compare",
+      "schema": {
+        "name": "research_compare",
+        "description": "Compare 2-3 research results.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "2-3 research IDs.",
+              "minItems": 2,
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "research_ids"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_synthesize",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_synthesize",
+      "schema": {
+        "name": "research_synthesize",
+        "description": "Synthesize research via Honcho.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Query."
+            },
+            "reasoning_level": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Reasoning depth.",
+              "default": "medium"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_merge",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_merge",
+      "schema": {
+        "name": "research_merge",
+        "description": "Merge multiple research sessions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "2-5 research IDs.",
+              "minItems": 2,
+              "maxItems": 5
+            },
+            "new_summary": {
+              "type": "string",
+              "description": "Merged summary."
+            }
+          },
+          "required": [
+            "research_ids"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_export_all",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_export_all",
+      "schema": {
+        "name": "research_export_all",
+        "description": "Export all research as a bundle.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": [
+                "json",
+                "markdown",
+                "csv"
+              ],
+              "description": "Format.",
+              "default": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "research_schedule",
+      "handler_module": "scout.research.tools.schedule",
+      "handler_name": "research_schedule",
+      "schema": {
+        "name": "research_schedule",
+        "description": "Schedule periodic research.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Research query for scheduled runs."
+            },
+            "interval": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+              ],
+              "description": "Interval.",
+              "default": "daily"
+            },
+            "max_sources": {
+              "type": "integer",
+              "description": "Max sources per run.",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 50
+            },
+            "name": {
+              "type": "string",
+              "description": "Job name."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ]
+}
