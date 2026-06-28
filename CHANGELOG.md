@@ -1,5 +1,13 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.13] — 2026-06-28
+### P1 — Daten-Auslagerung (patterns_data.py + dependency_scanner.py)
+- **patterns_data.py:** 1050→113 Zeilen (−937), Daten laden lazy aus `patterns_data.json`
+- **dependency_scanner.py:** 924→473 Zeilen (−451), VULNERABILITIES laden lazy aus `vulnerabilities.json`
+- **BugPattern-Klasse + Scanner-Logik** bleiben in Python (kein API-Bruch)
+- **Lazy Loading:** `_ensure_loaded()` + `_ensure_vulnerabilities_loaded()` erst bei erstem Zugriff
+- **Tests:** 2103 passed, 45 skipped, 0 failures
+
 ## [0.5.12] — 2026-06-28
 ### P0 — Tool-Schema Token-Optimierung
 - **Token-Reduktion:** Tool-Schema descriptions + param descriptions gekürzt (−5.676 chars total)

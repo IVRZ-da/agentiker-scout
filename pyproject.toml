@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy._Backend"
 
 [project]
 name = "scout"
-version = "0.5.12"
+version = "0.5.13"
 description = "Unified analysis, bug-hunt, and web-research plugin for Hermes Agent"
 authors = [{ name = "agentiker" }]
 license = { text = "MIT" }
