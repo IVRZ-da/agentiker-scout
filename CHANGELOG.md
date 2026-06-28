@@ -1,5 +1,13 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.14] — 2026-06-28
+### P2 — Code-Struktur (bughunt_tools.py Split + research_search Refactoring)
+- **bughunt_tools.py:** 943→28 Zeilen (Re-Export Facade)
+- **tools/ subpackage:** base.py, session.py, scan.py, patterns.py, history.py
+- **research_search:** Complexity 30→~12 (5 Helfer extrahiert)
+- **Mock-Pfade:** auf tools.base korrigiert (Import-Capture Pattern)
+- **Tests:** 2103 passed, 45 skipped, 0 failures
+
 ## [0.5.13] — 2026-06-28
 ### P1 — Daten-Auslagerung (patterns_data.py + dependency_scanner.py)
 - **patterns_data.py:** 1050→113 Zeilen (−937), Daten laden lazy aus `patterns_data.json`
