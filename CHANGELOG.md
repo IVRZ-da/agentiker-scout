@@ -1,5 +1,14 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.12] — 2026-06-28
+### P0 — Tool-Schema Token-Optimierung
+- **Token-Reduktion:** Tool-Schema descriptions + param descriptions gekürzt (−5.676 chars total)
+- **scout_tool_registry.json:** 21 tool descs + 51 param descs gekürzt (−1.052 chars)
+- **schemas_data.json:** 26 tool descs + 52 param descs gekürzt (−4.624 chars, −25%)
+- **Ersparnis:** ~1.419 Tokens weniger pro Turn (−17%)
+- **.gitignore:** scout_tool_registry.json wieder getrackt (war ausgeblendet)
+- **Tests:** 2103 passed, 45 skipped, 0 failures
+
 ## [0.5.11] — 2026-06-27
 ### Bug-Hunt Fixes (6 Findings)
 - **P1 — Security:** `__init__.py` — Package-Namen validiert (Regex), `shlex.quote()` für Error-Message, silent `pass` → `logger.warning()` in `_ensure_deps()` (COMMAND_INJECTION-1)
