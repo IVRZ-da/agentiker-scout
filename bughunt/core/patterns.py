@@ -315,6 +315,17 @@ def init_patterns() -> None:
     After loading built-in patterns, merges any custom patterns
     from data/patterns/custom_patterns.json.
     """
+    # Ensure patterns_data lazy-loaded from JSON
+    try:
+        from scout.bughunt.data.patterns_data import _ensure_loaded as _pd_load
+        _pd_load()
+    except ImportError:
+        try:
+            from bughunt.data.patterns_data import _ensure_loaded as _pd_load
+            _pd_load()
+        except ImportError:
+            pass
+
     try:
         from scout.bughunt import bughunt_patterns as bp2
     except ImportError:

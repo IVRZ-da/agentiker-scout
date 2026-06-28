@@ -68,487 +68,39 @@ class DependencyVersionScanner:
     Versionen mit einer eingebauten Liste von Top-50 GHSA-Einträgen.
     """
 
-    # ── Top-50 bekannte Sicherheitslücken ──────────────────────────
-    # Zusammengestellt aus den wichtigsten GHSA-Advisories für
-    # npm, PyPI, Go und Cargo-Ökosysteme.
-    VULNERABILITIES: List[VersionVulnerability] = [
-        # ═══════════════════════════════════════════════════════════
-        # npm — ~28 Einträge
-        # ═══════════════════════════════════════════════════════════
-        VersionVulnerability(
-            package="lodash", ecosystem="npm",
-            vulnerable_versions=["<4.17.21"], patched_versions=[">=4.17.21"],
-            severity="critical",
-            title="Prototype Pollution in lodash",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-4jxc-9g6f-8m6c",
-        ),
-        VersionVulnerability(
-            package="express", ecosystem="npm",
-            vulnerable_versions=["<4.18.0", ">=4.18.0,<4.18.1"],
-            patched_versions=[">=4.18.1"],
-            severity="high",
-            title="Open Redirect in Express",
-            cwe="CWE-601",
-            ghsa_id="GHSA-rv95-896h-c2vc",
-        ),
-        VersionVulnerability(
-            package="axios", ecosystem="npm",
-            vulnerable_versions=["<0.21.2", ">=0.22.0,<0.27.2", ">=1.0.0,<1.6.0"],
-            patched_versions=[">=0.21.2", ">=0.27.2,<1.0.0", ">=1.6.0"],
-            severity="high",
-            title="Server-Side Request Forgery in Axios",
-            cwe="CWE-918",
-            ghsa_id="GHSA-wf5p-g6vw-rhxx",
-        ),
-        VersionVulnerability(
-            package="next", ecosystem="npm",
-            vulnerable_versions=[">=14.0.0,<14.1.0"],
-            patched_versions=[">=14.1.0"],
-            severity="high",
-            title="Path Traversal in Next.js",
-            cwe="CWE-22",
-            ghsa_id="GHSA-9vj6-3m76-j9c3",
-        ),
-        VersionVulnerability(
-            package="json5", ecosystem="npm",
-            vulnerable_versions=["<2.2.2"],
-            patched_versions=[">=2.2.2"],
-            severity="high",
-            title="Prototype Pollution in JSON5",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-9c47-4m8f-wgvc",
-        ),
-        VersionVulnerability(
-            package="qs", ecosystem="npm",
-            vulnerable_versions=["<6.10.3"],
-            patched_versions=[">=6.10.3"],
-            severity="high",
-            title="Prototype Pollution in qs",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-wh27-9f2f-8xm3",
-        ),
-        VersionVulnerability(
-            package="minimatch", ecosystem="npm",
-            vulnerable_versions=["<3.0.5"],
-            patched_versions=[">=3.0.5"],
-            severity="high",
-            title="ReDoS in minimatch",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-qq2p-42w4-6gv6",
-        ),
-        VersionVulnerability(
-            package="ansi-regex", ecosystem="npm",
-            vulnerable_versions=["<6.0.1"],
-            patched_versions=[">=6.0.1"],
-            severity="high",
-            title="ReDoS in ansi-regex",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-93q8-gq69-wqmw",
-        ),
-        VersionVulnerability(
-            package="ansi-html", ecosystem="npm",
-            vulnerable_versions=["<0.0.8"],
-            patched_versions=[">=0.0.8"],
-            severity="high",
-            title="Cross-Site Scripting in ansi-html",
-            cwe="CWE-79",
-            ghsa_id="GHSA-whgm-jr24-g8qq",
-        ),
-        VersionVulnerability(
-            package="semver-regex", ecosystem="npm",
-            vulnerable_versions=["<3.1.4", ">=4.0.0,<4.0.5"],
-            patched_versions=[">=3.1.4,<4.0.0", ">=4.0.5"],
-            severity="high",
-            title="ReDoS in semver-regex",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-c4f7-5q5c-9c2w",
-        ),
-        VersionVulnerability(
-            package="nth-check", ecosystem="npm",
-            vulnerable_versions=["<2.0.1"],
-            patched_versions=[">=2.0.1"],
-            severity="high",
-            title="ReDoS in nth-check",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-rp65-9cf7-crmr",
-        ),
-        VersionVulnerability(
-            package="tmpl", ecosystem="npm",
-            vulnerable_versions=["<1.0.5"],
-            patched_versions=[">=1.0.5"],
-            severity="high",
-            title="Prototype Pollution in tmpl",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-w6v2-9j9c-6w5q",
-        ),
-        VersionVulnerability(
-            package="follow-redirects", ecosystem="npm",
-            vulnerable_versions=["<1.15.4"],
-            patched_versions=[">=1.15.4"],
-            severity="high",
-            title="Credential Leakage via follow-redirects",
-            cwe="CWE-200",
-            ghsa_id="GHSA-74fj-2j2h-c42q",
-        ),
-        VersionVulnerability(
-            package="jsonwebtoken", ecosystem="npm",
-            vulnerable_versions=["<9.0.0"],
-            patched_versions=[">=9.0.0"],
-            severity="critical",
-            title="Remote Code Execution in jsonwebtoken",
-            cwe="CWE-94",
-            ghsa_id="GHSA-8cf7-32gw-wr33",
-        ),
-        VersionVulnerability(
-            package="tough-cookie", ecosystem="npm",
-            vulnerable_versions=["<4.1.3"],
-            patched_versions=[">=4.1.3"],
-            severity="high",
-            title="Prototype Pollution in tough-cookie",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-72xf-g2v4-7v29",
-        ),
-        VersionVulnerability(
-            package="crypto-js", ecosystem="npm",
-            vulnerable_versions=["<4.2.0"],
-            patched_versions=[">=4.2.0"],
-            severity="high",
-            title="Weak Randomness in crypto-js",
-            cwe="CWE-338",
-            ghsa_id="GHSA-2fpm-7c2m-8fx2",
-        ),
-        VersionVulnerability(
-            package="moment", ecosystem="npm",
-            vulnerable_versions=["<2.29.4"],
-            patched_versions=[">=2.29.4"],
-            severity="high",
-            title="ReDoS in moment",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-9c47-4m8f-wgvc",
-        ),
-        VersionVulnerability(
-            package="debug", ecosystem="npm",
-            vulnerable_versions=["<2.7.1", ">=3.0.0,<3.1.0"],
-            patched_versions=[">=2.7.1,<3.0.0", ">=3.1.0"],
-            severity="high",
-            title="ReDoS in debug",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-3j8f-5j4v-9j6r",
-        ),
-        VersionVulnerability(
-            package="ejs", ecosystem="npm",
-            vulnerable_versions=["<3.1.7"],
-            patched_versions=[">=3.1.7"],
-            severity="critical",
-            title="Remote Code Execution in EJS",
-            cwe="CWE-94",
-            ghsa_id="GHSA-3j8g-5j4v-9j6r",
-        ),
-        VersionVulnerability(
-            package="node-fetch", ecosystem="npm",
-            vulnerable_versions=["<2.6.7", ">=3.0.0,<3.1.2"],
-            patched_versions=[">=2.6.7,<3.0.0", ">=3.1.2"],
-            severity="high",
-            title="Credential Leakage in node-fetch",
-            cwe="CWE-200",
-            ghsa_id="GHSA-8j8f-5j4v-9j6r",
-        ),
-        VersionVulnerability(
-            package="immer", ecosystem="npm",
-            vulnerable_versions=["<9.0.6", ">=10.0.0,<10.0.3"],
-            patched_versions=[">=9.0.6,<10.0.0", ">=10.0.3"],
-            severity="critical",
-            title="Prototype Pollution in immer",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-2fpm-7c2m-8fx3",
-        ),
-        VersionVulnerability(
-            package="cross-spawn", ecosystem="npm",
-            vulnerable_versions=["<7.0.5"],
-            patched_versions=[">=7.0.5"],
-            severity="high",
-            title="Command Injection in cross-spawn",
-            cwe="CWE-78",
-            ghsa_id="GHSA-8j8f-5j4v-9j7r",
-        ),
-        VersionVulnerability(
-            package="path-parse", ecosystem="npm",
-            vulnerable_versions=["<1.0.7"],
-            patched_versions=[">=1.0.7"],
-            severity="high",
-            title="ReDoS in path-parse",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-9c47-4m8f-wgvd",
-        ),
-        VersionVulnerability(
-            package="shelljs", ecosystem="npm",
-            vulnerable_versions=["<0.8.5"],
-            patched_versions=[">=0.8.5"],
-            severity="high",
-            title="Improper Privilege Management in shelljs",
-            cwe="CWE-269",
-            ghsa_id="GHSA-3j8f-5j4v-9j8r",
-        ),
-        VersionVulnerability(
-            package="yargs-parser", ecosystem="npm",
-            vulnerable_versions=["<13.1.2", ">=14.0.0,<15.0.1", ">=16.0.0,<18.1.2"],
-            patched_versions=[">=13.1.2,<14.0.0", ">=15.0.1,<16.0.0", ">=18.1.2"],
-            severity="high",
-            title="Prototype Pollution in yargs-parser",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-45j8-5j4v-9j9r",
-        ),
-        VersionVulnerability(
-            package="node-sass", ecosystem="npm",
-            vulnerable_versions=["<7.0.0"],
-            patched_versions=[">=7.0.0"],
-            severity="high",
-            title="High ReDoS in node-sass",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-9c47-4m8f-wgvf",
-        ),
-        VersionVulnerability(
-            package="undici", ecosystem="npm",
-            vulnerable_versions=["<5.28.3"],
-            patched_versions=[">=5.28.3"],
-            severity="high",
-            title="CRLF Injection in undici",
-            cwe="CWE-93",
-            ghsa_id="GHSA-8j8f-5j4v-9j9s",
-        ),
-        VersionVulnerability(
-            package="protobufjs", ecosystem="npm",
-            vulnerable_versions=["<6.11.4", ">=7.0.0,<7.2.4"],
-            patched_versions=[">=6.11.4,<7.0.0", ">=7.2.4"],
-            severity="critical",
-            title="Prototype Pollution in protobufjs",
-            cwe="CWE-1321",
-            ghsa_id="GHSA-8j8f-5j4v-9j9t",
-        ),
-        VersionVulnerability(
-            package="http-cache-semantics", ecosystem="npm",
-            vulnerable_versions=["<4.1.1"],
-            patched_versions=[">=4.1.1"],
-            severity="high",
-            title="ReDoS in http-cache-semantics",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-9c47-4m8f-wgvg",
-        ),
+    # ── Vulnerability-Daten (lazy aus vulnerabilities.json) ────────
+    VULNERABILITIES: List[VersionVulnerability] = []
+    _VULNERABILITIES_LOADED: bool = False
 
-        # ═══════════════════════════════════════════════════════════
-        # PyPI — ~12 Einträge
-        # ═══════════════════════════════════════════════════════════
-        VersionVulnerability(
-            package="django", ecosystem="pypi",
-            vulnerable_versions=["<4.2.10", ">=5.0.0,<5.0.4"],
-            patched_versions=[">=4.2.10,<5.0.0", ">=5.0.4"],
-            severity="high",
-            title="SQL Injection in Django",
-            cwe="CWE-89",
-            ghsa_id="GHSA-3j8f-5j4v-9j9u",
-        ),
-        VersionVulnerability(
-            package="flask", ecosystem="pypi",
-            vulnerable_versions=["<3.0.0"],
-            patched_versions=[">=3.0.0"],
-            severity="high",
-            title="Cross-Site Scripting in Flask",
-            cwe="CWE-79",
-            ghsa_id="GHSA-8j8f-5j4v-9j9v",
-        ),
-        VersionVulnerability(
-            package="requests", ecosystem="pypi",
-            vulnerable_versions=["<2.31.0"],
-            patched_versions=[">=2.31.0"],
-            severity="high",
-            title="Credential Leakage via requests",
-            cwe="CWE-200",
-            ghsa_id="GHSA-9c47-4m8f-wgvh",
-        ),
-        VersionVulnerability(
-            package="urllib3", ecosystem="pypi",
-            vulnerable_versions=["<1.26.18", ">=2.0.0,<2.0.7"],
-            patched_versions=[">=1.26.18,<2.0.0", ">=2.0.7"],
-            severity="high",
-            title="Security Bypass in urllib3",
-            cwe="CWE-295",
-            ghsa_id="GHSA-3j8f-5j4v-9j9w",
-        ),
-        VersionVulnerability(
-            package="pillow", ecosystem="pypi",
-            vulnerable_versions=["<10.2.0"],
-            patched_versions=[">=10.2.0"],
-            severity="critical",
-            title="RCE via Shell Injection in Pillow",
-            cwe="CWE-78",
-            ghsa_id="GHSA-8j8f-5j4v-9j9x",
-        ),
-        VersionVulnerability(
-            package="werkzeug", ecosystem="pypi",
-            vulnerable_versions=["<3.0.1"],
-            patched_versions=[">=3.0.1"],
-            severity="high",
-            title="Cross-Site Scripting in Werkzeug",
-            cwe="CWE-79",
-            ghsa_id="GHSA-9c47-4m8f-wgvi",
-        ),
-        VersionVulnerability(
-            package="jinja2", ecosystem="pypi",
-            vulnerable_versions=["<3.1.3"],
-            patched_versions=[">=3.1.3"],
-            severity="medium",
-            title="HTML Attribute Injection in Jinja2",
-            cwe="CWE-20",
-            ghsa_id="GHSA-3j8f-5j4v-9j9y",
-        ),
-        VersionVulnerability(
-            package="aiohttp", ecosystem="pypi",
-            vulnerable_versions=["<3.8.6"],
-            patched_versions=[">=3.8.6"],
-            severity="high",
-            title="Denial of Service in aiohttp",
-            cwe="CWE-400",
-            ghsa_id="GHSA-8j8f-5j4v-9j9z",
-        ),
-        VersionVulnerability(
-            package="cryptography", ecosystem="pypi",
-            vulnerable_versions=["<41.0.6"],
-            patched_versions=[">=41.0.6"],
-            severity="high",
-            title="Race Condition in cryptography",
-            cwe="CWE-362",
-            ghsa_id="GHSA-9c47-4m8f-wgvj",
-        ),
-        VersionVulnerability(
-            package="pyyaml", ecosystem="pypi",
-            vulnerable_versions=["<5.4.1", ">=6.0,<6.0.1"],
-            patched_versions=[">=5.4.1,<6.0", ">=6.0.1"],
-            severity="critical",
-            title="Arbitrary Code Execution via PyYAML",
-            cwe="CWE-94",
-            ghsa_id="GHSA-3j8f-5j4v-9j9a",
-        ),
-        VersionVulnerability(
-            package="certifi", ecosystem="pypi",
-            vulnerable_versions=["<2023.7.22"],
-            patched_versions=[">=2023.7.22"],
-            severity="high",
-            title="Root Certificate Expiry in certifi",
-            cwe="CWE-295",
-            ghsa_id="GHSA-8j8f-5j4v-9j9b",
-        ),
-        VersionVulnerability(
-            package="paramiko", ecosystem="pypi",
-            vulnerable_versions=["<3.4.0"],
-            patched_versions=[">=3.4.0"],
-            severity="critical",
-            title="Remote Code Execution in Paramiko",
-            cwe="CWE-78",
-            ghsa_id="GHSA-9c47-4m8f-wgvk",
-        ),
-
-        # ═══════════════════════════════════════════════════════════
-        # Go — ~7 Einträge
-        # ═══════════════════════════════════════════════════════════
-        VersionVulnerability(
-            package="golang.org/x/net", ecosystem="go",
-            vulnerable_versions=["<0.17.0"],
-            patched_versions=[">=0.17.0"],
-            severity="high",
-            title="HTTP/2 DOS in golang.org/x/net",
-            cwe="CWE-400",
-            ghsa_id="GHSA-3j8f-5j4v-9j9c",
-        ),
-        VersionVulnerability(
-            package="golang.org/x/crypto", ecosystem="go",
-            vulnerable_versions=["<0.17.0"],
-            patched_versions=[">=0.17.0"],
-            severity="high",
-            title="Panic in golang.org/x/crypto",
-            cwe="CWE-754",
-            ghsa_id="GHSA-8j8f-5j4v-9j9d",
-        ),
-        VersionVulnerability(
-            package="github.com/golang-jwt/jwt-go", ecosystem="go",
-            vulnerable_versions=["<5.0.0"],
-            patched_versions=[">=5.0.0"],
-            severity="critical",
-            title="Unverified Token Validation in jwt-go",
-            cwe="CWE-287",
-            ghsa_id="GHSA-9c47-4m8f-wgvl",
-        ),
-        VersionVulnerability(
-            package="golang.org/x/text", ecosystem="go",
-            vulnerable_versions=["<0.3.8"],
-            patched_versions=[">=0.3.8"],
-            severity="high",
-            title="DOS in golang.org/x/text",
-            cwe="CWE-400",
-            ghsa_id="GHSA-3j8f-5j4v-9j9e",
-        ),
-        VersionVulnerability(
-            package="github.com/gin-gonic/gin", ecosystem="go",
-            vulnerable_versions=["<1.9.1"],
-            patched_versions=[">=1.9.1"],
-            severity="high",
-            title="Path Traversal in Gin",
-            cwe="CWE-22",
-            ghsa_id="GHSA-8j8f-5j4v-9j9f",
-        ),
-        VersionVulnerability(
-            package="github.com/gorilla/websocket", ecosystem="go",
-            vulnerable_versions=["<1.5.1"],
-            patched_versions=[">=1.5.1"],
-            severity="high",
-            title="DOS in Gorilla Websocket",
-            cwe="CWE-400",
-            ghsa_id="GHSA-9c47-4m8f-wgvm",
-        ),
-        VersionVulnerability(
-            package="github.com/labstack/echo", ecosystem="go",
-            vulnerable_versions=["<4.11.4"],
-            patched_versions=[">=4.11.4"],
-            severity="high",
-            title="Cross-Site Scripting in Echo",
-            cwe="CWE-79",
-            ghsa_id="GHSA-3j8f-5j4v-9j9g",
-        ),
-
-        # ═══════════════════════════════════════════════════════════
-        # Cargo — ~3 Einträge
-        # ═══════════════════════════════════════════════════════════
-        VersionVulnerability(
-            package="openssl", ecosystem="cargo",
-            vulnerable_versions=["<0.10.55"],
-            patched_versions=[">=0.10.55"],
-            severity="high",
-            title="DOS in openssl-sys (crate)",
-            cwe="CWE-400",
-            ghsa_id="GHSA-8j8f-5j4v-9j9h",
-        ),
-        VersionVulnerability(
-            package="tokio", ecosystem="cargo",
-            vulnerable_versions=["<1.8.4", ">=1.9.0,<1.19.3"],
-            patched_versions=[">=1.8.4,<1.9.0", ">=1.19.3"],
-            severity="high",
-            title="Race Condition in tokio",
-            cwe="CWE-362",
-            ghsa_id="GHSA-9c47-4m8f-wgvn",
-        ),
-        VersionVulnerability(
-            package="regex", ecosystem="cargo",
-            vulnerable_versions=["<1.5.5"],
-            patched_versions=[">=1.5.5"],
-            severity="high",
-            title="ReDoS in regex crate",
-            cwe="CWE-1333",
-            ghsa_id="GHSA-3j8f-5j4v-9j9i",
-        ),
-    ]
+    @classmethod
+    def _ensure_vulnerabilities_loaded(cls) -> None:
+        """Lade Vulnerability-Daten lazy aus vulnerabilities.json."""
+        if cls._VULNERABILITIES_LOADED:
+            return
+        cls._VULNERABILITIES_LOADED = True
+        _vuln_path = Path(__file__).resolve().parent / "vulnerabilities.json"
+        if not _vuln_path.exists():
+            logger.warning("vulnerabilities.json nicht gefunden: %s", _vuln_path)
+            return
+        try:
+            import json
+            data = json.loads(_vuln_path.read_text(encoding="utf-8"))
+            for entry in data:
+                cls.VULNERABILITIES.append(VersionVulnerability(
+                    package=entry.get("package", ""),
+                    ecosystem=entry.get("ecosystem", ""),
+                    vulnerable_versions=entry.get("vulnerable_versions", []),
+                    patched_versions=entry.get("patched_versions", []),
+                    severity=entry.get("severity", ""),
+                    title=entry.get("title", ""),
+                    cwe=entry.get("cwe", ""),
+                    ghsa_id=entry.get("ghsa_id", ""),
+                ))
+            logger.debug("dependency_scanner: %d vulnerabilities geladen", len(data))
+        except Exception as e:
+            logger.warning("vulnerabilities.json konnte nicht geladen werden: %s", e)
 
     # ── Manifest-Parser Registry ──────────────────────────────────
-    # (Dateiname, Parser-Methode, Ökosystem)
     _MANIFEST_PARSERS: List[Tuple[str, str]] = [
         ("package.json", "npm"),
         ("requirements.txt", "pypi"),
@@ -599,10 +151,8 @@ class DependencyVersionScanner:
 
     @classmethod
     def add_vulnerability(cls, vuln: VersionVulnerability) -> None:
-        """Fügt eine benutzerdefinierte Vulnerability zur Scan-Liste hinzu.
-
-        Kann verwendet werden, um die eingebaute Liste zu erweitern.
-        """
+        """Fügt eine benutzerdefinierte Vulnerability zur Scan-Liste hinzu."""
+        cls._ensure_vulnerabilities_loaded()
         cls.VULNERABILITIES.append(vuln)
 
     # ── Interne Prüflogik ─────────────────────────────────────────
@@ -615,6 +165,7 @@ class DependencyVersionScanner:
         manifest_file: str,
     ) -> List[Dict]:
         """Prüft eine Package-Version gegen alle bekannten Vulnerabilities."""
+        self.__class__._ensure_vulnerabilities_loaded()
         results: List[Dict] = []
 
         for vuln in self.VULNERABILITIES:
