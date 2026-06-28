@@ -1,5 +1,12 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.15] — 2026-06-28
+### P3 — Lazy Loading + Keywords
+- **intent.py:** Double-Scan eliminiert (Gate + Detection → Single-Pass)
+- **yaml_rule_loader.py:** `import yaml` lazy (module → function-level, spart ~100ms Startzeit)
+- **pattern_loader.py:** `import yaml` lazy (module → function-level)
+- **Tests:** 2103 passed, 45 skipped, 0 failures
+
 ## [0.5.14] — 2026-06-28
 ### P2 — Code-Struktur (bughunt_tools.py Split + research_search Refactoring)
 - **bughunt_tools.py:** 943→28 Zeilen (Re-Export Facade)
