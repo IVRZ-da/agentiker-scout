@@ -137,13 +137,8 @@ def _build_index() -> tuple[list[dict], dict[str, int], float, int]:
 # research_search
 # ---------------------------------------------------------------------------
 
-def research_search(args: dict, **kwargs) -> str:
-    """
-    Durchsucht gespeicherte Research-Ergebnisse mit BM25-Volltextsuche.
-
-    Unterstützt facettierte Suche via tags, status, date_from, date_to.
-    Ergebnisse werden nach Relevanz sortiert.
-    """
+def _parse_filters(args: dict) -> tuple:
+    """Extrahiere und normalisiere Filter aus args."""
     query = args.get("query", "").strip()
     limit = max(1, min(50, int(args.get("limit", 5))))
     filter_tags = args.get("tags", None)
@@ -151,14 +146,102 @@ def research_search(args: dict, **kwargs) -> str:
     date_from = args.get("date_from", None)
     date_to = args.get("date_to", None)
 
-    # Filter normalisieren
     if filter_tags is not None:
         if isinstance(filter_tags, str):
             filter_tags = [filter_tags]
         filter_tags = [t.strip().lower().replace(" ", "-") for t in filter_tags if t]
-
     if filter_status is not None:
         filter_status = filter_status.strip().lower()
+
+    return query, limit, filter_tags, filter_status, date_from, date_to
+
+
+def _filter_document(data: dict, filter_tags: list | None,
+                     filter_status: str | None,
+                     date_from: str | None, date_to: str | None) -> bool:
+    """Prüft ob ein Dokument die Filter-Kriterien erfüllt. True = behalten."""
+    if filter_tags is not None:
+        data_tags = [t.strip().lower() for t in (data.get("tags") or [])]
+        if not any(t in data_tags for t in filter_tags):
+            return False
+    if filter_status is not None:
+        doc_status = data.get("status", "").strip().lower()
+        if doc_status != filter_status:
+            return False
+    if date_from or date_to:
+        saved_at = data.get("saved_at", "")
+        if saved_at:
+            try:
+                dt = datetime.fromisoformat(saved_at)
+                if date_from and dt < datetime.fromisoformat(date_from):
+                    return False
+                if date_to and dt > datetime.fromisoformat(date_to):
+                    return False
+            except (ValueError, TypeError):
+                pass
+    return True
+
+
+def _format_match(score: float, data: dict, stem: str, query: str) -> dict | None:
+    """Formatiere ein Suchergebnis. Gibt None zurück wenn Score zu niedrig."""
+    if query and score < 0.01:
+        return None
+    return {
+        "research_id": data.get("id", stem),
+        "query": data.get("query", ""),
+        "summary": (data.get("summary", "") or "")[:300],
+        "status": data.get("status", ""),
+        "tags": data.get("tags", []),
+        "score": round(score, 3) if score > 0 else None,
+        "timestamp": data.get("saved_at", ""),
+        "findings_count": len(data.get("findings", [])),
+        "sources_count": len(data.get("sources", [])),
+    }
+
+
+def _search_orphan_plans(query: str, N: int, df_map: dict, avgdl: float) -> list:
+    """Durchsuche Orphan-Plans (gestartet aber nicht gespeichert)."""
+    if not query:
+        return []
+    results = []
+    query_terms = _tokenize(query) if query else []
+    for f in sorted(PLANS_DIR.glob("*.json"), reverse=True):
+        rid = f.stem
+        if (RESULTS_DIR / f"{rid}.json").exists():
+            continue
+        data = _read_json(f)
+        if not data:
+            continue
+        p_text = f"{data.get('query', '')} {data.get('summary', '')}"
+        p_score = _bm25_score(query_terms, p_text, N, df_map, avgdl) if query_terms else 0
+        if not query_terms or p_score >= 0.01:
+            results.append({
+                "research_id": rid,
+                "query": data.get("query", ""),
+                "status": data.get("status", "planned"),
+                "timestamp": data.get("created_at", ""),
+                "message": "Recherche gestartet aber noch nicht abgeschlossen.",
+            })
+    return results
+
+
+def _check_honcho_available() -> bool:
+    """Prüfe ob honcho_search via Registry verfügbar ist."""
+    try:
+        from tools.registry import registry
+        return registry.get_entry("honcho_search") is not None
+    except Exception:
+        return False
+
+
+def research_search(args: dict, **kwargs) -> str:
+    """
+    Durchsucht gespeicherte Research-Ergebnisse mit BM25-Volltextsuche.
+
+    Unterstützt facettierte Suche via tags, status, date_from, date_to.
+    Ergebnisse werden nach Relevanz sortiert.
+    """
+    query, limit, filter_tags, filter_status, date_from, date_to = _parse_filters(args)
 
     if not query and not filter_tags and not filter_status and not date_from and not date_to:
         results = _list_results()
@@ -179,93 +262,24 @@ def research_search(args: dict, **kwargs) -> str:
     scored = []
     for doc in documents:
         data = doc["data"]
-
-        # Tag-Filter
-        if filter_tags is not None:
-            data_tags = [t.strip().lower() for t in (data.get("tags") or [])]
-            if not any(t in data_tags for t in filter_tags):
-                continue
-
-        # Status-Filter
-        if filter_status is not None:
-            doc_status = data.get("status", "").strip().lower()
-            if doc_status != filter_status:
-                continue
-
-        # Datum-Filter
-        if date_from or date_to:
-            saved_at = data.get("saved_at", "")
-            if saved_at:
-                try:
-                    dt = datetime.fromisoformat(saved_at)
-                    if date_from:
-                        dt_from = datetime.fromisoformat(date_from)
-                        if dt < dt_from:
-                            continue
-                    if date_to:
-                        dt_to = datetime.fromisoformat(date_to)
-                        if dt > dt_to:
-                            continue
-                except (ValueError, TypeError) as e:
-                    logger.debug("date filter parse failed: %s", e)
-
-        # BM25-Score
-        score = 0.0
-        if query_terms and N > 0:
-            score = _bm25_score(query_terms, doc["text"], N, df_map, avgdl)
-
+        if not _filter_document(data, filter_tags, filter_status, date_from, date_to):
+            continue
+        score = _bm25_score(query_terms, doc["text"], N, df_map, avgdl) if query_terms and N > 0 else 0.0
         scored.append((score, data, doc["stem"]))
 
     # Sortieren: BM25-Score absteigend, dann saved_at absteigend
     scored.sort(key=lambda x: (-x[0], x[1].get("saved_at", "")), reverse=False)
 
     # Results formatieren
-    matches = []
-    for score, data, stem in scored:
-        if query and score < 0.01:
-            continue  # Nur relevante Ergebnisse bei Query
-        matches.append({
-            "research_id": data.get("id", stem),
-            "query": data.get("query", ""),
-            "summary": (data.get("summary", "") or "")[:300],
-            "status": data.get("status", ""),
-            "tags": data.get("tags", []),
-            "score": round(score, 3) if score > 0 else None,
-            "timestamp": data.get("saved_at", ""),
-            "findings_count": len(data.get("findings", [])),
-            "sources_count": len(data.get("sources", [])),
-        })
+    matches = [_format_match(s, d, stem, query) for s, d, stem in scored]
+    matches = [m for m in matches if m is not None]
 
     # Orphan-Plans (nur wenn keine Filter aktiv)
     plan_fallback = []
     if not filter_tags and not filter_status:
-        for f in sorted(PLANS_DIR.glob("*.json"), reverse=True):
-            rid = f.stem
-            if not (RESULTS_DIR / f"{rid}.json").exists():
-                data = _read_json(f)
-                if data:
-                    if query:
-                        p_text = f"{data.get('query', '')} {data.get('summary', '')}"
-                        p_terms = _tokenize(query)
-                        if p_terms:
-                            p_score = _bm25_score(p_terms, p_text, N, df_map, avgdl)
-                            if p_score < 0.01:
-                                continue
-                    plan_fallback.append({
-                        "research_id": rid,
-                        "query": data.get("query", ""),
-                        "status": data.get("status", "planned"),
-                        "timestamp": data.get("created_at", ""),
-                        "message": "Recherche gestartet aber noch nicht abgeschlossen.",
-                    })
+        plan_fallback = _search_orphan_plans(query, N, df_map, avgdl)
 
-    # Versuche Honcho-Suche (via Registry, lose Kopplung)
-    try:
-        from tools.registry import registry
-        honcho_search_entry = registry.get_entry("honcho_search")
-        honcho_available = honcho_search_entry is not None
-    except Exception:
-        honcho_available = False
+    honcho_available = _check_honcho_available()
 
     return fmt_ok({
         "results": matches[:limit],

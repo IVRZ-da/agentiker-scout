@@ -10,16 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-# Alle Handler und Interna importieren
 from scout.bughunt.bughunt_tools import (
-    _add_auto_findings,
-    _build_scan_result,
-    _deduce_pattern_from_finding,
-    _ok,
-    _pattern_detail,
-    _pattern_list,
-    _pattern_matches_frameworks,
-    _try_create_bughunt_plan,
     bug_hunt_export,
     bug_hunt_finding,
     bug_hunt_fix,
@@ -32,6 +23,19 @@ from scout.bughunt.bughunt_tools import (
     bug_hunt_stats,
     bug_hunt_triage,
     bug_hunt_verify,
+)
+
+# Alle Handler und Interna importieren
+from scout.bughunt.tools.base import _ok, _try_create_bughunt_plan
+from scout.bughunt.tools.patterns import (
+    _deduce_pattern_from_finding,
+    _pattern_detail,
+    _pattern_list,
+)
+from scout.bughunt.tools.scan import (
+    _add_auto_findings,
+    _build_scan_result,
+    _pattern_matches_frameworks,
 )
 
 # ======================================================================
@@ -176,7 +180,7 @@ class TestBugHuntStartExtra:
         sessions, _ = _mock_core_full(monkeypatch)
         # _try_create_bughunt_plan mocken
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._try_create_bughunt_plan",
+            "scout.bughunt.tools.base._try_create_bughunt_plan",
             MagicMock(return_value={"goal": "Bug-Hunt: /test (quick)", "status": "ok"}),
         )
         result = _ok(bug_hunt_start({"project": "/test"}))
@@ -534,7 +538,7 @@ class TestBugHuntFix:
         # bughunt_fix mocken (build_fix_prompt)
         mock_fix = MagicMock()
         mock_fix.build_fix_prompt.return_value = "Fix-Prompt-Inhalt"
-        monkeypatch.setattr("scout.bughunt.bughunt_tools._get_fix_mod",
+        monkeypatch.setattr("scout.bughunt.tools.base._get_fix_mod",
                             MagicMock(return_value=mock_fix))
 
         result = _ok(bug_hunt_fix({
@@ -554,7 +558,7 @@ class TestBugHuntFix:
 
         mock_fix = MagicMock()
         mock_fix.build_fix_prompt.return_value = "Override-Prompt"
-        monkeypatch.setattr("scout.bughunt.bughunt_tools._get_fix_mod",
+        monkeypatch.setattr("scout.bughunt.tools.base._get_fix_mod",
                             MagicMock(return_value=mock_fix))
 
         result = _ok(bug_hunt_fix({
@@ -700,7 +704,7 @@ class TestBugHuntHistoryExtra:
 
         # _call_tool mocken für blame
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._call_tool",
+            "scout.bughunt.tools.base._call_tool",
             MagicMock(return_value={"blame": [{"line": 1, "author": "dev"}]}),
         )
 
@@ -754,7 +758,7 @@ class TestBugHuntHistoryExtra:
         sessions[s.session_id] = s.to_dict()
 
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._call_tool",
+            "scout.bughunt.tools.base._call_tool",
             MagicMock(side_effect=RuntimeError("blame failed")),
         )
 
@@ -1598,7 +1602,7 @@ class TestBugHuntStatsRisk:
         sessions[s.session_id] = s.to_dict()
 
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._call_tool",
+            "scout.bughunt.tools.base._call_tool",
             MagicMock(return_value={"risk_score": 7.5, "risk_level": "high"}),
         )
 
@@ -1614,7 +1618,7 @@ class TestBugHuntStatsRisk:
         sessions[s.session_id] = s.to_dict()
 
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._call_tool",
+            "scout.bughunt.tools.base._call_tool",
             MagicMock(side_effect=RuntimeError("risk tool unavailable")),
         )
 
@@ -1631,7 +1635,7 @@ class TestBugHuntStatsRisk:
         sessions[s.session_id] = s.to_dict()
 
         monkeypatch.setattr(
-            "scout.bughunt.bughunt_tools._call_tool",
+            "scout.bughunt.tools.base._call_tool",
             MagicMock(return_value={"error": "not available"}),
         )
 
