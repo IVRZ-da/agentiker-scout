@@ -90,29 +90,29 @@ bug_hunt_pattern(action="list_categories")
 |------|-------------|
 | `analysis_architecture` | Full architecture analysis: workspace structure to dependency graph to hot paths to cycle detection to complexity hotspots. |
 | `analysis_ask` | Ask a natural language question about a codebase using Honcho context. |
-| `analysis_code_move` | Verschiebt ein Symbol (Funktion/Klasse) zwischen Dateien via AST-Extraktion. |
-| `analysis_code_query` | Smart Query Router für Code-Intelligence — wählt automatisch das beste Tool. |
+| `analysis_code_move` | Move a symbol (function/class) between files via AST extraction. |
+| `analysis_code_query` | Smart query router for code intelligence — auto-selects the best tool. |
 | `analysis_deadcode` | Dead code analysis: unused imports, unused functions, orphaned error handlers. |
-| `analysis_dependency_risk` | Bewertet Abhängigkeitsrisiken (Score 0-10) einer Datei oder eines Projekts. |
+| `analysis_dependency_risk` | Rate dependency risks (score 0-10) for a file or project. |
 | `analysis_diff` | Compare two analysis results and show what changed — structured diff. |
-| `analysis_diff_analysis` | Vergleicht zwei Git-Refs und zeigt geänderte Funktionen mit Complexity-Delta. |
-| `analysis_duplicates` | Findet duplizierte/ähnliche Code-Blöcke via AST-Vergleich. |
-| `analysis_framework` | Zeigt das Framework-Profil eines Projekts mit Confidence-Scoring. |
+| `analysis_diff_analysis` | Compare two git refs and show changed functions with complexity delta. |
+| `analysis_duplicates` | Find duplicate or similar code blocks via AST comparison. |
+| `analysis_framework` | Show the framework profile of a project with confidence scoring. |
 | `analysis_graph` | Generate a Mermaid diagram from analysis results (dependency, cycles, summary). |
-| `analysis_graph_query` | Durchsucht den Knowledge Graph eines Projekts (Callers, Callees, Hot Paths). |
+| `analysis_graph_query` | Search the Knowledge Graph of a project (callers, callees, hot paths). |
 | `analysis_inspect` | Multi-step code analysis: symbols → definition → references → call hierarchy. |
-| `analysis_migration` | Führt YAML-basierte Bulk-Migrationen über ein Projekt aus (dry-run by default). |
+| `analysis_migration` | Run YAML-based bulk migrations across a project (dry-run by default). |
 | `analysis_pattern_discover` | Discover code patterns that look like bugs but aren't covered by shared patterns. |
 | `analysis_performance` | Performance analysis: bottlenecks, complexity hotspots, slow paths. |
 | `analysis_report` | Generate a structured analysis report from findings and persist in Honcho. |
-| `analysis_review` | Automated Code Review zwischen Git-Refs: Diff + Security + Complexity-Delta. |
-| `analysis_risk` | Multi-Faktor Risk Assessment: dependency + complexity + deadcode + security + hotspots. |
+| `analysis_review` | Automated code review between git refs: diff + security + complexity delta. |
+| `analysis_risk` | Multi-factor risk assessment: dependency + complexity + deadcode + security + hotspots. |
 | `analysis_security` | Security analysis: orphaned error handlers, vulnerability patterns, anti-patterns. |
-| `analysis_test_insight` | Analysiert Testabdeckung eines Symbols oder Projekts, generiert Scaffolds. |
-| `analysis_timeline` | Zeigt Evolution eines Symbols über die Git-History mit Complexity-Trend. |
-| `analysis_trend` | Trend analysis over time: Symbol-Count, Dead Code, Complexity Hotspots. |
-| `analysis_ui_gap` | UI Gap Analysis: backend modules without admin/storefront pages, orphan pages. |
-| `analysis_ui_inspect` | UI-Element-Analyse: A11y Tree + DOM-Inspektion + Console/Network-Check. |
+| `analysis_test_insight` | Analyze test coverage of a symbol or project, generate scaffolds. |
+| `analysis_timeline` | Show symbol evolution across git history with complexity trend. |
+| `analysis_trend` | Trend analysis over time: symbol count, dead code, complexity hotspots. |
+| `analysis_ui_gap` | UI gap analysis: backend modules without admin/storefront pages, orphan pages. |
+| `analysis_ui_inspect` | UI element analysis: A11y tree + DOM inspection + console/network check. |
 | `analysis_watch` | Set up recurring analysis watch (cron job) with change reporting. |
 
 
@@ -205,7 +205,7 @@ bug_hunt_pattern(action="list_categories")
 
 ## 🔄 Subagent-Integration
 
-Scout-Plugin-Tools können von Sub-Agents direkt aufgerufen werden. Wenn ein Sub-Agent Analyse-, Bug-Hunt- oder Research-Aufgaben ausführt, nutzt er die Scout-Tool-Namespaces:
+Scout plugin tools can be called directly by subagents. When a subagent runs analysis, bug-hunt, or research tasks, it uses the Scout tool namespaces:
 
 - `analysis_*` — Code & Architecture Analysis
 - `bug_hunt_*` — Vulnerability Scanning
@@ -215,9 +215,9 @@ Scout-Plugin-Tools können von Sub-Agents direkt aufgerufen werden. Wenn ein Sub
 
 1. **Bug-Hunt Sub-Agent:** Startet `bug_hunt_start` → `bug_hunt_scan` → `bug_hunt_report`
 2. **Research Sub-Agent:** Startet `research_start` → `research_search` → `research_synthesize`
-3. **Analysis Sub-Agent:** Ruft `analysis_architecture` → `analysis_report` für Architektur-Dokumentation
+3. **Analysis Sub-Agent:** Runs `analysis_architecture` → `analysis_report` for architecture documentation
 
-> **Inspiriert** von [agentiker-code-intel](https://git.agentiker.de/johannes/agentiker-code-intel) — shared pattern pipeline Konzept
+> **Inspired** by [agentiker-code-intel](https://git.agentiker.de/johannes/agentiker-code-intel) — shared pattern pipeline concept
 
 ---
 
@@ -293,7 +293,7 @@ cd ~/.hermes/plugins/agentiker-scout
 ```bash
 cd ~/.hermes/plugins/agentiker-scout
 
-# Tests ausführen
+# Run tests
 python3 -m pytest tests/ -q --tb=short
 
 # Ruff Lint
@@ -309,7 +309,7 @@ Aktuell: **2148 Tests** (45 skipped), Coverage per Pre-Commit Hook enforced.
 
 ## 📄 Changelog
 
-Siehe `CHANGELOG.md` für vollständige Release-History.
+See `CHANGELOG.md` for full release history.
 
 ---
 
@@ -318,10 +318,10 @@ Siehe `CHANGELOG.md` für vollständige Release-History.
 1. Fork the repo
 2. Create a feature branch
 3. Add tests for your changes
-4. Run `python3 -m pytest tests/ -q` — alle Tests müssen grün sein
+4. Run `python3 -m pytest tests/ -q` — all tests must pass
 5. Open a PR
 
-Siehe `CONTRIBUTING.md` und `BRANCHING.md` für Details.
+See `CONTRIBUTING.md` and `BRANCHING.md` for details.
 
 ## 📄 License
 
