@@ -35,27 +35,38 @@ The **shared pattern pipeline** lets bug-hunt patterns feed into analysis scans 
 
 ## 🚀 Quick Start
 
-### Analyse einen Codebase
+### Installation
+```bash
+cd ~/.hermes/plugins
+git clone https://github.com/IVRZ-da/agentiker-scout.git
+cd agentiker-scout
+pip install -e .
+```
 
+### Analyse einen Codebase
 ```python
-# Architecture overview mit Dependency-Graph
 analysis_architecture(path="/path/to/project", depth=2)
 ```
 
 ### Bug-Hunt starten
-
 ```python
-# Session öffnen, Patterns scannen, Results sichern
-bug_hunt_start(project="/path/to/project", scope="quick")
-bug_hunt_scan(session_id="...", patterns=["security", "errors"])
-bug_hunt_report(session_id="...", format="markdown")
+session = bug_hunt_start(project="/path/to/project", scope="quick")
+bug_hunt_scan(session_id=session["session_id"], patterns=["security", "errors"])
+bug_hunt_report(session_id=session["session_id"], format="markdown")
 ```
 
 ### Autonome Recherche
-
 ```python
-# Sub-Agent startet firecrawl_search → scrape → synthesize → save
 research_auto(query="Neueste Medusa v2 Features 2026", depth=3)
+```
+
+### Cross-Plugin: code-intel Analyse-Findings scouten
+```python
+analysis_deadcode(path="src/")
+analysis_security(path="src/")
+# Findings automatisch in scout Pattern-Library
+bug_hunt_pattern(action="list_categories")
+```
 ```
 
 ---
