@@ -3,7 +3,7 @@
 > Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
 > 43 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
 >
-> [![Version](https://img.shields.io/badge/version-0.5.15-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2148%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+> [![Version](https://img.shields.io/badge/version-0.5.16-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2148%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ## 📋 Table of Contents
 
@@ -292,7 +292,7 @@ python3 -m ruff check . --select F,E,T,W,I
 git config core.hooksPath .githooks
 ```
 
-Aktuell: **1390 Tests** (45 skipped), Coverage per Pre-Commit Hook enforced.
+Aktuell: **2148 Tests** (45 skipped), Coverage per Pre-Commit Hook enforced.
 
 ---
 
