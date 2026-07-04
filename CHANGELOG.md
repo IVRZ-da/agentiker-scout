@@ -1,6 +1,12 @@
 # Scout Plugin — CHANGELOG
 
-## [0.5.15] — 2026-06-28
+## [0.5.16] — 2026-06-30
+
+### Changed
+- **Tool-Descriptions in README** — 25 Analysis-Tools mit individuellen Beschreibungen statt generischem "Code & architecture analysis tool."
+- **Badges oben ergänzt** — Version, Tests, License im Header
+
+[0.5.15] — 2026-06-28
 ### P3 — Lazy Loading + Keywords
 - **intent.py:** Double-Scan eliminiert (Gate + Detection → Single-Pass)
 - **yaml_rule_loader.py:** `import yaml` lazy (module → function-level, spart ~100ms Startzeit)
