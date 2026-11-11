@@ -136,8 +136,12 @@ def create_fmt_mock() -> dict[str, Callable]:
     """Erzeugt _fmt Mock-Funktionen die plain JSON zurückgeben.
 
     Returns:
-        Dict mit fmt_ok, fmt_err, fmt_markdown, fmt_warn.
+        Dict mit fmt_ok, fmt_err, fmt_markdown, fmt_warn und den
+        response_format-Helfern (delegieren ans echte Modul, damit die
+        Verdichtungs-Logik nicht doppelt gepflegt werden muss).
     """
+    from scout._fmt import condense, condense_json, wants_concise
+
     return {
         "fmt_ok": lambda d, **kw: json.dumps(
             {**d, "status": "ok"} if "status" not in d else d,
@@ -153,6 +157,9 @@ def create_fmt_mock() -> dict[str, Callable]:
             {"status": "warning", "message": msg, **(data or {})},
             ensure_ascii=False,
         ),
+        "condense": condense,
+        "condense_json": condense_json,
+        "wants_concise": wants_concise,
     }
 
 

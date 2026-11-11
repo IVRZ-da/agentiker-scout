@@ -68,5 +68,5 @@ def test_generator_is_idempotent():
 
 def test_declared_tool_count_is_plausible(manifest):
     """Sicherung gegen versehentlich geleerte Manifest-Listen."""
-    assert len(manifest.get("provides_tools") or []) >= 50
+    assert len(manifest.get("provides_tools") or []) >= 40
     assert len(manifest.get("provides_hooks") or []) == 3

@@ -1,7 +1,7 @@
 {
   "ANALYSIS_ARCHITECTURE_SCHEMA": {
     "name": "analysis_architecture",
-    "description": "Full architecture analysis: structure, dependencies, cycles, hotspots.",
+    "description": "Map a project: workspace structure, dependency graph, hot paths, import cycles, complexity hotspots. Returns apps/packages, top dependencies, cycle list and the most-imported files. Use it before a refactor or to explain a codebase. Next: analysis_inspect on the top-ranked files.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -25,6 +25,15 @@
           "default": 2,
           "minimum": 1,
           "maximum": 3
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -34,7 +43,7 @@
   },
   "ANALYSIS_ASK_SCHEMA": {
     "name": "analysis_ask",
-    "description": "Ask a natural language question about code.",
+    "description": "Ask a natural-language question about the codebase and answer it from stored analysis context. Returns the answer plus the evidence it used. Use it when you do not know which tool would answer the question. Next: run the concrete tool the answer points at.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -52,67 +61,9 @@
       ]
     }
   },
-  "ANALYSIS_CODE_MOVE_SCHEMA": {
-    "name": "analysis_code_move",
-    "description": "Move a symbol between files via AST extraction.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "source": {
-          "type": "string",
-          "description": "Source file path"
-        },
-        "symbol": {
-          "type": "string",
-          "description": "Symbol name to move"
-        },
-        "target": {
-          "type": "string",
-          "description": "Target file path"
-        },
-        "dry_run": {
-          "type": "boolean",
-          "description": "Dry run (default: True)"
-        }
-      },
-      "required": [
-        "source",
-        "symbol",
-        "target"
-      ]
-    }
-  },
-  "ANALYSIS_CODE_QUERY_SCHEMA": {
-    "name": "analysis_code_query",
-    "description": "Smart query router for code intelligence.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "intent": {
-          "type": "string",
-          "description": "Intent: find_usage, definition, understand, etc."
-        },
-        "path": {
-          "type": "string",
-          "description": "File or directory path."
-        },
-        "line": {
-          "type": "integer",
-          "description": "Line number (1-based)."
-        },
-        "language": {
-          "type": "string",
-          "description": "Language override."
-        }
-      },
-      "required": [
-        "intent"
-      ]
-    }
-  },
   "ANALYSIS_DEADCODE_SCHEMA": {
     "name": "analysis_deadcode",
-    "description": "Find unused imports, functions, and error handlers.",
+    "description": "Find code nothing uses: unused imports, unused functions, orphaned error handlers. Returns each category with file, line and symbol plus the total count. Use it for cleanup passes and before declaring a module stable. Next: code_safe_delete for confirmed dead symbols.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -150,6 +101,15 @@
           "type": "integer",
           "description": "Timeout in seconds (default: 60).",
           "default": 60
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -159,7 +119,7 @@
   },
   "ANALYSIS_DEPENDENCY_RISK_SCHEMA": {
     "name": "analysis_dependency_risk",
-    "description": "Evaluate dependency risk with weighted score.",
+    "description": "Rate dependency risk for a file or project: outdated, unmaintained or heavily coupled dependencies. Returns a score per dependency with the reason. Use it when planning upgrades. Next: analysis_security for the code-level view.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -184,7 +144,7 @@
   },
   "ANALYSIS_DIFF_ANALYSIS_SCHEMA": {
     "name": "analysis_diff_analysis",
-    "description": "Compare git refs, show changed functions and impact.",
+    "description": "Compare two git refs and show which symbols changed, with complexity delta and blast radius. Returns changed functions per file plus an impact summary. Use it to review a branch before merging. Next: analysis_review for the security angle.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -206,6 +166,15 @@
           "type": "integer",
           "description": "Max files (default: 5).",
           "default": 5
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -215,7 +184,7 @@
   },
   "ANALYSIS_DIFF_SCHEMA": {
     "name": "analysis_diff",
-    "description": "Compare two analysis results.",
+    "description": "Compare two analysis reports and show what changed between them. Returns added, removed and worsened findings. Use it after a refactor to prove it did not regress. Next: analysis_report to write it up.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -248,40 +217,9 @@
       ]
     }
   },
-  "ANALYSIS_DUPLICATES_SCHEMA": {
-    "name": "analysis_duplicates",
-    "description": "Find duplicate code blocks via AST comparison.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "Absolute path to project or file."
-        },
-        "min_lines": {
-          "type": "integer",
-          "description": "Min lines (default: 5).",
-          "default": 5
-        },
-        "similarity_threshold": {
-          "type": "number",
-          "description": "Similarity threshold (default: 0.8).",
-          "default": 0.8
-        },
-        "top_n": {
-          "type": "integer",
-          "description": "Top N results (default: 10).",
-          "default": 10
-        }
-      },
-      "required": [
-        "path"
-      ]
-    }
-  },
   "ANALYSIS_FRAMEWORK_SCHEMA": {
     "name": "analysis_framework",
-    "description": "Detect project technology stack automatically.",
+    "description": "Identify the frameworks and tooling of a project with confidence scores. Returns each detected framework with version hints and evidence. Use it before choosing language-specific patterns. Next: bug_hunt_scan with the matching preset.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -300,52 +238,9 @@
       ]
     }
   },
-  "ANALYSIS_GRAPH_QUERY_SCHEMA": {
-    "name": "analysis_graph_query",
-    "description": "Query the project knowledge graph.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "Absolute path to project root."
-        },
-        "query": {
-          "type": "string",
-          "enum": [
-            "callers",
-            "callees",
-            "hot_paths",
-            "cycles",
-            "health",
-            "summary"
-          ],
-          "description": "Query type."
-        },
-        "symbol": {
-          "type": "string",
-          "description": "File or symbol for callers/callees."
-        },
-        "top_n": {
-          "type": "integer",
-          "description": "Max results (default: 10).",
-          "default": 10
-        },
-        "force_reindex": {
-          "type": "boolean",
-          "description": "Force reindex before query (default: false).",
-          "default": false
-        }
-      },
-      "required": [
-        "path",
-        "query"
-      ]
-    }
-  },
   "ANALYSIS_GRAPH_SCHEMA": {
     "name": "analysis_graph",
-    "description": "Generate a Mermaid diagram from analysis results.",
+    "description": "Render analysis results as a Mermaid diagram: dependency graph, cycles or summary view. Returns Mermaid source ready to paste. Use it when a picture explains faster than a list. Next: analysis_report to embed it.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -371,7 +266,7 @@
   },
   "ANALYSIS_INSPECT_SCHEMA": {
     "name": "analysis_inspect",
-    "description": "Multi-step code analysis with configurable depth.",
+    "description": "One-shot deep dive into a file or directory: symbols, definitions, references, call hierarchy and diagnostics, weighted by depth 1-5. Returns per-layer results plus a summary. Use it as the default entry point when you need to understand unfamiliar code. Next: analysis_architecture for a bird's-eye view.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -394,6 +289,15 @@
           "type": "boolean",
           "description": "Persist results in Honcho (default: true).",
           "default": true
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -401,64 +305,9 @@
       ]
     }
   },
-  "ANALYSIS_MIGRATION_SCHEMA": {
-    "name": "analysis_migration",
-    "description": "Apply YAML-based bulk pattern migrations.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "Project root."
-        },
-        "rules": {
-          "type": "array",
-          "description": "List of migration rules. Each rule has: pattern + rewrite + optional file_glob/language/name.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "pattern": {
-                "type": "string",
-                "description": "ast-grep pattern."
-              },
-              "rewrite": {
-                "type": "string",
-                "description": "Replacement template."
-              },
-              "file_glob": {
-                "type": "string",
-                "description": "File glob filter (default: **/*.ts)."
-              },
-              "language": {
-                "type": "string",
-                "description": "Language override."
-              },
-              "name": {
-                "type": "string",
-                "description": "Optional rule name."
-              }
-            },
-            "required": [
-              "pattern",
-              "rewrite"
-            ]
-          }
-        },
-        "dry_run": {
-          "type": "boolean",
-          "description": "Preview changes without writing (default: true).",
-          "default": true
-        }
-      },
-      "required": [
-        "path",
-        "rules"
-      ]
-    }
-  },
   "ANALYSIS_PATTERN_DISCOVER_SCHEMA": {
     "name": "analysis_pattern_discover",
-    "description": "Discover code patterns not covered by existing rules.",
+    "description": "Find bug-shaped code that the shared pattern catalogue does not cover yet. Returns candidate patterns with evidence and a suggested scan query. Use it to grow the catalogue after a hunt found something new. Next: bug_hunt_pattern action=save to make it permanent.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -484,7 +333,7 @@
   },
   "ANALYSIS_PERFORMANCE_SCHEMA": {
     "name": "analysis_performance",
-    "description": "Find bottlenecks and complexity hotspots.",
+    "description": "Look for performance problems: complexity hotspots, diagnostics, hot paths, inlay hints. Returns ranked hotspots with complexity score and the files that dominate. Use it when something is slow or before adding load. Next: analysis_inspect with depth>=4 on the top hotspot.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -496,6 +345,15 @@
           "type": "boolean",
           "description": "Persist results in Honcho (default: true).",
           "default": true
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -505,7 +363,7 @@
   },
   "ANALYSIS_REPORT_SCHEMA": {
     "name": "analysis_report",
-    "description": "Generate a structured analysis report.",
+    "description": "Assemble a structured analysis report from findings and recommendations, optionally persisting it. Returns the report document with finding and recommendation counts. Use it as the deliverable at the end of an analysis. Next: hand it to the user or export it.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -538,7 +396,7 @@
   },
   "ANALYSIS_REVIEW_SCHEMA": {
     "name": "analysis_review",
-    "description": "Automated code review between git refs.",
+    "description": "Pre-commit style review: diff analysis plus review assistant plus a security pass. Returns changed functions, complexity deltas, security findings and suggested reviewers. Use it before opening a PR or before committing risky changes. Next: fix the findings, then re-run.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -565,6 +423,15 @@
           "type": "boolean",
           "description": "Include security scan.",
           "default": true
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -574,7 +441,7 @@
   },
   "ANALYSIS_RISK_SCHEMA": {
     "name": "analysis_risk",
-    "description": "Multi-factor risk assessment for a project.",
+    "description": "Rate the risk of a change or a file: dependency risk, test coverage, blast radius. Returns a 0-10 score with the factors behind it. Use it to decide whether a change needs more testing. Next: code_tests_for_symbol to see what covers it.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -597,7 +464,7 @@
   },
   "ANALYSIS_SECURITY_SCHEMA": {
     "name": "analysis_security",
-    "description": "Security analysis for vulnerabilities.",
+    "description": "Security pass: runs the security pattern catalogue and error-handling checks over a path. Returns findings with severity, file, line and the pattern that matched. Use it before a release or when reviewing untrusted-input handling. Next: analysis_review for diff context.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -624,6 +491,15 @@
           "type": "boolean",
           "description": "Persist results in Honcho (default: true).",
           "default": true
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -633,7 +509,7 @@
   },
   "ANALYSIS_TEST_INSIGHT_SCHEMA": {
     "name": "analysis_test_insight",
-    "description": "Analyze test coverage for a symbol or project.",
+    "description": "Work out which tests cover a symbol, and optionally draft new ones. Returns covering test files ranked by relevance, plus generated test skeletons on request. Use it before changing untested code. Next: write the tests, then analysis_review.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -656,34 +532,9 @@
       ]
     }
   },
-  "ANALYSIS_TIMELINE_SCHEMA": {
-    "name": "analysis_timeline",
-    "description": "Show symbol evolution across git history.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "Absolute file or directory path."
-        },
-        "symbol": {
-          "type": "string",
-          "description": "Optional symbol name (function/class) f\u00fcr fokussierte Timeline."
-        },
-        "max_commits": {
-          "type": "integer",
-          "description": "Max commits (default: 10).",
-          "default": 10
-        }
-      },
-      "required": [
-        "path"
-      ]
-    }
-  },
   "ANALYSIS_TREND_SCHEMA": {
     "name": "analysis_trend",
-    "description": "Analysis trend over time via Honcho history.",
+    "description": "Track how metrics developed across successive runs: finding counts, complexity, coverage. Returns a time series and the direction of change. Use it to show whether quality is improving over time. Next: analysis_report.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -717,7 +568,7 @@
   },
   "ANALYSIS_UI_GAP_SCHEMA": {
     "name": "analysis_ui_gap",
-    "description": "UI Gap Analysis: compare backend vs frontend coverage.",
+    "description": "Compare backend capabilities with frontend usage to find endpoints the UI never calls. Returns the gap list with file references. Use it when a feature exists in the API but not in the product. Next: analysis_ui_inspect for the DOM side.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -744,6 +595,15 @@
           "type": "boolean",
           "description": "Include admin routes in analysis (default: true).",
           "default": true
+        },
+        "response_format": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "default": "detailed",
+          "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
         }
       },
       "required": [
@@ -753,7 +613,7 @@
   },
   "ANALYSIS_WATCH_SCHEMA": {
     "name": "analysis_watch",
-    "description": "Set up recurring code analysis.",
+    "description": "Watch a path and report changes since the last run, so repeated checks stay cheap. Returns newly added and resolved findings. Use it in a loop or a nightly job. Next: analysis_report for the delta summary.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -795,7 +655,7 @@
   },
   "ANALYSIS_UI_INSPECT_SCHEMA": {
     "name": "analysis_ui_inspect",
-    "description": "UI element analysis via A11y tree and DOM inspection.",
+    "description": "Inspect rendered UI: DOM structure, selectors and accessibility issues for a route. Returns elements, selectors and findings. Use it when a frontend bug depends on the actual DOM rather than the source. Next: analysis_ui_gap for coverage.",
     "parameters": {
       "type": "object",
       "properties": {

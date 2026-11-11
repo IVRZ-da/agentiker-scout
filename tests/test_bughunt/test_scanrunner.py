@@ -318,3 +318,38 @@ class TestBatchScansWithCodeIntel:
         assert result["auto_count"] >= 0
         assert len(result["manual_instructions"]) == 2
         assert "auto_findings" in result
+
+
+class TestCodeSearchPatternsAreDispatched:
+    """Patterns mit scan_type=code_search tragen ein Regex, kein AST-Pattern.
+
+    Sie muessen als grep laufen — vorher wurden sie nie ausgefuehrt, weil
+    code_search ein AST-Tool ist und mit einem Regex nichts anfaengt.
+    """
+
+    def test_code_search_patterns_run_as_grep(self, tmp_path):
+        import json
+        from pathlib import Path as _Path
+
+        from scout.bughunt.bughunt_scanrunner import batch_grep_scans
+
+        patterns_file = (
+            _Path(__file__).resolve().parent.parent.parent
+            / "bughunt" / "data" / "patterns_data.json"
+        )
+        data = json.loads(patterns_file.read_text(encoding="utf-8"))
+        groups = data["patterns"] if isinstance(data["patterns"], dict) else {"_": data["patterns"]}
+        candidates = [
+            p for group in groups.values() for p in group
+            if p.get("scan_type") == "code_search" and p.get("scan_query")
+        ]
+        assert candidates, "keine code_search-Patterns in der Bibliothek"
+
+        (tmp_path / "app.ts").write_text("console.log('x');\nexecSync('ls');\n")
+        result = batch_grep_scans(candidates[:3], str(tmp_path))
+
+        status = [
+            m for m in result["manual_instructions"]
+            if "automatisch erfasst" in m or "Keine Treffer (grep)" in m
+        ]
+        assert len(status) == len(candidates[:3]), result["manual_instructions"]

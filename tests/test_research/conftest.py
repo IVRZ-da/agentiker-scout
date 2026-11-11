@@ -68,6 +68,10 @@ _research_pkg = types.ModuleType("scout.research")
 _research_pkg.__path__ = [str(_research_dir)]
 _research_pkg.__package__ = "scout.research"
 sys.modules["scout.research"] = _research_pkg
+# Eltern-Attribut verknuepfen: ein direkter sys.modules-Eintrag setzt es NICHT,
+# wodurch ``import scout.research.x`` und monkeypatch-Strings wie
+# "scout.research.orchestrator.run_research" mit AttributeError scheitern.
+sys.modules["scout"].research = _research_pkg
 
 # research_hooks via importlib laden (echter Code für die Hook-Tests)
 # und in BEIDE Namespaces eintragen – so nutzen sowohl

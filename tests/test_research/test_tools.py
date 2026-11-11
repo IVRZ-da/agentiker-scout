@@ -542,19 +542,32 @@ class TestEdgeCases:
         mod.RESULTS_DIR = tmp_path / "data" / "results"
         mod.__package__ = "scout.research.tools"
 
+        # Fakes nur temporaer: sonst importiert der naechste Test ein base mit
+        # fremden Pfaden (research_save schrieb woanders hin als compare las).
+        _saved_base = sys.modules.get("scout.research.tools.base")
+        _saved_named = sys.modules.get(mod_name)
         sys.modules[mod_name] = mod
         sys.modules["scout.research.tools.base"] = mod
-        spec.loader.exec_module(mod)
+        try:
+            spec.loader.exec_module(mod)
 
-        # research_search auf leerem Verzeichnis — benutzt base
-        # Lade search.py mit gepatchter base
-        search_path = _research_dir / "tools" / "search.py"
-        s_spec = importlib.util.spec_from_file_location(
-            f"tools.search.{tmp_path.name}", search_path)
-        s_mod = importlib.util.module_from_spec(s_spec)
-        s_mod.__package__ = "scout.research.tools"
-        sys.modules[f"tools.search.{tmp_path.name}"] = s_mod
-        s_spec.loader.exec_module(s_mod)
+            # research_search auf leerem Verzeichnis — benutzt base
+            # Lade search.py mit gepatchter base
+            search_path = _research_dir / "tools" / "search.py"
+            s_spec = importlib.util.spec_from_file_location(
+                f"tools.search.{tmp_path.name}", search_path)
+            s_mod = importlib.util.module_from_spec(s_spec)
+            s_mod.__package__ = "scout.research.tools"
+            sys.modules[f"tools.search.{tmp_path.name}"] = s_mod
+            s_spec.loader.exec_module(s_mod)
 
-        result = json.loads(s_mod.research_search({"query": "irgendwas"}))
-        assert "results" in result
+            result = json.loads(s_mod.research_search({"query": "irgendwas"}))
+            assert "results" in result
+        finally:
+            for key, previous in (("scout.research.tools.base", _saved_base),
+                                  (mod_name, _saved_named),
+                                  (f"tools.search.{tmp_path.name}", None)):
+                if previous is None:
+                    sys.modules.pop(key, None)
+                else:
+                    sys.modules[key] = previous

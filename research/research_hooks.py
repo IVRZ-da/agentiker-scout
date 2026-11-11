@@ -12,10 +12,12 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from scout.shared import paths as _paths
+
 PLUGIN_DIR = Path(__file__).parent
-RESULTS_DIR = PLUGIN_DIR / "data" / "results"
-PLANS_DIR = PLUGIN_DIR / "data" / "plans"
-TRACKER_PATH = PLUGIN_DIR / "data" / "_tracker.json"
+RESULTS_DIR = _paths.RESULTS_DIR
+PLANS_DIR = _paths.PLANS_DIR
+TRACKER_PATH = _paths.RESEARCH_TRACKER_FILE
 
 logger = logging.getLogger(__name__)
 

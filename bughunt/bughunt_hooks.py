@@ -148,12 +148,21 @@ def _auto_create_findings_from_security(result_str: str, args: dict) -> None:
     sessions = core.list_sessions()
     session = None
     existing_titles: set = set()
-    for s_data in sessions:
-        if s_data.get("project") == path and s_data.get("status") == "open":
-            sid = s_data.get("session_id", "")
-            if sid:
-                session = core.load_session(sid)
-                break
+
+    # Zuerst die aktive Session aus dem Tracker: bei mehreren offenen Sessions
+    # fuer dasselbe Projekt wuerde die Suche per Projektname eine beliebige
+    # treffen und Findings in der falschen Session landen.
+    active_id = getattr(core.get_tracker(), "active_session_id", None)
+    if active_id:
+        session = core.load_session(active_id)
+
+    if session is None:
+        for s_data in sessions:
+            if s_data.get("project") == path and s_data.get("status") == "open":
+                sid = s_data.get("session_id", "")
+                if sid:
+                    session = core.load_session(sid)
+                    break
     if session:
         existing_titles = {f.get("title") for f in session.findings if isinstance(f, dict)}
     else:

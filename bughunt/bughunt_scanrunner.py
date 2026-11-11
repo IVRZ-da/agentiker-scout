@@ -10,6 +10,8 @@ import re
 import subprocess
 from typing import Optional
 
+from scout.shared.grep_batch import grep_batch
+
 logger = logging.getLogger(__name__)
 
 # ASCII-freundliche Severity-Icons
@@ -104,6 +106,16 @@ _CODE_INTEL_SCAN_MAP = {
              "evidence": e.get("evidence", e.get("match", ""))[:200],
              "severity": "P2"}
             for e in (r.get("errors", r.get("data", [])) if isinstance(r, dict) else [])
+        ],
+    },
+    "code_diagnostics": {
+        "tool": "code_diagnostics",
+        "kwargs": {},
+        "finding_extractor": lambda r: [
+            {"file": d.get("file", d.get("path", "")), "line": d.get("line", d.get("range", {}).get("start", {}).get("line", 0) if isinstance(d.get("range"), dict) else 0),
+             "evidence": d.get("message", d.get("text", ""))[:200],
+             "severity": _map_security_severity(d.get("severity", "P3"))}
+            for d in (r.get("diagnostics", r.get("data", [])) if isinstance(r, dict) else [])
         ],
     },
     "code_todo_finder": {
@@ -324,6 +336,17 @@ def batch_grep_scans(patterns: list[dict], project_root: str) -> dict:
     auto_findings = []
     manual_instructions = []
 
+    # Alle grep-Patterns in einem Rutsch: ein Subprozess pro --include-Gruppe
+    # statt einer pro Pattern (vorher 32 vollstaendige Dateibaum-Scans).
+    # scan_type "code_search" wird von 13 Patterns mit einem *Regex* in
+    # scan_query gefuellt (kein AST-Pattern). Diese Patterns liefen bisher nie,
+    # weil code_search als AST-Tool aufgerufen wurde. Sie sind grep-Scans.
+    grep_patterns = [
+        p for p in patterns
+        if p.get("scan_type") in ("grep", "code_search") and p.get("scan_query")
+    ]
+    grep_results = grep_batch(grep_patterns, project_root) if grep_patterns else {}
+
     for pattern in patterns:
         scan_type = pattern.get("scan_type", "")
         scan_query = pattern.get("scan_query", "")
@@ -332,8 +355,8 @@ def batch_grep_scans(patterns: list[dict], project_root: str) -> dict:
         name = pattern.get("name", "")
         severity = pattern.get("severity", "P2")
 
-        if scan_type == "grep" and scan_query:
-            matches = run_grep_scan(scan_query, scan_file_glob, project_root)
+        if scan_type in ("grep", "code_search") and scan_query:
+            matches = grep_results.get(pattern_id) or []
             if matches:
                 for m in matches:
                     auto_findings.append({

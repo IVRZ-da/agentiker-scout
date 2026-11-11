@@ -83,8 +83,13 @@ class TestPatternStructure:
         assert len(pats) == 19, f"security hat {len(pats)} patterns, erwarte 19"
 
     def test_code_quality_count(self, init_pats):
+        """17 Built-in; Custom-Patterns zaehlen hier bewusst nicht mit.
+
+        Frueher stand hier 19, weil zwei Custom-Patterns zufaellig im
+        Plugin-Datenverzeichnis lagen — der Test hing damit an Nutzdaten.
+        """
         pats = init_pats.get_patterns_by_category("code-quality")
-        assert len(pats) == 19, f"code-quality hat {len(pats)} patterns, erwarte 19"
+        assert len(pats) == 17, f"code-quality hat {len(pats)} patterns, erwarte 17"
 
     def test_typescript_count(self, init_pats):
         pats = init_pats.get_patterns_by_category("typescript")
@@ -135,7 +140,7 @@ class TestPatternLookup:
 
     def test_list_categories(self, init_pats):
         cats = init_pats.list_categories()
-        assert len(cats) == 11
+        assert len(cats) == 10  # 10 Built-in-Kategorien, "custom" nur bei Custom-Patterns
         cat_names = [c["category"] for c in cats]
         assert "security" in cat_names
         assert "code-quality" in cat_names
@@ -176,8 +181,8 @@ class TestPatternIntegration:
     """Patterns sind via core.* verfügbar."""
 
     def test_init_patterns_populates_core(self, init_pats):
-        """init_patterns() befüllt PATTERNS_BY_CATEGORY mit 11 Kategorien."""
-        assert len(init_pats.PATTERNS_BY_CATEGORY) == 11
+        """init_patterns() befuellt PATTERNS_BY_CATEGORY mit 10 Built-in-Kategorien."""
+        assert len(init_pats.PATTERNS_BY_CATEGORY) == 10
         assert len(init_pats.ALL_PATTERNS) >= 20
 
     def test_core_functions_work_after_init(self, init_pats):

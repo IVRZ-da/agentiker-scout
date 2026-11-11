@@ -23,8 +23,13 @@ from .base import (
 # research_export
 # ---------------------------------------------------------------------------
 
+
 def research_export(args: dict, **kwargs) -> str:
     """Exportiert Research-Ergebnisse als Markdown oder Text."""
+    if args.get("all"):
+        # Ersetzt das frueher eigene Tool research_export_all (0.6.0).
+        return research_export_all(args)
+
     research_id = args.get("research_id", "").strip()
     if not research_id:
         return _err("research_id ist erforderlich")

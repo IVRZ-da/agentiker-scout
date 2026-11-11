@@ -24,19 +24,14 @@ from .tools.diff_trend_watch import (
     analysis_trend_tool,
     analysis_watch_tool,
 )
-from .tools.duplicates import analysis_duplicates_tool
 from .tools.framework_query_move import (
-    analysis_code_move_tool,
-    analysis_code_query_tool,
     analysis_framework_tool,
 )
 from .tools.graph_patterns import (
     analysis_graph_tool,
     analysis_pattern_discover_tool,
 )
-from .tools.graph_query import analysis_graph_query_tool
 from .tools.inspect import analysis_inspect_tool
-from .tools.migration import analysis_migration_tool
 from .tools.perf_sec import (
     analysis_ask_tool,
     analysis_performance_tool,
@@ -47,18 +42,13 @@ from .tools.review import analysis_review_tool
 from .tools.schemas import (
     ANALYSIS_ARCHITECTURE_SCHEMA,
     ANALYSIS_ASK_SCHEMA,
-    ANALYSIS_CODE_MOVE_SCHEMA,
-    ANALYSIS_CODE_QUERY_SCHEMA,
     ANALYSIS_DEADCODE_SCHEMA,
     ANALYSIS_DEPENDENCY_RISK_SCHEMA,
     ANALYSIS_DIFF_ANALYSIS_SCHEMA,
     ANALYSIS_DIFF_SCHEMA,
-    ANALYSIS_DUPLICATES_SCHEMA,
     ANALYSIS_FRAMEWORK_SCHEMA,
-    ANALYSIS_GRAPH_QUERY_SCHEMA,
     ANALYSIS_GRAPH_SCHEMA,
     ANALYSIS_INSPECT_SCHEMA,
-    ANALYSIS_MIGRATION_SCHEMA,
     ANALYSIS_PATTERN_DISCOVER_SCHEMA,
     ANALYSIS_PERFORMANCE_SCHEMA,
     ANALYSIS_REPORT_SCHEMA,
@@ -66,14 +56,12 @@ from .tools.schemas import (
     ANALYSIS_RISK_SCHEMA,
     ANALYSIS_SECURITY_SCHEMA,
     ANALYSIS_TEST_INSIGHT_SCHEMA,
-    ANALYSIS_TIMELINE_SCHEMA,
     ANALYSIS_TREND_SCHEMA,
     ANALYSIS_UI_GAP_SCHEMA,
     ANALYSIS_UI_INSPECT_SCHEMA,
     ANALYSIS_WATCH_SCHEMA,
 )
 from .tools.test_insight import analysis_test_insight_tool
-from .tools.timeline import analysis_timeline_tool
 
 # ======================================================================
 # Cross-Tool Utilities (importiert aus tools/base.py)
@@ -105,17 +93,11 @@ TOOL_HANDLERS: dict[str, tuple[dict, Any]] = {
     "analysis_ui_gap": (ANALYSIS_UI_GAP_SCHEMA, analysis_ui_gap_tool),
     "analysis_pattern_discover": (ANALYSIS_PATTERN_DISCOVER_SCHEMA, analysis_pattern_discover_tool),
     "analysis_framework": (ANALYSIS_FRAMEWORK_SCHEMA, analysis_framework_tool),
-    "analysis_code_query": (ANALYSIS_CODE_QUERY_SCHEMA, analysis_code_query_tool),
-    "analysis_code_move": (ANALYSIS_CODE_MOVE_SCHEMA, analysis_code_move_tool),
-    "analysis_timeline": (ANALYSIS_TIMELINE_SCHEMA, analysis_timeline_tool),
-    "analysis_duplicates": (ANALYSIS_DUPLICATES_SCHEMA, analysis_duplicates_tool),
     "analysis_dependency_risk": (ANALYSIS_DEPENDENCY_RISK_SCHEMA, analysis_dependency_risk_tool),
     "analysis_diff_analysis": (ANALYSIS_DIFF_ANALYSIS_SCHEMA, analysis_diff_analysis_tool),
     "analysis_risk": (ANALYSIS_RISK_SCHEMA, analysis_risk_tool),
     "analysis_review": (ANALYSIS_REVIEW_SCHEMA, analysis_review_tool),
-    "analysis_graph_query": (ANALYSIS_GRAPH_QUERY_SCHEMA, analysis_graph_query_tool),
     "analysis_test_insight": (ANALYSIS_TEST_INSIGHT_SCHEMA, analysis_test_insight_tool),
-    "analysis_migration": (ANALYSIS_MIGRATION_SCHEMA, analysis_migration_tool),
     "analysis_ui_inspect": (ANALYSIS_UI_INSPECT_SCHEMA, analysis_ui_inspect_tool),
 }
 

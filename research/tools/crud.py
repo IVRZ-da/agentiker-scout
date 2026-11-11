@@ -31,6 +31,141 @@ logger = logging.getLogger(__name__)
 # research_start
 # ---------------------------------------------------------------------------
 
+def _schedules_file():
+    """Pfad zur Schedule-Datei — zur Laufzeit aus shared.paths.
+
+    Eine Modul-Konstante wuerde je nach Import-Reihenfolge auf ein anderes
+    Verzeichnis zeigen als die Instanz, die schreibt.
+    """
+    from scout.shared import paths
+
+    return paths.RESULTS_DIR.parent / "schedules.json"
+
+
+def _register_schedule(research_id: str, query: str, interval: str) -> None:
+    """Merkt sich einen wiederkehrenden Recherche-Auftrag.
+
+    Kein Cron im Plugin: ``research_status`` meldet faellige Auftraege, das
+    Ausfuehren bleibt beim Aufrufer (Cronjob, Dashboard, Mensch).
+    """
+    data = _read_json(_schedules_file()) or {}
+    if not isinstance(data, dict):
+        data = {}
+    data[research_id] = {
+        "query": query,
+        "interval": interval,
+        "created_at": _now(),
+        "last_run": None,
+    }
+    _write_json(_schedules_file(), data)
+
+
+def due_schedules(now: float | None = None) -> list[dict]:
+    """Listet faellige Auftraege (Intervall in h/d abgelaufen oder noch nie lief)."""
+    import time
+
+    now = time.time() if now is None else now
+    data = _read_json(_schedules_file()) or {}
+    if not isinstance(data, dict):
+        return []
+
+    unit_seconds = {"h": 3600, "d": 86400, "w": 604800}
+    due: list[dict] = []
+    for research_id, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        interval = str(entry.get("interval", "")).strip().lower()
+        unit = interval[-1:] if interval else ""
+        try:
+            amount = float(interval[:-1])
+        except (ValueError, IndexError):
+            continue
+        seconds = amount * unit_seconds.get(unit, 0)
+        if seconds <= 0:
+            continue
+        last = entry.get("last_run")
+        last_ts = 0.0
+        if last:
+            try:
+                from datetime import datetime
+
+                last_ts = datetime.fromisoformat(last).timestamp()
+            except ValueError:
+                last_ts = 0.0
+        if now - last_ts >= seconds:
+            due.append({"research_id": research_id, "query": entry.get("query", ""),
+                        "interval": interval})
+    return due
+
+
+def _run_auto(
+    query: str,
+    research_id: str,
+    depth: int,
+    max_sources: int,
+    plan: dict,
+    plan_note: str,
+) -> str:
+    """Fuehrt die Recherche sofort aus und speichert das Ergebnis.
+
+    Liefert Fundstellen mit Quellenbezug — die Synthese bleibt beim Modell.
+    Ein Fehler des Suchdienstes wird als Fehler gemeldet, nicht als leeres
+    Ergebnis verkauft.
+    """
+    from scout.research.orchestrator import run_research
+
+    try:
+        outcome = run_research(query, depth=depth, max_sources=max_sources)
+    except Exception as exc:  # noqa: BLE001 - Plugin darf nicht abstuerzen
+        logger.warning("auto-research fehlgeschlagen: %s", exc)
+        return _err(f"Recherche abgebrochen: {type(exc).__name__}: {exc} (Plan: {research_id})")
+
+    plan["mode"] = "auto"
+    plan["sub_queries"] = outcome.plan.sub_queries
+    plan["rounds_run"] = outcome.rounds_run
+    plan["gaps"] = outcome.gaps
+    _write_json(PLANS_DIR / f"{research_id}.json", plan)
+
+    if not outcome.findings:
+        return _err(
+            f"Recherche ohne Fundstelle: {outcome.error or 'unbekannt'}. "
+            f"Plan liegt unter {research_id}; Quellen pruefen oder depth erhoehen."
+        )
+
+    status = "partial" if outcome.gaps else "completed"
+    saved_raw = research_save({
+        "research_id": research_id,
+        "summary": (
+            f"Automatische Recherche zu '{query}': {len(outcome.findings)} Fundstellen "
+            f"aus {len(outcome.sources)} Quellen. Die Fundstellen sind Material — "
+            f"die Synthese erfolgt durch das Modell."
+        ),
+        "status": status,
+        "findings": [f.as_dict() for f in outcome.findings],
+        "sources": outcome.sources,
+    })
+
+    try:
+        saved = json.loads(saved_raw)
+    except json.JSONDecodeError:
+        return saved_raw
+
+    saved.update({
+        "mode": "auto",
+        "gaps": outcome.gaps,
+        "rounds_run": outcome.rounds_run,
+        "pages_read": outcome.pages_read,
+        "pages_failed": outcome.pages_failed,
+        "instruction": (
+            "Synthetisiere jetzt aus 'result.findings' eine Antwort auf die Frage und "
+            "nenne zu jeder Aussage die Quelle. Offene 'gaps' entweder nachrecherchieren "
+            "(research_start mit engerer Frage) oder als offen ausweisen."
+            f"{plan_note}"
+        ),
+    })
+    return json.dumps(saved, ensure_ascii=False, default=str)
+
+
 def research_start(args: dict, **kwargs) -> str:
     """
     Startet eine neue Recherche.
@@ -84,6 +219,15 @@ def research_start(args: dict, **kwargs) -> str:
             )
         elif plan_follow_result.get("error"):
             plan_note = f"\n⚠️ plan_follow Plugin verfügbar aber Fehler: {plan_follow_result['error']}"
+
+    mode = str(args.get("mode", "plan") or "plan").strip().lower()
+    schedule = str(args.get("schedule", "") or "").strip()
+
+    if schedule:
+        _register_schedule(research_id, query, schedule)
+
+    if mode == "auto":
+        return _run_auto(query, research_id, depth, max_sources, plan, plan_note)
 
     return _ok({
         "research_id": research_id,
@@ -480,8 +624,47 @@ def _append_sources(data: dict, args: dict) -> bool:
     return True
 
 
+def _dispatch_update_action(action: str, args: dict) -> str:
+    """Leitet die in research_update gebuendelten Aktionen weiter.
+
+    Die frueheren Einzel-Tools (research_delete/tag/verify/merge/compare) sind
+    in 0.6.0 nicht mehr registriert; ihre Implementierungen bleiben und werden
+    hier aufgerufen. Import lokal, weil export.py seinerseits crud nutzt.
+    """
+    if action == "delete":
+        return research_delete(args)
+    if action == "tag":
+        # research_tag erwartet action=add|remove|set|clear — hier heisst das
+        # Feld tag_action, weil ``action`` schon fuer den Dispatch belegt ist.
+        tag_args = dict(args)
+        tag_args["action"] = str(args.get("tag_action", "add") or "add")
+        return research_tag(tag_args)
+    if action == "verify":
+        return research_verify(args)
+    if action in ("merge", "compare"):
+        from scout.research.tools.export import research_compare, research_merge
+
+        return research_merge(args) if action == "merge" else research_compare(args)
+    return _err(
+        f"Unbekannte action '{action}'. Erlaubt: patch, delete, tag, verify, merge, compare"
+    )
+
+
 def research_update(args: dict, **kwargs) -> str:
-    """Aktualisiert eine bestehende Recherche (erweitern/korrigieren)."""
+    """Aktualisiert eine bestehende Recherche oder fuehrt eine gebuendelte Aktion aus."""
+    action = str(args.get("action", "patch") or "patch").strip().lower()
+    if action != "patch":
+        return _dispatch_update_action(action, args)
+
+    # ``append``-Objekt entpacken (Schema-Form); flache Felder bleiben gueltig.
+    nested_append = args.get("append")
+    if isinstance(nested_append, dict):
+        args = dict(args)
+        if "findings" in nested_append and "append_findings" not in args:
+            args["append_findings"] = nested_append["findings"]
+        if "sources" in nested_append and "append_sources" not in args:
+            args["append_sources"] = nested_append["sources"]
+
     research_id = args.get("research_id", "").strip()
     if not research_id:
         return _err("research_id ist erforderlich")
@@ -491,7 +674,7 @@ def research_update(args: dict, **kwargs) -> str:
         return _err(err)
 
     result_path = RESULTS_DIR / f"{research_id}.json"
-    PLANS_DIR / f"{research_id}.json"  # noqa: ensure dir referenced
+    _ = PLANS_DIR / f"{research_id}.json"  # ensure dir referenced
 
     if not result_path.exists():
         return _err(f"Keine gespeicherte Recherche mit ID '{research_id}' gefunden. "

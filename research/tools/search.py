@@ -315,9 +315,16 @@ def research_status(args: dict, **kwargs) -> str:
 
     if show_orphans and not research_id:
         orphans = _list_orphan_plans()
+        try:
+            from .crud import due_schedules
+
+            schedules = due_schedules()
+        except Exception:  # noqa: BLE001 - Status darf nicht daran scheitern
+            schedules = []
         return fmt_research_status({
             "orphans_count": len(orphans),
             "orphans": orphans[:20],
+            "schedules_due": schedules,
             "message": (
                 f"{len(orphans)} hängengebliebene Recherchen gefunden (gestartet mit "
                 f"research_start aber nie mit research_save gespeichert). "

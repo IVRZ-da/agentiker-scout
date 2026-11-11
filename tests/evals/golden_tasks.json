@@ -1,0 +1,522 @@
+{
+  "version": 1,
+  "created": "2026-11-11",
+  "description": "Golden tasks for the scout plugin. Each task is a realistic, multi-step workflow. Tier 'local' must always pass; tiers 'requires_code_intel' and 'requires_firecrawl' are skipped when the dependency is not reachable. Arg values of the form '$name' are substituted with the value captured by an earlier step.",
+  "tasks": [
+    {
+      "id": "bh-session-lifecycle",
+      "domain": "bughunt",
+      "tier": "local",
+      "prompt": "Starte eine Bug-Hunt-Session für ein Projekt und liste die offenen Findings auf.",
+      "steps": [
+        {
+          "tool": "bug_hunt_start",
+          "args": {
+            "project": "fixture/project",
+            "scope": "quick"
+          },
+          "capture": "session_id"
+        },
+        {
+          "tool": "bug_hunt_list",
+          "args": {
+            "session_id": "$session_id"
+          }
+        },
+        {
+          "tool": "bug_hunt_close",
+          "args": {
+            "session_id": "$session_id",
+            "summary": "eval run"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bh-finding-triage",
+      "domain": "bughunt",
+      "tier": "local",
+      "prompt": "Melde zwei Findings in einer Session, triagiere sie und erzeuge einen Report.",
+      "steps": [
+        {
+          "tool": "bug_hunt_start",
+          "args": {
+            "project": "fixture/project",
+            "scope": "comprehensive"
+          },
+          "capture": "session_id"
+        },
+        {
+          "tool": "bug_hunt_finding",
+          "args": {
+            "session_id": "$session_id",
+            "title": "Unvalidated user input reaches shell",
+            "severity": "P0",
+            "file": "src/app.ts",
+            "line": 12,
+            "description": "execSync mit Request-Parameter"
+          },
+          "capture": "finding_id"
+        },
+        {
+          "tool": "bug_hunt_finding",
+          "args": {
+            "session_id": "$session_id",
+            "title": "Unused import in utils",
+            "severity": "P3",
+            "file": "src/utils.ts",
+            "line": 3,
+            "description": "Toter Import"
+          }
+        },
+        {
+          "tool": "bug_hunt_list",
+          "args": {
+            "session_id": "$session_id"
+          }
+        },
+        {
+          "tool": "bug_hunt_triage",
+          "args": {
+            "session_id": "$session_id",
+            "finding_ids": [
+              "$finding_id"
+            ],
+            "status": "triaged"
+          }
+        },
+        {
+          "tool": "bug_hunt_stats",
+          "args": {
+            "session_id": "$session_id"
+          }
+        },
+        {
+          "tool": "bug_hunt_report",
+          "args": {
+            "session_id": "$session_id",
+            "format": "markdown"
+          }
+        },
+        {
+          "tool": "bug_hunt_close",
+          "args": {
+            "session_id": "$session_id",
+            "summary": "triage done"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bh-history-lookup",
+      "domain": "bughunt",
+      "tier": "local",
+      "prompt": "Zeige die Historie vergangener Bug-Hunt-Sessions.",
+      "steps": [
+        {
+          "tool": "bug_hunt_start",
+          "args": {
+            "project": "fixture/project",
+            "scope": "quick"
+          },
+          "capture": "session_id"
+        },
+        {
+          "tool": "bug_hunt_history",
+          "args": {
+            "limit": 10
+          }
+        },
+        {
+          "tool": "bug_hunt_close",
+          "args": {
+            "session_id": "$session_id",
+            "summary": "history check"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bh-pattern-catalog",
+      "domain": "bughunt",
+      "tier": "local",
+      "prompt": "Welche Bug-Patterns gibt es und wie sind sie kategorisiert?",
+      "steps": [
+        {
+          "tool": "bug_hunt_pattern",
+          "args": {
+            "action": "list"
+          }
+        },
+        {
+          "tool": "bug_hunt_pattern",
+          "args": {
+            "action": "list_categories"
+          }
+        },
+        {
+          "tool": "bug_hunt_pattern",
+          "args": {
+            "action": "detail",
+            "pattern_id": "S001"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bh-report-both-formats",
+      "domain": "bughunt",
+      "tier": "local",
+      "prompt": "Erzeuge denselben Bug-Hunt-Report einmal als JSON und einmal als Markdown.",
+      "steps": [
+        {
+          "tool": "bug_hunt_start",
+          "args": {
+            "project": "fixture/project",
+            "scope": "quick"
+          },
+          "capture": "session_id"
+        },
+        {
+          "tool": "bug_hunt_finding",
+          "args": {
+            "session_id": "$session_id",
+            "title": "Missing await on db call",
+            "severity": "P1",
+            "file": "src/db.ts",
+            "line": 44
+          }
+        },
+        {
+          "tool": "bug_hunt_report",
+          "args": {
+            "session_id": "$session_id",
+            "format": "json"
+          }
+        },
+        {
+          "tool": "bug_hunt_report",
+          "args": {
+            "session_id": "$session_id",
+            "format": "markdown"
+          }
+        },
+        {
+          "tool": "bug_hunt_close",
+          "args": {
+            "session_id": "$session_id",
+            "summary": "formats"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs-lifecycle",
+      "domain": "research",
+      "tier": "local",
+      "prompt": "Starte eine Recherche, prüfe den Status, speichere Ergebnisse und exportiere sie.",
+      "steps": [
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "Hetzner object storage pricing comparison",
+            "depth": 2,
+            "max_sources": 5
+          },
+          "capture": "research_id"
+        },
+        {
+          "tool": "research_status",
+          "args": {
+            "research_id": "$research_id"
+          }
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$research_id",
+            "summary": "Hetzner ist guenstiger als S3 bei kaltem Storage.",
+            "status": "completed",
+            "findings": [
+              {
+                "finding": "Hetzner FSN1 ist 40% guenstiger",
+                "sources": [
+                  "https://www.hetzner.com/storage"
+                ]
+              }
+            ],
+            "sources": [
+              {
+                "url": "https://www.hetzner.com/storage",
+                "title": "Hetzner Storage",
+                "relevance": 0.9
+              }
+            ]
+          }
+        },
+        {
+          "tool": "research_export",
+          "args": {
+            "research_id": "$research_id",
+            "format": "markdown"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs-search-after-save",
+      "domain": "research",
+      "tier": "local",
+      "prompt": "Speichere eine Recherche und finde sie anschliessend über die Volltextsuche wieder.",
+      "steps": [
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "Medusa v2 custom module patterns",
+            "depth": 1,
+            "max_sources": 3
+          },
+          "capture": "research_id"
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$research_id",
+            "summary": "Medusa v2 nutzt loaders und modules-Verzeichnis.",
+            "status": "completed",
+            "sources": [
+              {
+                "url": "https://docs.medusajs.com",
+                "title": "Medusa Docs",
+                "relevance": 0.95
+              }
+            ]
+          }
+        },
+        {
+          "tool": "research_search",
+          "args": {
+            "query": "Medusa custom module",
+            "limit": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs-stats-cleanup",
+      "domain": "research",
+      "tier": "local",
+      "prompt": "Zeige die Research-Statistik und raeume verwaiste Plaene auf.",
+      "steps": [
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "PostgreSQL index bloat detection",
+            "depth": 1
+          },
+          "capture": "research_id"
+        },
+        {
+          "tool": "research_stats",
+          "args": {}
+        },
+        {
+          "tool": "research_cleanup",
+          "args": {
+            "action": "plans",
+            "older_than_days": 0
+          }
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$research_id",
+            "summary": "pg_stat_user_indexes zeigt ungenutzte Indizes.",
+            "status": "completed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs-compare-two",
+      "domain": "research",
+      "tier": "local",
+      "prompt": "Vergleiche zwei abgeschlossene Recherchen miteinander.",
+      "steps": [
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "Next.js 15 caching defaults",
+            "depth": 1
+          },
+          "capture": "rid1"
+        },
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "Next.js 16 caching defaults",
+            "depth": 1
+          },
+          "capture": "rid2"
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$rid1",
+            "summary": "Next 15 cached fetch per default.",
+            "status": "completed"
+          }
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$rid2",
+            "summary": "Next 16 ist explizit opt-in.",
+            "status": "completed"
+          }
+        },
+        {
+          "tool": "research_update",
+          "args": {
+            "research_ids": [
+              "$rid1",
+              "$rid2"
+            ],
+            "action": "compare"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs-tag-update-verify",
+      "domain": "research",
+      "tier": "local",
+      "prompt": "Tagge eine Recherche, ergaenze ein Finding und verifiziere das Ergebnis.",
+      "steps": [
+        {
+          "tool": "research_start",
+          "args": {
+            "query": "Docker buildkit cache mounts",
+            "depth": 1
+          },
+          "capture": "research_id"
+        },
+        {
+          "tool": "research_save",
+          "args": {
+            "research_id": "$research_id",
+            "summary": "Buildkit cache mounts beschleunigen npm ci.",
+            "status": "partial"
+          }
+        },
+        {
+          "tool": "research_update",
+          "args": {
+            "research_id": "$research_id",
+            "action": "tag",
+            "tags": [
+              "docker",
+              "performance"
+            ],
+            "tag_action": "add"
+          }
+        },
+        {
+          "tool": "research_update",
+          "args": {
+            "research_id": "$research_id",
+            "append_findings": [
+              {
+                "finding": "cache mount id muss stabil sein",
+                "sources": []
+              }
+            ],
+            "status": "completed"
+          }
+        },
+        {
+          "tool": "research_update",
+          "args": {
+            "research_id": "$research_id",
+            "action": "verify"
+          }
+        }
+      ]
+    },
+    {
+      "id": "an-report-basic",
+      "domain": "analysis",
+      "tier": "local",
+      "prompt": "Erzeuge einen strukturierten Analyse-Report aus vorgegebenen Findings.",
+      "steps": [
+        {
+          "tool": "analysis_report",
+          "args": {
+            "scope": "fixture/project",
+            "findings": {
+              "deadcode": {
+                "unused_imports": 3
+              },
+              "security": {
+                "p0": 1
+              }
+            },
+            "recommendations": [
+              "Unused imports entfernen",
+              "Shell-Aufruf validieren"
+            ],
+            "persist": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "an-report-empty",
+      "domain": "analysis",
+      "tier": "local",
+      "prompt": "Erzeuge einen Analyse-Report ohne Findings (Grenzfall).",
+      "steps": [
+        {
+          "tool": "analysis_report",
+          "args": {
+            "scope": "empty",
+            "findings": {},
+            "recommendations": [],
+            "persist": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "an-inspect-shallow",
+      "domain": "analysis",
+      "tier": "requires_code_intel",
+      "prompt": "Analysiere ein Projekt mit Tiefe 1 und gib Symbole und Struktur aus.",
+      "steps": [
+        {
+          "tool": "analysis_inspect",
+          "args": {
+            "path": "/home/jo/.hermes/plugins/scout",
+            "depth": 1,
+            "persist": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "an-deadcode-scan",
+      "domain": "analysis",
+      "tier": "requires_code_intel",
+      "prompt": "Finde toten Code im Scout-Plugin.",
+      "steps": [
+        {
+          "tool": "analysis_deadcode",
+          "args": {
+            "path": "/home/jo/.hermes/plugins/scout",
+            "persist": false
+          }
+        }
+      ]
+    }
+  ]
+}

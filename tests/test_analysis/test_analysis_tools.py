@@ -61,20 +61,14 @@ class TestToolRegistration:
             "analysis_ui_gap",
             "analysis_pattern_discover",
             "analysis_framework",
-            "analysis_code_query",
-            "analysis_code_move",
             # Phase 1a
-            "analysis_timeline",
-            "analysis_duplicates",
             "analysis_dependency_risk",
             # Phase 1b+2
             "analysis_diff_analysis",
             "analysis_risk",
             # Phase 3+4
             "analysis_review",
-            "analysis_graph_query",
             "analysis_test_insight",
-            "analysis_migration",
             # UI Inspect
             "analysis_ui_inspect",
         }

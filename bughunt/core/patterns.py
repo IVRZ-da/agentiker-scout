@@ -13,14 +13,17 @@ from scout.bughunt.core.model import (
     CUSTOM_PREFIX,
     MAX_CUSTOM_PATTERNS,
     PATTERNS_DIR,
-    PLUGIN_DIR,
 )
+from scout.shared import paths as _paths
 
 logger = logging.getLogger(__name__)
 
 # ======================================================================
 # Konstanten
 # ======================================================================
+
+DATA_DIR = _paths.DATA_ROOT
+SESSIONS_DIR = _paths.SESSIONS_DIR
 
 SEVERITY_VALUES = ["P0", "P1", "P2", "P3", "INFO"]
 FINDING_CATEGORIES = [
@@ -35,9 +38,6 @@ FINDING_CATEGORIES = [
     "database",
     "other",
 ]
-
-DATA_DIR = PLUGIN_DIR / "data"
-SESSIONS_DIR = DATA_DIR / "sessions"
 
 # ======================================================================
 # In-Memory Pattern Registry — wird via init_patterns() befüllt

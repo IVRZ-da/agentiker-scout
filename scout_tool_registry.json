@@ -1,4 +1,796 @@
 {
+  "analysis": [
+    {
+      "name": "analysis_inspect",
+      "handler_module": "scout.analysis.tools.inspect",
+      "handler_name": "analysis_inspect_tool",
+      "schema": {
+        "name": "analysis_inspect",
+        "description": "One-shot deep dive into a file or directory: symbols, definitions, references, call hierarchy and diagnostics, weighted by depth 1-5. Returns per-layer results plus a summary. Use it as the default entry point when you need to understand unfamiliar code. Next: analysis_architecture for a bird's-eye view.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File or directory path."
+            },
+            "symbol": {
+              "type": "string",
+              "description": "Optional symbol to focus on."
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Analysis depth:\n  1: symbols + overview + diagnostics\n  2: + capsule + callers + callees\n  3: + call_hierarchy + type_hierarchy + highlight\n  4: + cycle_detector + dependency_graph + hot_paths\n  5: + blast_radius + unused_finder + complexity",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5
+            },
+            "persist": {
+              "type": "boolean",
+              "description": "Persist results in Honcho (default: true).",
+              "default": true
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_report",
+      "handler_module": "scout.analysis.tools.report",
+      "handler_name": "analysis_report_tool",
+      "schema": {
+        "name": "analysis_report",
+        "description": "Assemble a structured analysis report from findings and recommendations, optionally persisting it. Returns the report document with finding and recommendation counts. Use it as the deliverable at the end of an analysis. Next: hand it to the user or export it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "description": "Scope label."
+            },
+            "findings": {
+              "type": "object",
+              "description": "Key findings."
+            },
+            "recommendations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Recommendations."
+            },
+            "persist": {
+              "type": "boolean",
+              "description": "Persist in Honcho (default: true).",
+              "default": true
+            }
+          },
+          "required": [
+            "scope",
+            "findings"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_architecture",
+      "handler_module": "scout.analysis.tools.arch_deadcode",
+      "handler_name": "analysis_architecture_tool",
+      "schema": {
+        "name": "analysis_architecture",
+        "description": "Map a project: workspace structure, dependency graph, hot paths, import cycles, complexity hotspots. Returns apps/packages, top dependencies, cycle list and the most-imported files. Use it before a refactor or to explain a codebase. Next: analysis_inspect on the top-ranked files.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Project root path."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "text",
+                "mermaid",
+                "json"
+              ],
+              "description": "Format: text or json.",
+              "default": "text"
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Depth (1-3).",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 3
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_deadcode",
+      "handler_module": "scout.analysis.tools.arch_deadcode",
+      "handler_name": "analysis_deadcode_tool",
+      "schema": {
+        "name": "analysis_deadcode",
+        "description": "Find code nothing uses: unused imports, unused functions, orphaned error handlers. Returns each category with file, line and symbol plus the total count. Use it for cleanup passes and before declaring a module stable. Next: code_safe_delete for confirmed dead symbols.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to file or directory to scan."
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "imports",
+                  "functions",
+                  "errors",
+                  "all"
+                ]
+              },
+              "description": "Dead code types: imports, functions, errors, all.",
+              "default": [
+                "all"
+              ]
+            },
+            "persist": {
+              "type": "boolean",
+              "description": "Persist results in Honcho (default: true).",
+              "default": true
+            },
+            "max_files": {
+              "type": "integer",
+              "description": "Max files (default: 500).",
+              "default": 500
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Timeout in seconds (default: 60).",
+              "default": 60
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_performance",
+      "handler_module": "scout.analysis.tools.perf_sec",
+      "handler_name": "analysis_performance_tool",
+      "schema": {
+        "name": "analysis_performance",
+        "description": "Look for performance problems: complexity hotspots, diagnostics, hot paths, inlay hints. Returns ranked hotspots with complexity score and the files that dominate. Use it when something is slow or before adding load. Next: analysis_inspect with depth>=4 on the top hotspot.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File or directory path."
+            },
+            "persist": {
+              "type": "boolean",
+              "description": "Persist results in Honcho (default: true).",
+              "default": true
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_security",
+      "handler_module": "scout.analysis.tools.perf_sec",
+      "handler_name": "analysis_security_tool",
+      "schema": {
+        "name": "analysis_security",
+        "description": "Security pass: runs the security pattern catalogue and error-handling checks over a path. Returns findings with severity, file, line and the pattern that matched. Use it before a release or when reviewing untrusted-input handling. Next: analysis_review for diff context.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to file or directory to scan."
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "errors",
+                  "vulnerabilities",
+                  "all"
+                ]
+              },
+              "description": "What kinds of issues to scan for (default: ['all']).",
+              "default": [
+                "all"
+              ]
+            },
+            "persist": {
+              "type": "boolean",
+              "description": "Persist results in Honcho (default: true).",
+              "default": true
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_ask",
+      "handler_module": "scout.analysis.tools.perf_sec",
+      "handler_name": "analysis_ask_tool",
+      "schema": {
+        "name": "analysis_ask",
+        "description": "Ask a natural-language question about the codebase and answer it from stored analysis context. Returns the answer plus the evidence it used. Use it when you do not know which tool would answer the question. Next: run the concrete tool the answer points at.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "A natural language question about the code."
+            },
+            "path": {
+              "type": "string",
+              "description": "Optional path for context."
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_diff",
+      "handler_module": "scout.analysis.tools.diff_trend_watch",
+      "handler_name": "analysis_diff_tool",
+      "schema": {
+        "name": "analysis_diff",
+        "description": "Compare two analysis reports and show what changed between them. Returns added, removed and worsened findings. Use it after a refactor to prove it did not regress. Next: analysis_report to write it up.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "report_a": {
+              "type": "object",
+              "description": "First analysis report dict."
+            },
+            "report_b": {
+              "type": "object",
+              "description": "Second analysis report dict."
+            },
+            "scope": {
+              "type": "string",
+              "description": "Scope label.",
+              "default": ""
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "text",
+                "json"
+              ],
+              "description": "Format: text or json.",
+              "default": "text"
+            }
+          },
+          "required": [
+            "report_a",
+            "report_b"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_trend",
+      "handler_module": "scout.analysis.tools.diff_trend_watch",
+      "handler_name": "analysis_trend_tool",
+      "schema": {
+        "name": "analysis_trend",
+        "description": "Track how metrics developed across successive runs: finding counts, complexity, coverage. Returns a time series and the direction of change. Use it to show whether quality is improving over time. Next: analysis_report.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "description": "Scope to analyze (e.g. 'path=src/', 'module:user-service'). Empty = all scopes.",
+              "default": ""
+            },
+            "intent": {
+              "type": "string",
+              "enum": [
+                "code",
+                "architecture",
+                "deadcode",
+                "report",
+                ""
+              ],
+              "description": "Filter by analysis intent. Empty = all intents.",
+              "default": ""
+            },
+            "days": {
+              "type": "integer",
+              "description": "Days to look back (default: 30).",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 365
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "analysis_watch",
+      "handler_module": "scout.analysis.tools.diff_trend_watch",
+      "handler_name": "analysis_watch_tool",
+      "schema": {
+        "name": "analysis_watch",
+        "description": "Watch a path and report changes since the last run, so repeated checks stay cheap. Returns newly added and resolved findings. Use it in a loop or a nightly job. Next: analysis_report for the delta summary.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to watch."
+            },
+            "frequency": {
+              "type": "string",
+              "description": "Frequency: daily, hourly, or cron expr.",
+              "default": "daily"
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Analysis depth for inspect (1-5, default: 2).",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "create",
+                "list",
+                "remove"
+              ],
+              "description": "Action: create, list, remove.",
+              "default": "create"
+            },
+            "name": {
+              "type": "string",
+              "description": "Watch name (required for remove). Auto-generated for create."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_graph",
+      "handler_module": "scout.analysis.tools.graph_patterns",
+      "handler_name": "analysis_graph_tool",
+      "schema": {
+        "name": "analysis_graph",
+        "description": "Render analysis results as a Mermaid diagram: dependency graph, cycles or summary view. Returns Mermaid source ready to paste. Use it when a picture explains faster than a list. Next: analysis_report to embed it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "report": {
+              "type": "object",
+              "description": "Analysis report (from analysis_inspect/architecture/deadcode)."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "dependency",
+                "cycles",
+                "summary"
+              ],
+              "description": "Graph type: dependency, cycles, summary.",
+              "default": "dependency"
+            }
+          },
+          "required": [
+            "report"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_ui_gap",
+      "handler_module": "scout.analysis.tools.ui_gap",
+      "handler_name": "analysis_ui_gap_tool",
+      "schema": {
+        "name": "analysis_ui_gap",
+        "description": "Compare backend capabilities with frontend usage to find endpoints the UI never calls. Returns the gap list with file references. Use it when a feature exists in the API but not in the product. Next: analysis_ui_inspect for the DOM side.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to project root."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "text",
+                "json",
+                "mermaid"
+              ],
+              "description": "Format: text or json.",
+              "default": "text"
+            },
+            "include_storefront": {
+              "type": "boolean",
+              "description": "Include storefront routes in analysis (default: true).",
+              "default": true
+            },
+            "include_admin": {
+              "type": "boolean",
+              "description": "Include admin routes in analysis (default: true).",
+              "default": true
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_pattern_discover",
+      "handler_module": "scout.analysis.tools.graph_patterns",
+      "handler_name": "analysis_pattern_discover_tool",
+      "schema": {
+        "name": "analysis_pattern_discover",
+        "description": "Find bug-shaped code that the shared pattern catalogue does not cover yet. Returns candidate patterns with evidence and a suggested scan query. Use it to grow the catalogue after a hunt found something new. Next: bug_hunt_pattern action=save to make it permanent.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to the project or directory to scan."
+            },
+            "scan_language": {
+              "type": "string",
+              "description": "Language filter (python, typescript, go).",
+              "default": ""
+            },
+            "min_frequency": {
+              "type": "integer",
+              "description": "Min occurrences (default: 3).",
+              "default": 3
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_framework",
+      "handler_module": "scout.analysis.tools.framework_query_move",
+      "handler_name": "analysis_framework_tool",
+      "schema": {
+        "name": "analysis_framework",
+        "description": "Identify the frameworks and tooling of a project with confidence scores. Returns each detected framework with version hints and evidence. Use it before choosing language-specific patterns. Next: bug_hunt_scan with the matching preset.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Project root path."
+            },
+            "fast": {
+              "type": "boolean",
+              "description": "Fast mode (high-confidence only).",
+              "default": false
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_dependency_risk",
+      "handler_module": "scout.analysis.tools.arch_deadcode",
+      "handler_name": "analysis_dependency_risk_tool",
+      "schema": {
+        "name": "analysis_dependency_risk",
+        "description": "Rate dependency risk for a file or project: outdated, unmaintained or heavily coupled dependencies. Returns a score per dependency with the reason. Use it when planning upgrades. Next: analysis_security for the code-level view.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute file or directory path."
+            },
+            "detail_level": {
+              "type": "string",
+              "enum": [
+                "summary",
+                "detailed"
+              ],
+              "description": "'summary' (default) gibt Gesamt-Score, 'detailed' zeigt Breakdown.",
+              "default": "summary"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_diff_analysis",
+      "handler_module": "scout.analysis.tools.diff_trend_watch",
+      "handler_name": "analysis_diff_analysis_tool",
+      "schema": {
+        "name": "analysis_diff_analysis",
+        "description": "Compare two git refs and show which symbols changed, with complexity delta and blast radius. Returns changed functions per file plus an impact summary. Use it to review a branch before merging. Next: analysis_review for the security angle.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to git repository."
+            },
+            "base": {
+              "type": "string",
+              "description": "Base ref (default: main).",
+              "default": "main"
+            },
+            "head": {
+              "type": "string",
+              "description": "Head ref (default: HEAD).",
+              "default": "HEAD"
+            },
+            "max_files": {
+              "type": "integer",
+              "description": "Max files (default: 5).",
+              "default": 5
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_risk",
+      "handler_module": "scout.analysis.tools.arch_deadcode",
+      "handler_name": "analysis_risk_tool",
+      "schema": {
+        "name": "analysis_risk",
+        "description": "Rate the risk of a change or a file: dependency risk, test coverage, blast radius. Returns a 0-10 score with the factors behind it. Use it to decide whether a change needs more testing. Next: code_tests_for_symbol to see what covers it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to project directory."
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Risk categories to include (default: all). Options: dependencies, complexity, deadcode, security, hotspots, duplicates"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_review",
+      "handler_module": "scout.analysis.tools.review",
+      "handler_name": "analysis_review_tool",
+      "schema": {
+        "name": "analysis_review",
+        "description": "Pre-commit style review: diff analysis plus review assistant plus a security pass. Returns changed functions, complexity deltas, security findings and suggested reviewers. Use it before opening a PR or before committing risky changes. Next: fix the findings, then re-run.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to git repository."
+            },
+            "base": {
+              "type": "string",
+              "description": "Base branch (default: 'main').",
+              "default": "main"
+            },
+            "head": {
+              "type": "string",
+              "description": "Head ref (default: current HEAD).",
+              "default": "HEAD"
+            },
+            "max_files": {
+              "type": "integer",
+              "description": "Max files (default: 10).",
+              "default": 10
+            },
+            "include_security": {
+              "type": "boolean",
+              "description": "Include security scan.",
+              "default": true
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_test_insight",
+      "handler_module": "scout.analysis.tools.test_insight",
+      "handler_name": "analysis_test_insight_tool",
+      "schema": {
+        "name": "analysis_test_insight",
+        "description": "Work out which tests cover a symbol, and optionally draft new ones. Returns covering test files ranked by relevance, plus generated test skeletons on request. Use it before changing untested code. Next: write the tests, then analysis_review.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to file or directory."
+            },
+            "symbol": {
+              "type": "string",
+              "description": "Optional symbol name."
+            },
+            "generate": {
+              "type": "boolean",
+              "description": "Generate test scaffolds for untested symbols (default: false).",
+              "default": false
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "name": "analysis_ui_inspect",
+      "handler_module": "scout.analysis.tools.ui_inspect",
+      "handler_name": "analysis_ui_inspect_tool",
+      "schema": {
+        "name": "analysis_ui_inspect",
+        "description": "Inspect rendered UI: DOM structure, selectors and accessibility issues for a route. Returns elements, selectors and findings. Use it when a frontend bug depends on the actual DOM rather than the source. Next: analysis_ui_gap for coverage.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to analyze."
+            },
+            "include_dom": {
+              "type": "boolean",
+              "description": "Include DOM inspection.",
+              "default": true
+            },
+            "check_presence": {
+              "type": "boolean",
+              "description": "Check expected elements.",
+              "default": false
+            },
+            "store_baseline": {
+              "type": "boolean",
+              "description": "Aktuellen Screenshot als Baseline speichern (fuer spaeteren Vergleich).",
+              "default": false
+            },
+            "compare_baseline": {
+              "type": "boolean",
+              "description": "Mit gespeicherter Baseline vergleichen (Unterschiede erkennen).",
+              "default": false
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      }
+    }
+  ],
   "bughunt": [
     {
       "name": "bug_hunt_start",
@@ -6,7 +798,7 @@
       "handler_name": "bug_hunt_start",
       "schema": {
         "name": "bug_hunt_start",
-        "description": "Start a bug-hunt session.",
+        "description": "Open a bug-hunt session for a project before you record anything. Creates a session record and returns session_id, scope and the finding count (0 at start); the session_id is required by every other bug-hunt tool. Use this first when the user asks to hunt bugs or run a security pass. Next: bug_hunt_scan for patterns, or bug_hunt_finding by hand.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -45,7 +837,7 @@
       "handler_name": "bug_hunt_finding",
       "schema": {
         "name": "bug_hunt_finding",
-        "description": "Add a finding to a session.",
+        "description": "Record one bug finding inside an existing session. Returns the new finding_id plus the session's updated finding count. Use it for each concrete defect you found by reading code; for pattern-based bulk scans use bug_hunt_scan instead, which creates findings automatically. Next: bug_hunt_triage or bug_hunt_report.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -69,10 +861,6 @@
               "description": "Severity.",
               "default": "P2"
             },
-            "category": {
-              "type": "string",
-              "description": "Category."
-            },
             "file": {
               "type": "string",
               "description": "File path."
@@ -93,15 +881,6 @@
             "pattern_id": {
               "type": "string",
               "description": "Pattern ID."
-            },
-            "suggested_fix": {
-              "type": "string",
-              "description": "Fix suggestion."
-            },
-            "status": {
-              "type": "string",
-              "description": "Status.",
-              "default": "open"
             }
           },
           "required": [
@@ -117,7 +896,7 @@
       "handler_name": "bug_hunt_list",
       "schema": {
         "name": "bug_hunt_list",
-        "description": "List findings for a session.",
+        "description": "List findings of a session, optionally filtered by severity, status, category or file. Returns matching findings (id, title, severity, status, file, line) plus a count. Use it to review what is recorded before adding duplicates, or to pick finding_ids for triage. Next: bug_hunt_triage or bug_hunt_report.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -127,11 +906,27 @@
             },
             "severity": {
               "type": "string",
-              "description": "Filter by severity."
+              "description": "Only findings with this severity (P0 highest .. INFO).",
+              "enum": [
+                "P0",
+                "P1",
+                "P2",
+                "P3",
+                "INFO"
+              ]
             },
             "status": {
               "type": "string",
-              "description": "Status filter."
+              "description": "Only findings with this workflow status.",
+              "enum": [
+                "open",
+                "triaged",
+                "in_progress",
+                "fixed",
+                "verified",
+                "false_positive",
+                "wont_fix"
+              ]
             },
             "category": {
               "type": "string",
@@ -140,6 +935,15 @@
             "file": {
               "type": "string",
               "description": "Filter by file path."
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
           },
           "required": [
@@ -154,7 +958,7 @@
       "handler_name": "bug_hunt_close",
       "schema": {
         "name": "bug_hunt_close",
-        "description": "Close a bug-hunt session.",
+        "description": "Close a bug-hunt session and freeze it with a summary. Returns the closed session with its final finding statistics. Use it when the hunt is finished so the session stops accepting findings and appears correctly in bug_hunt_history. Next: bug_hunt_report for the deliverable.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -179,7 +983,7 @@
       "handler_name": "bug_hunt_scan",
       "schema": {
         "name": "bug_hunt_scan",
-        "description": "Run automated scans using pattern library.",
+        "description": "Run the automated pattern scan against a project and create findings from matches. Returns patterns executed, matches found and findings created, per pattern. Use it after bug_hunt_start to cover the known-risk catalogue in one call instead of reading every file. Next: bug_hunt_list to inspect hits, bug_hunt_triage to sort signal from noise.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -217,7 +1021,7 @@
       "handler_name": "bug_hunt_triage",
       "schema": {
         "name": "bug_hunt_triage",
-        "description": "Update severity/status for findings.",
+        "description": "Classify findings: set a workflow status (triaged, false_positive, fixed, ...) and optionally re-rate severity. Returns the changed findings and the session's new status distribution. Use it to remove false positives before reporting, which is what makes a report trustworthy. Next: bug_hunt_report.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -241,11 +1045,20 @@
                 "P3",
                 "INFO"
               ],
-              "description": "New severity."
+              "description": "Only findings with this severity (P0 highest .. INFO)."
             },
             "status": {
               "type": "string",
-              "description": "New status."
+              "description": "Only findings with this workflow status.",
+              "enum": [
+                "open",
+                "triaged",
+                "in_progress",
+                "fixed",
+                "verified",
+                "false_positive",
+                "wont_fix"
+              ]
             },
             "notes": {
               "type": "string",
@@ -265,7 +1078,7 @@
       "handler_name": "bug_hunt_verify",
       "schema": {
         "name": "bug_hunt_verify",
-        "description": "Verify if a finding's bug still exists.",
+        "description": "Mark findings as verified after you reproduced or confirmed them. Returns the verified findings and the remaining open count. Use it before closing a session so the report separates confirmed defects from unconfirmed ones. Next: bug_hunt_close.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -291,7 +1104,7 @@
       "handler_name": "bug_hunt_fix",
       "schema": {
         "name": "bug_hunt_fix",
-        "description": "Generate an auto-fix prompt for a bug.",
+        "description": "Record that a finding was fixed, with the fix description and optional commit reference. Returns the updated finding with status fixed. Use it after applying the patch so the report shows what was resolved, not only what was found. Next: bug_hunt_report.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -321,7 +1134,7 @@
       "handler_name": "bug_hunt_report",
       "schema": {
         "name": "bug_hunt_report",
-        "description": "Generate a structured bug-hunt report.",
+        "description": "Render the session report as markdown or JSON, optionally grouped by severity, category or file. Returns the formatted report plus counts per severity. Use it as the deliverable when the user asks for a summary of the hunt. Next: bug_hunt_export to write it to a file.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -340,8 +1153,23 @@
             },
             "group_by": {
               "type": "string",
-              "description": "Group findings by field.",
-              "default": "severity"
+              "description": "Group the report table by this key.",
+              "default": "severity",
+              "enum": [
+                "severity",
+                "category",
+                "file",
+                "status"
+              ]
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
           },
           "required": [
@@ -356,7 +1184,7 @@
       "handler_name": "bug_hunt_export",
       "schema": {
         "name": "bug_hunt_export",
-        "description": "Export findings as JSON or Markdown.",
+        "description": "Export a session report to a file on disk. Returns the absolute path, byte size and format of the written file. Use it when the report must survive the session or be handed to someone else. Next: research_save if the content belongs in the research archive.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -390,7 +1218,7 @@
       "handler_name": "bug_hunt_history",
       "schema": {
         "name": "bug_hunt_history",
-        "description": "Search past bug-hunt sessions.",
+        "description": "List past bug-hunt sessions with project, date, status and finding counts. Returns sessions newest first, optionally filtered by project or session. Use it to find an earlier hunt worth continuing, or to compare a codebase's defect count over time. Next: bug_hunt_list with a session_id from the result.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -406,6 +1234,15 @@
               "type": "integer",
               "description": "Max results.",
               "default": 10
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
           }
         }
@@ -417,7 +1254,7 @@
       "handler_name": "bug_hunt_pattern",
       "schema": {
         "name": "bug_hunt_pattern",
-        "description": "List, inspect, save, or manage bug patterns.",
+        "description": "Read or manage the pattern catalogue: list patterns, show one in detail, list categories, or save a new custom pattern from a confirmed finding. Returns patterns (id, name, category, severity, scan_type) or the saved pattern. Use it to see what the scanner checks, and to promote a manual bug into an automatic check. Next: bug_hunt_scan.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -440,42 +1277,6 @@
               "type": "string",
               "description": "Pattern ID (for detail/delete)."
             },
-            "name": {
-              "type": "string",
-              "description": "Pattern name."
-            },
-            "category": {
-              "type": "string",
-              "description": "Category."
-            },
-            "severity": {
-              "type": "string",
-              "description": "Severity."
-            },
-            "description": {
-              "type": "string",
-              "description": "Description."
-            },
-            "scan_type": {
-              "type": "string",
-              "description": "Scan type."
-            },
-            "scan_query": {
-              "type": "string",
-              "description": "Grep query."
-            },
-            "scan_file_glob": {
-              "type": "string",
-              "description": "File glob."
-            },
-            "scan_language": {
-              "type": "string",
-              "description": "Language filter."
-            },
-            "fix_description": {
-              "type": "string",
-              "description": "Fix description."
-            },
             "session_id": {
               "type": "string",
               "description": "Session ID (for save_from_session)."
@@ -483,6 +1284,64 @@
             "finding_id": {
               "type": "string",
               "description": "Finding ID (for save_from_session)."
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            },
+            "pattern": {
+              "type": "object",
+              "description": "Complete pattern definition, required for action=save. Fields: name, category, severity, description, scan_type, scan_query, scan_file_glob, scan_language, fix_description.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Human readable pattern name."
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category, e.g. security or code-quality."
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "P0",
+                    "P1",
+                    "P2",
+                    "P3",
+                    "INFO"
+                  ],
+                  "description": "Default severity of matches."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the pattern detects and why it matters."
+                },
+                "scan_type": {
+                  "type": "string",
+                  "description": "grep, code_security_scan, code_search, ..."
+                },
+                "scan_query": {
+                  "type": "string",
+                  "description": "Search expression used by the scanner."
+                },
+                "scan_file_glob": {
+                  "type": "string",
+                  "description": "File glob the scan applies to, e.g. **/*.ts."
+                },
+                "scan_language": {
+                  "type": "string",
+                  "description": "Optional language filter."
+                },
+                "fix_description": {
+                  "type": "string",
+                  "description": "How to fix a match."
+                }
+              }
             }
           }
         }
@@ -494,13 +1353,22 @@
       "handler_name": "bug_hunt_stats",
       "schema": {
         "name": "bug_hunt_stats",
-        "description": "Statistics about findings in a session.",
+        "description": "Summarise a session: findings by severity, by status, by category and the top affected files. Returns the aggregate counts and the highest-risk files. Use it for a quick health read before writing the report, or to decide where to look next. Next: bug_hunt_report.",
         "parameters": {
           "type": "object",
           "properties": {
             "session_id": {
               "type": "string",
               "description": "Session ID."
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
           },
           "required": [
@@ -517,7 +1385,7 @@
       "handler_name": "research_start",
       "schema": {
         "name": "research_start",
-        "description": "Start a new research session.",
+        "description": "Open a research session and either plan it or run it end to end. mode=plan (default) returns research_id, the plan and step-by-step instructions; mode=auto executes search + parallel page reads + finding extraction and saves the result, returning research_id, findings, sources and gaps. Use it as the first call of any research task; pass schedule=24h for recurring monitoring. Next: research_export or research_status.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -538,6 +1406,19 @@
               "default": 10,
               "minimum": 1,
               "maximum": 50
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "plan",
+                "auto"
+              ],
+              "default": "plan",
+              "description": "plan returns a research plan plus next steps (the model drives the steps). auto runs the whole pass here — search, read, extract — and returns the findings with sources."
+            },
+            "schedule": {
+              "type": "string",
+              "description": "Optional interval (e.g. 24h, 7d) to register a recurring research run. Due runs are reported by research_schedule_due."
             }
           },
           "required": [
@@ -552,7 +1433,7 @@
       "handler_name": "research_save",
       "schema": {
         "name": "research_save",
-        "description": "Save research results.",
+        "description": "Store the result of a research session: summary, findings and sources. Returns the saved record with id, status and counts for findings and sources. Use it once you have read enough sources; every finding should carry the URL it came from, otherwise research_verify flags it. Next: research_export for a file, or research_synthesize across several results.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -571,7 +1452,7 @@
                 "partial",
                 "failed"
               ],
-              "description": "Status: completed, partial, or failed.",
+              "description": "completed = answered, partial = gaps remain, failed = could not answer.",
               "default": "completed"
             },
             "findings": {
@@ -604,33 +1485,12 @@
       }
     },
     {
-      "name": "research_delete",
-      "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_delete",
-      "schema": {
-        "name": "research_delete",
-        "description": "Delete a research session.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_id": {
-              "type": "string",
-              "description": "Research ID."
-            }
-          },
-          "required": [
-            "research_id"
-          ]
-        }
-      }
-    },
-    {
       "name": "research_cleanup",
       "handler_module": "scout.research.tools.crud",
       "handler_name": "research_cleanup",
       "schema": {
         "name": "research_cleanup",
-        "description": "Cleanup old research data.",
+        "description": "Remove stale research artefacts: orphaned plans (started but never saved) or all leftover files. Returns the number of removed files per category. Use it before a release or when research_status reports orphans. Next: research_stats to confirm the store is tidy.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -640,7 +1500,7 @@
                 "plans",
                 "all"
               ],
-              "description": "Cleanup action.",
+              "description": "plans removes orphaned plans only, all removes every leftover artefact.",
               "default": "plans"
             },
             "older_than_days": {
@@ -649,47 +1509,8 @@
               "default": 30,
               "minimum": 1
             }
-          }
-        }
-      }
-    },
-    {
-      "name": "research_tag",
-      "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_tag",
-      "schema": {
-        "name": "research_tag",
-        "description": "Manage tags for a research session.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_id": {
-              "type": "string",
-              "description": "Research ID."
-            },
-            "tags": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Tags to manage."
-            },
-            "action": {
-              "type": "string",
-              "enum": [
-                "add",
-                "remove",
-                "set",
-                "clear"
-              ],
-              "description": "Tag action.",
-              "default": "add"
-            }
           },
-          "required": [
-            "research_id",
-            "tags"
-          ]
+          "required": []
         }
       }
     },
@@ -699,7 +1520,7 @@
       "handler_name": "research_update",
       "schema": {
         "name": "research_update",
-        "description": "Update existing research data.",
+        "description": "Modify, delete, tag, verify, merge or compare stored research results. action=patch (default) appends findings/sources or replaces summary and status and returns the updated record with new counts; delete returns the removed id; tag returns the record with its tags; verify returns the consistency problems found; merge returns the new result id; compare returns shared findings and contradictions. Use it to extend a finished session instead of starting a new one. Next: research_export.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -718,81 +1539,69 @@
                 "partial",
                 "failed"
               ],
-              "description": "Updated status."
+              "description": "completed = answered, partial = gaps remain, failed = could not answer."
             },
-            "append_findings": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "patch",
+                "delete",
+                "tag",
+                "verify",
+                "merge",
+                "compare"
+              ],
+              "default": "patch",
+              "description": "patch (default) modifies summary/findings/sources; delete removes the result; tag add/remove/set/clear tags; verify checks source consistency; merge joins several results; compare contrasts two or more."
+            },
+            "tags": {
               "type": "array",
               "items": {
-                "type": "object"
+                "type": "string"
               },
-              "description": "Append findings."
+              "description": "Tags for action=tag."
             },
-            "append_sources": {
+            "tag_action": {
+              "type": "string",
+              "enum": [
+                "add",
+                "remove",
+                "set",
+                "clear"
+              ],
+              "default": "add",
+              "description": "How to apply tags (action=tag)."
+            },
+            "research_ids": {
               "type": "array",
               "items": {
-                "type": "object"
+                "type": "string"
               },
-              "description": "Append sources."
+              "description": "Result ids for action=merge or action=compare."
+            },
+            "append": {
+              "type": "object",
+              "description": "Data to append to the stored result.",
+              "properties": {
+                "findings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "description": "Findings to append."
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "description": "Sources to append."
+                }
+              }
             }
           },
           "required": [
             "research_id"
-          ]
-        }
-      }
-    },
-    {
-      "name": "research_verify",
-      "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_verify",
-      "schema": {
-        "name": "research_verify",
-        "description": "Verify source URLs and findings.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_id": {
-              "type": "string",
-              "description": "Research ID."
-            }
-          },
-          "required": [
-            "research_id"
-          ]
-        }
-      }
-    },
-    {
-      "name": "research_auto",
-      "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_auto",
-      "schema": {
-        "name": "research_auto",
-        "description": "Autonomous web research agent.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Research query."
-            },
-            "depth": {
-              "type": "integer",
-              "description": "Depth (1-5).",
-              "default": 3,
-              "minimum": 1,
-              "maximum": 5
-            },
-            "max_sources": {
-              "type": "integer",
-              "description": "Max sources (1-20).",
-              "default": 5,
-              "minimum": 1,
-              "maximum": 20
-            }
-          },
-          "required": [
-            "query"
           ]
         }
       }
@@ -803,7 +1612,7 @@
       "handler_name": "research_search",
       "schema": {
         "name": "research_search",
-        "description": "Search saved research results.",
+        "description": "Full-text search across all stored research results (BM25 ranking, no external dependency). Returns matching results with id, query, summary excerpt and a relevance score. Use it to recall earlier research instead of repeating it. Next: research_status for details of a hit, or research_save to extend it.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -827,7 +1636,13 @@
             },
             "status": {
               "type": "string",
-              "description": "Status filter."
+              "description": "Only results with this status.",
+              "enum": [
+                "completed",
+                "partial",
+                "failed",
+                "planned"
+              ]
             },
             "date_from": {
               "type": "string",
@@ -836,8 +1651,18 @@
             "date_to": {
               "type": "string",
               "description": "To date (ISO)."
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
-          }
+          },
+          "required": []
         }
       }
     },
@@ -847,7 +1672,7 @@
       "handler_name": "research_status",
       "schema": {
         "name": "research_status",
-        "description": "Show research status and details.",
+        "description": "Show the state of one research session, or list all sessions with their status. Returns the plan/result record including status (planned, completed, partial, failed), counts and timestamps. Use it to check whether a session was finished, and to find sessions started but never saved. Next: research_save to complete it.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -859,8 +1684,18 @@
               "type": "boolean",
               "description": "Show orphaned plans.",
               "default": false
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
-          }
+          },
+          "required": []
         }
       }
     },
@@ -870,10 +1705,21 @@
       "handler_name": "research_stats",
       "schema": {
         "name": "research_stats",
-        "description": "Show research metrics and statistics.",
+        "description": "Aggregate numbers over the whole research store: sessions by status, total findings and sources, most used tags. Returns the aggregate counts. Use it to judge whether the store is worth searching before starting new research. Next: research_search to look inside it.",
         "parameters": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": []
         }
       }
     },
@@ -883,7 +1729,7 @@
       "handler_name": "research_export",
       "schema": {
         "name": "research_export",
-        "description": "Export research as Markdown or text.",
+        "description": "Render one research result as markdown or plain text. Returns the formatted document plus its byte size. Use it when the user wants a readable write-up rather than a JSON record. Next: research_export_all for several results at once.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -897,39 +1743,25 @@
                 "markdown",
                 "text"
               ],
-              "description": "Format.",
+              "description": "markdown keeps headings and lists, text is plain.",
               "default": "markdown"
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            },
+            "all": {
+              "type": "boolean",
+              "default": false,
+              "description": "Export every stored result into one document instead of one id."
             }
           },
-          "required": [
-            "research_id"
-          ]
-        }
-      }
-    },
-    {
-      "name": "research_compare",
-      "handler_module": "scout.research.tools.export",
-      "handler_name": "research_compare",
-      "schema": {
-        "name": "research_compare",
-        "description": "Compare 2-3 research results.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_ids": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "2-3 research IDs.",
-              "minItems": 2,
-              "maxItems": 3
-            }
-          },
-          "required": [
-            "research_ids"
-          ]
+          "required": []
         }
       }
     },
@@ -939,7 +1771,7 @@
       "handler_name": "research_synthesize",
       "schema": {
         "name": "research_synthesize",
-        "description": "Synthesize research via Honcho.",
+        "description": "Build a cross-cutting answer from several stored research results. Returns the matching local results and an instruction block for combining them with honcho_reasoning. Use it when the user asks what the research collectively says, not for a single result. Next: research_merge if the combined answer should become one record.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -956,102 +1788,6 @@
               ],
               "description": "Reasoning depth.",
               "default": "medium"
-            }
-          },
-          "required": [
-            "query"
-          ]
-        }
-      }
-    },
-    {
-      "name": "research_merge",
-      "handler_module": "scout.research.tools.export",
-      "handler_name": "research_merge",
-      "schema": {
-        "name": "research_merge",
-        "description": "Merge multiple research sessions.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_ids": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "2-5 research IDs.",
-              "minItems": 2,
-              "maxItems": 5
-            },
-            "new_summary": {
-              "type": "string",
-              "description": "Merged summary."
-            }
-          },
-          "required": [
-            "research_ids"
-          ]
-        }
-      }
-    },
-    {
-      "name": "research_export_all",
-      "handler_module": "scout.research.tools.export",
-      "handler_name": "research_export_all",
-      "schema": {
-        "name": "research_export_all",
-        "description": "Export all research as a bundle.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "format": {
-              "type": "string",
-              "enum": [
-                "json",
-                "markdown",
-                "csv"
-              ],
-              "description": "Format.",
-              "default": "json"
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "research_schedule",
-      "handler_module": "scout.research.tools.schedule",
-      "handler_name": "research_schedule",
-      "schema": {
-        "name": "research_schedule",
-        "description": "Schedule periodic research.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Research query for scheduled runs."
-            },
-            "interval": {
-              "type": "string",
-              "enum": [
-                "daily",
-                "weekly",
-                "monthly"
-              ],
-              "description": "Interval.",
-              "default": "daily"
-            },
-            "max_sources": {
-              "type": "integer",
-              "description": "Max sources per run.",
-              "default": 5,
-              "minimum": 1,
-              "maximum": 50
-            },
-            "name": {
-              "type": "string",
-              "description": "Job name."
             }
           },
           "required": [

@@ -186,8 +186,18 @@ def _pattern_import_from_session(args: dict, core) -> str:
 
 
 def bug_hunt_pattern(args: dict, **kwargs) -> str:
-    """List, inspect, search, save, or manage bug patterns."""
+    """List, inspect, search, save, or manage bug patterns.
+
+    Das Schema buendelt die Save-Felder im ``pattern``-Objekt (haelt die
+    Parameterzahl unter 8). Flache Einzelfelder werden weiter akzeptiert, damit
+    bestehende Aufrufe und Tests nicht brechen.
+    """
     core = base._get_core()
+    nested = args.get("pattern")
+    if isinstance(nested, dict):
+        merged = {k: v for k, v in nested.items() if v not in (None, "")}
+        merged.update({k: v for k, v in args.items() if k != "pattern"})
+        args = merged
     action = args.get("action", "list")
 
     action_map = {

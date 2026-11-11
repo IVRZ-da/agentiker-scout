@@ -13,10 +13,47 @@ Zwei Aufgaben
 
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import Any, Callable
 
 logger = logging.getLogger("scout.registry")
+
+
+
+def call_handler(handler: Callable, args: dict | None = None, **kwargs: Any) -> Any:
+    """Ruft einen Handler mit der Signatur auf, die er tatsaechlich hat.
+
+    Drei Formen sind im Umlauf und alle drei sind legitim:
+
+    * ``handler(args: dict)``          — Hermes-Standard
+    * ``handler(**kwargs)``            — reine Keyword-Handler
+    * ``handler(args, **kwargs)``      — beides gemischt
+
+    Vorher rief ``dispatch`` immer ``handler(args)`` auf; ein ``**kwargs``-Handler
+    antwortete mit ``TypeError: takes 0 positional arguments``.
+    """
+    args = args or {}
+    try:
+        signature = inspect.signature(handler)
+    except (TypeError, ValueError):
+        # Builtins/C-Erweiterungen: keine Introspektion moeglich
+        return handler(args, **kwargs)
+
+    parameters = list(signature.parameters.values())
+    accepts_var_kw = any(p.kind is p.VAR_KEYWORD for p in parameters)
+    positional = [
+        p for p in parameters
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+    ]
+
+    if not positional:
+        if accepts_var_kw:
+            return handler(**{**args, **kwargs})
+        # handler() ohne jeden Parameter
+        return handler()
+
+    return handler(args, **kwargs)
 
 
 class Entry:
@@ -58,9 +95,10 @@ class Registry:
         self._entries[name] = Entry(handler=handler, schema=schema or {})
 
     def dispatch(self, name: str, args: dict | None = None, **kwargs: Any) -> Any:
+        """Ruft einen lokalen Handler auf — oder reicht an Hermes weiter."""
         entry = self.get_entry(name)
         if entry and entry.handler:
-            return entry.handler(args or {})
+            return call_handler(entry.handler, args, **kwargs)
         return self._dispatch_hermes_tool(name, args or {}, **kwargs)
 
     def deregister(self, name: str) -> None:

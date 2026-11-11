@@ -1,5 +1,88 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.0] — 2026-11-11
+
+Grundueberholung nach einer Nutzungsanalyse: 56 Tools trugen 1,74 % aller
+Tool-Aufrufe. Weniger Oberflaeche, echte Recherche, weniger Subprozesse.
+
+### ⚠️ Breaking Changes
+
+- **56 → 42 Tools.** Sechs 1:1-Wrapper wurden ersatzlos entfernt; die
+  code_intel-Tools decken sie ab:
+  `analysis_code_query` → `code_query`, `analysis_code_move` → `code_move`,
+  `analysis_graph_query` → `code_graph_query`, `analysis_duplicates` →
+  `code_duplicates`, `analysis_migration` → `code_migration`,
+  `analysis_timeline` → `code_timeline`.
+- **Research 17 → 9 Tools.** Acht Einzel-Tools sind jetzt Aktionen:
+  `research_delete|tag|verify|merge|compare` → `research_update(action=…)`,
+  `research_export_all` → `research_export(all=true)`,
+  `research_auto` → `research_start(mode="auto")`,
+  `research_schedule` → `research_start(schedule="24h")`.
+- **Datenpfade umgezogen.** Nutzdaten liegen in `~/.hermes/data/scout`
+  (Override `SCOUT_DATA_DIR`), nicht mehr im Plugin-Verzeichnis.
+
+### Added — Research tut jetzt wirklich etwas
+
+- `research_start(mode="auto")` plant Teilfragen (`research/planner.py`), liest
+  die Treffer parallel (`fetcher.py`, Firecrawl per urllib, Retry mit Backoff)
+  und extrahiert Fundstellen mit Quellenbezug (`orchestrator.py`).
+  `mode="plan"` bleibt Default.
+- Boilerplate-Filter entfernt Cookie-/Navigationstext aus Fundstellen.
+- `research_start(schedule="24h")` registriert einen Auftrag;
+  `research_status()` meldet faellige Auftraege als `schedules_due`. Kein Cron
+  im Plugin — der Aufrufer entscheidet.
+
+### Added — Werkzeuge gegen Drift
+
+- `shared/tool_registry.py`: eine Wahrheit fuer alle 42 Tool-Definitionen
+  (analysis aus `TOOL_HANDLERS`, bughunt/research aus `*/data/tool_schemas.json`).
+  `scout_tool_registry.json` ist nur noch ein erzeugtes Konsolidat.
+- `scripts/gen_tool_registry.py --check` meldet Drift; `tests/test_registry_drift.py`
+  prueft Registrierung ↔ Konsolidat ↔ Manifest ↔ README (per Mutation verifiziert).
+- `scripts/lint_tool_contracts.py`: 7 Regeln fuer Tool-Vertraege.
+- `scripts/lint_patterns.py`: erzwingt `false_positive_notes`, eindeutige IDs,
+  gueltige Severities. Alle 69 Patterns haben jetzt Notes.
+- `scripts/run_evals.py` + `tests/evals/golden_tasks.json`: 14 Golden Tasks als
+  Messlatte vor jeder Optimierung (Basis 12/12).
+
+### Added — Tool-Design
+
+- **`response_format: concise|detailed`** in 20 Schemas, zentral im
+  Registrierungs-Wrapper umgesetzt: `concise` kuerzt Listen auf 5 Eintraege und
+  lange Strings auf 240 Zeichen, Behalte-Felder (id, status, severity, count)
+  bleiben.
+- Beschreibungen von durchschnittlich 38 auf 184–414 Zeichen erweitert
+  (wann, wie, Rueckgabe, naechster Schritt), Enums aus dem Code gezogen.
+- Parameter-Budgets: `bug_hunt_pattern` 13 → 6, `bug_hunt_finding` 11 → 8.
+
+### Fixed
+
+- **13 Patterns liefen nie.** Sie sind als `scan_type="code_search"` deklariert
+  und tragen ein Regex — `code_search` ist aber ein AST-Tool. Sie gehen jetzt
+  ueber grep.
+- **Ein ungültiges Pattern riss die Nachbarn mit.** grep bricht mit Exit 2 ab,
+  wenn *ein* Ausdruck im Aufruf ungueltig ist; jetzt wird einzeln nachgefasst.
+- **grep-Parsing bei Doppelpunkt-Pfaden** (`/tmp/weird:name/f.py`) schnitt die
+  Zeilennummer falsch — Regex ankert jetzt auf `:zahl:`.
+- **`registry.dispatch` konnte `**kwargs`-Handler nicht aufrufen**
+  (`TypeError: takes 0 positional arguments`). Jetzt signatur-robust fuer
+  `handler(args)`, `handler(**kwargs)`, `handler(args, **kwargs)`, `handler()`.
+- **Bug-Hunt-Findings landeten in der falschen Session**, wenn mehrere offen
+  waren: `active_session_id` hat jetzt Vorrang vor dem Projektnamen.
+- **Executor-Leak:** `_timeout_executor` hatte einen Worker und wurde nie
+  beendet; jetzt 4 Worker, benannte Threads, `atexit`-Shutdown.
+- **Testlaeufe schrieben ins echte Datenverzeichnis** (1.485 Artefaktdateien).
+  `SCOUT_DATA_DIR`-Tempdir pro Testprozess, `pytest_sessionfinish` raeumt auf.
+- `False-Positive-Notes` fuer 32 Patterns ergaenzt (Bedingungen statt Bauchgefuehl).
+
+### Changed — Performance
+
+- **Ein grep statt 45.** `shared/grep_batch.py` gruppiert Patterns nach ihrem
+  `--include`-Glob: ein Prozess pro Gruppe, Semantik pro Pattern unveraendert
+  (kein `-E`, weil die Patterns BRE sind). Ergebnisse identisch, Testsuite
+  40 s → 28 s.
+- `analysis/tools/base.py` hatte eine zweite grep-Implementierung — entfernt.
+
 ## [0.5.17] — 2026-11-11
 
 ### Fixed — Kompatibilität mit Hermes Agent 0.23.1

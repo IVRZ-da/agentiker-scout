@@ -12,17 +12,35 @@ Verwendet tests/fakes/ fuer wiederverwendbare Mock-Factorys.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
+import tempfile
 import types
 import warnings
+from pathlib import Path
 from typing import Any
 
 import pytest
 
+# ─── Daten-Isolation (HART) ────────────────────────────────────────────
+# MUSS vor jedem scout-Import stehen: shared/paths.py loest DATA_ROOT beim
+# Import auf. Ohne diese Zeile schreiben Tests in die echten Nutzdaten —
+# historisch sind so ueber 1100 Session-Leichen im Plugin-Verzeichnis
+# entstanden.
+_TEST_DATA_DIR = Path(tempfile.mkdtemp(prefix="scout-testdata-"))
+os.environ["SCOUT_DATA_DIR"] = str(_TEST_DATA_DIR)
+
+
+def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
+    """Testdaten-Verzeichnis am Ende entfernen."""
+    shutil.rmtree(_TEST_DATA_DIR, ignore_errors=True)
+
+
 # Coverage wird via --cov (pytest-cov) gemessen — KEINE manuelle Coverage
 # Manuelle coverage.Coverage() in conftest kollidiert mit pytest-cov
 # siehe https://github.com/nedbat/coveragepy/issues/1582
-from tests.fakes import (
+from tests.fakes import (  # noqa: E402
     MockPluginContext,
     MockRegistry,
     create_fmt_mock,
@@ -58,6 +76,10 @@ def _install_fmt_mock() -> None:
     fmt_mod.fmt_research_status = lambda d, title=None: json.dumps(
         {"status": "ok", **(d or {})}, ensure_ascii=False
     )
+    # response_format-Helfer: ans echte Modul delegieren (Logik nicht doppeln)
+    fmt_mod.condense = fm["condense"]
+    fmt_mod.condense_json = fm["condense_json"]
+    fmt_mod.wants_concise = fm["wants_concise"]
     sys.modules["_fmt"] = fmt_mod
     sys.modules["scout._fmt"] = fmt_mod
 

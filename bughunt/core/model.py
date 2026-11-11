@@ -13,14 +13,17 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ======================================================================
-# Pfade
+# Pfade — eine Wahrheit in shared/paths.py (Nutzdaten ausserhalb des Repos)
 # ======================================================================
 
 PLUGIN_DIR = Path(__file__).parent.parent
-DATA_DIR = PLUGIN_DIR / "data"
-SESSIONS_DIR = DATA_DIR / "sessions"
-PATTERNS_DIR = DATA_DIR / "patterns"
-CUSTOM_PATTERNS_FILE = PATTERNS_DIR / "custom_patterns.json"
+
+from scout.shared import paths as _paths  # noqa: E402
+
+DATA_DIR = _paths.DATA_ROOT
+SESSIONS_DIR = _paths.SESSIONS_DIR
+PATTERNS_DIR = _paths.PATTERNS_DIR
+CUSTOM_PATTERNS_FILE = _paths.CUSTOM_PATTERNS_FILE
 CUSTOM_PREFIX = "CUSTOM_"
 MAX_CUSTOM_PATTERNS = 500
 MAX_SESSIONS = 100

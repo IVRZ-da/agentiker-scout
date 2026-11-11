@@ -29,34 +29,57 @@ TOOL_SCHEMAS: dict[str, dict] = {}
 # ─── Tool-Registrierung ──────────────────────────────────────────────
 
 def _register_tools(ctx: PluginContext) -> None:
-    """Register all tools via ctx.register_tool() from scout_tool_registry.json."""
-    import json  # lazy import — structure test erzwingt das
+    """Registriert alle Tools aus der einen Wahrheit (``shared.tool_registry``).
 
-    # Lade Schema-Map aus JSON (wenn vorhanden)
-    _schemas_path = PLUGIN_DIR / "scout_tool_registry.json"
-    _registry_map: dict[str, list[dict]] = {}
-    if _schemas_path.exists():
-        try:
-            _registry_map = json.loads(_schemas_path.read_text())
-        except (json.JSONDecodeError, OSError):
-            logger.debug("scout_tool_registry.json konnte nicht geladen werden")
-
-    # ── Analysis (13 Tools) ──────────────────────────────────────────
+    Frueher las diese Funktion ``scout_tool_registry.json`` und behandelte
+    Analysis separat — damit gab es zwei Quellen, die auseinanderlaufen konnten.
+    Jetzt sammelt ``collect()`` die Definitionen aus den Domaenen selbst; die
+    JSON-Datei ist nur noch ein erzeugtes Artefakt.
+    """
     try:
-        from scout.analysis.analysis_tools import TOOL_HANDLERS
-        for name, (schema, handler) in TOOL_HANDLERS.items():
-            desc = (schema.get("description") or schema.get("name", name))
-            ctx.register_tool(name, "analysis", schema, handler, description=desc)
-            TOOL_DESCRIPTIONS[name] = desc
-            TOOL_SCHEMAS[name] = schema
-    except ImportError as e:
-        logger.debug("Konnte analysis tools nicht registrieren: %s", e)
+        from scout.shared.tool_registry import collect
+    except ImportError as exc:
+        logger.warning("Tool-Registry nicht ladbar: %s", exc)
+        return
 
-    # ── Bughunt (13 Tools) ───────────────────────────────────────────
-    _register_domain_tools(ctx, "bughunt", _registry_map.get("bughunt", []))
+    for tool in collect():
+        try:
+            handler = tool.handler
+            if handler is None:
+                handler = _resolve_handler(tool.handler_module, tool.handler_name)
+            if handler is None:
+                logger.debug("Handler %s.%s nicht gefunden — %s uebersprungen",
+                             tool.handler_module, tool.handler_name, tool.name)
+                continue
 
-    # ── Research (17 Tools) ──────────────────────────────────────────
-    _register_domain_tools(ctx, "research", _registry_map.get("research", []))
+            handler = _wrap_response_format(handler, tool.schema)
+            ctx.register_tool(tool.name, tool.domain, tool.schema, handler,
+                              description=tool.description)
+            TOOL_DESCRIPTIONS[tool.name] = tool.description
+            TOOL_SCHEMAS[tool.name] = tool.schema
+        except Exception as exc:  # noqa: BLE001 - ein Tool darf nicht alle kippen
+            logger.warning("Tool %s nicht registrierbar: %s", tool.name, exc)
+
+
+def _wrap_response_format(handler, schema: dict):
+    """Wendet ``response_format="concise"`` zentral auf das Handler-Ergebnis an.
+
+    Nur wenn das Schema den Parameter anbietet — sonst waere die Verdichtung
+    eine stille Verhaltensaenderung an Tools, die sie nicht versprechen.
+    """
+    props = ((schema.get("parameters") or {}).get("properties") or {})
+    if "response_format" not in props or handler is None:
+        return handler
+
+    from scout._fmt import condense_json, wants_concise
+
+    def wrapped(args: dict | None = None, **kwargs):
+        result = handler(args or {}, **kwargs)
+        if wants_concise(args):
+            return condense_json(result)
+        return result
+
+    return wrapped
 
 
 def _register_domain_tools(
@@ -76,6 +99,8 @@ def _register_domain_tools(
         if handler is None:
             logger.debug("Handler %s.%s nicht gefunden", handler_mod, handler_name)
             continue
+
+        handler = _wrap_response_format(handler, schema)
 
         ctx.register_tool(name, domain, schema, handler, description=desc)
         TOOL_DESCRIPTIONS[name] = desc
@@ -144,11 +169,10 @@ _ensure_scout_namespace()
 # ─── Data-Dirs ───────────────────────────────────────────────────────
 
 def _ensure_dirs() -> None:
-    """Create data directories on first access."""
-    (PLUGIN_DIR / "bughunt" / "data" / "sessions").mkdir(parents=True, exist_ok=True)
-    (PLUGIN_DIR / "bughunt" / "data" / "patterns").mkdir(parents=True, exist_ok=True)
-    (PLUGIN_DIR / "research" / "data" / "results").mkdir(parents=True, exist_ok=True)
-    (PLUGIN_DIR / "analysis" / "data").mkdir(parents=True, exist_ok=True)
+    """Create the Nutzdaten directories (~/.hermes/data/scout) on first access."""
+    from scout.shared import paths
+
+    paths.ensure_dirs()
 
 
 # ─── Plugin Entry Point ──────────────────────────────────────────────

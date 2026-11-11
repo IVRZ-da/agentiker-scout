@@ -403,9 +403,14 @@ class TestAutoCreateFindingsFromSecurity:
 
         loaded = core.load_session(s.session_id)
         assert loaded is not None
-        # Should still have only 1 finding (the original)
-        # The auto-created one with duplicate title was skipped
-        assert len(loaded.findings) == 1
+        # Das Duplikat ("Hardcoded API Key") wird uebersprungen, das zweite
+        # Finding aus dem Security-Result ("SQL Injection") wird angelegt:
+        # Original + neues = 2. Frueher stand hier 1 — das war nur gruen, weil
+        # der Hook eine falsche Session traf und das Finding woanders landete.
+        assert len(loaded.findings) == 2
+        titles = [f.get("title") for f in loaded.findings]
+        assert titles.count("🔴 HIGH: Hardcoded API Key") == 1, titles
+        assert any("SQL Injection" in t for t in titles), titles
         tracker.reset()
 
 

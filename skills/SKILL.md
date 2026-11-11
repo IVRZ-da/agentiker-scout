@@ -1,7 +1,7 @@
 ---
 name: agentiker-scout
-description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 56 Tools, 71 Bug-Patterns, 3 Domains."
-version: 0.5.17
+description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 42 Tools, 69 Bug-Patterns, 3 Domains."
+version: 0.6.0
 author: agentiker
 tags: [analysis, bughunt, research, patterns, code-analysis, security, web-research]
 related_skills: [plan-follow, code-intel-plugin-maintenance, hermes-plugin-development]
@@ -20,6 +20,8 @@ scout/                          # Plugin-Root
 ├── plugin.yaml                 # Manifest v2 (manifest_version: 2)
 │
 ├── shared/                     # Gemeinsame Infrastruktur
+│   ├── grep_batch.py            # ein grep fuer alle Patterns (BRE, Chunking, Einzel-Fallback)
+│   └── paths.py                 # zentrale Datenpfade (SCOUT_DATA_DIR)
 │   ├── intent.py               # 1× Keyword-Detection statt 3× (mit Prioritäts-Wertung)
 │   ├── cache.py                # TTL-Cache (intent, pattern, analysis, research)
 │   ├── honcho.py               # Einheitliche Honcho-Persistenz
@@ -45,32 +47,35 @@ scout/                          # Plugin-Root
 │       ├── ui_gap.py           # analysis_ui_gap
 │       ├── ui_discovery.py     # UI-Layer-Erkennung
 │       ├── mapping.py          # Coverage-Matrix
-│       ├── timeline.py         # analysis_timeline
-│       ├── duplicates.py       # analysis_duplicates
+│       # timeline.py entfernt (0.6.0: code_timeline direkt nutzen)
+│       # duplicates.py entfernt (0.6.0: code_duplicates direkt nutzen)
 │       ├── review.py           # analysis_review
-│       ├── graph_query.py      # analysis_graph_query
+│       # graph_query.py entfernt (0.6.0: code_graph_query direkt nutzen)
 │       ├── test_insight.py     # analysis_test_insight
-│       └── migration.py        # analysis_migration
+│       # migration.py entfernt (0.6.0: code_migration direkt nutzen)
 │
 ├── bughunt/                    # Bug-Scans (13 bug_hunt_* Tools)
-├── research/                   # Web-Recherche (17 research_* Tools)
-└── tests/                      # 1361+ Tests
+├── research/                   # Web-Recherche (9 research_* Tools)
+│   ├── planner.py              # Fragen zerlegen, Budget verteilen (pure)
+│   ├── fetcher.py              # Firecrawl-Client (urllib, Retry, Degradation)
+│   ├── orchestrator.py         # suchen -> parallel lesen -> Fundstellen extrahieren
+└── tests/                      # 2614 Tests (Stand: scripts/generate_readme.py --check)
 │   ├── bughunt_hooks.py        # Auto-Pattern-Deduction
 │   ├── bughunt_patterns.py     # 43 Built-in Patterns (7 Kategorien)
 │   ├── bughunt_scanrunner.py   # grep-basierte Scan-Ausführung
 │   ├── bughunt_fix.py          # Auto-Fix Prompt Generation
 │   └── _fmt.py                 # Bughunt-spezifische Formatierung (rich)
 │
-├── research/                   # Web-Recherche (17 research_* Tools)
+├── research/                   # Web-Recherche (9 research_* Tools)
 │   ├── research_tools.py       # Legacy Shim (re-exportiert tools/)
 │   ├── research_hooks.py       # Firecrawl-Tracking + Honcho-Persistenz
 │   └── tools/                  # Subpackage mit 4 Modulen
 │
-├── tests/                      # 1361+ Tests
+├── tests/                      # 2614 Tests (Stand: scripts/generate_readme.py --check)
 │   ├── conftest.py             # Shared Mock-Infrastruktur
 │   ├── test_analysis/          # 25 Tool-Tests
-│   ├── test_bughunt/           # 323 Tests
-│   └── test_research/          # 197 Tests
+│   ├── test_bughunt/           # 542 Tests
+│   └── test_research/          # 281 Tests
 │
 ├── skills/SKILL.md             # Companion Skill
 ├── CHANGELOG.md
@@ -96,10 +101,10 @@ research_save → findings → _auto_deduce_patterns() ────┘
 `analysis_inspect`, `analysis_architecture`, `analysis_deadcode`, `analysis_performance`,
 `analysis_security`, `analysis_ask`, `analysis_diff`, `analysis_trend`, `analysis_watch`,
 `analysis_graph`, `analysis_report`, `analysis_pattern_discover`, `analysis_ui_gap`,
-`analysis_framework`, `analysis_code_query`, `analysis_code_move`,
-`analysis_timeline`, `analysis_duplicates`, `analysis_dependency_risk`,
+`analysis_framework`, `analysis_dependency_risk`, `analysis_pattern_discover`,
+`analysis_diff_analysis`, `analysis_risk`, `analysis_review`, `analysis_test_insight`
 `analysis_diff_analysis`, `analysis_risk`,
-`analysis_review`, `analysis_graph_query`, `analysis_test_insight`, `analysis_migration`
+`analysis_review`, `analysis_graph` (Mermaid), `analysis_ui_gap`, `analysis_ui_inspect`
 
 ### Bug-Hunt (13)
 `bug_hunt_start`, `bug_hunt_finding`, `bug_hunt_list`, `bug_hunt_close`, `bug_hunt_scan`, `bug_hunt_triage`, `bug_hunt_verify`, `bug_hunt_report`, `bug_hunt_export`, `bug_hunt_history`, `bug_hunt_pattern`, `bug_hunt_stats`, `bug_hunt_fix`
@@ -109,7 +114,7 @@ research_save → findings → _auto_deduce_patterns() ────┘
 **Patterns:** 69 Built-in (43→69: +7 Security, +6 Code-Quality, +5 Java, +5 C/C++, +3 Ruby)
 
 ### Web-Recherche (17)
-`research_start`, `research_save`, `research_search`, `research_status`, `research_delete`, `research_cleanup`, `research_export`, `research_compare`, `research_synthesize`, `research_schedule`, `research_auto`, `research_merge`, `research_tag`, `research_update`, `research_verify`, `research_export_all`, `research_stats`
+`research_start`, `research_save`, `research_search`, `research_status`, `research_cleanup`, `research_update` (Aktionen: patch/delete/tag/verify/merge/compare), `research_export` (`all=true` fuer alles), `research_synthesize`, `research_stats`
 
 ## Entscheidungsmatrix: Welches Tool für welche Aufgabe?
 
@@ -134,6 +139,57 @@ research_save → findings → _auto_deduce_patterns() ────┘
 | Bug-Hunt automatisieren | `bug_hunt_scan` mit Pattern-IDs | `grep` + manuelle Findings | 69 Built-in Patterns, auto-categorize |
 | Bug-Hunt Session verwalten | `bug_hunt_start/finding/list/triage` | Todo-Liste | Strukturiert, persistiert, exportierbar |
 | Web-Recherche | `research_auto(query)` oder `mcp_firecrawl_firecrawl_search` | `web_search` | Tiefe Recherche, auto-synthetisiert |
+
+### Eine Registrierungs-Wahrheit (seit 0.6.0)
+
+Die Tool-Definitionen liegen bei der Domaene, nicht in einer zentralen Datei:
+
+```
+analysis    analysis/analysis_tools.py::TOOL_HANDLERS   (Schema + Handler)
+bughunt     bughunt/data/tool_schemas.json              (Name, Handler, Schema)
+research    research/data/tool_schemas.json             (dito)
+```
+
+`shared/tool_registry.py::collect()` vereinigt sie zu **einer** Liste.
+`scout_tool_registry.json` ist nur noch ein erzeugtes Artefakt (Konsolidat fuer
+Lint, README, Evals) — kein Input mehr. Nach jeder Tool-Aenderung:
+
+```
+python3 scripts/gen_tool_registry.py --manifest   # Konsolidat + plugin.yaml
+python3 scripts/generate_readme.py                # README
+```
+
+`tests/test_registry_drift.py` scheitert, sobald Registrierung, Konsolidat,
+Manifest oder README auseinanderlaufen — nachgewiesen per Mutation (ein
+entferntes Tool macht 5 Tests rot).
+
+### Scan-Performance (seit 0.6.0)
+
+- Alle grep-Patterns laufen in **einem** Subprozess pro `--include`-Gruppe
+  (`shared/grep_batch.py`) statt einem Prozess pro Pattern. Ergebnisse sind
+  identisch, der Dateibaum wird nur einmal durchlaufen.
+- Patterns sind **grep-BRE**, nicht Python-Regex. Ein kaputtes Pattern laesst
+  den Chunk einzeln nachfassen, statt die Nachbarn zu verschlucken.
+- `scan_type="code_search"` mit Regex in `scan_query` wird als grep ausgefuehrt —
+  vorher liefen diese 13 Patterns nie, weil `code_search` ein AST-Tool ist.
+- `_timeout_executor` hat 4 Worker statt 1.
+- `scripts/lint_patterns.py` erzwingt `false_positive_notes` (>= 20 Zeichen),
+  eindeutige IDs und gueltige Severities. Alle 69 Patterns haben Notes.
+
+### Recherche: plan vs. auto (seit 0.6.0)
+
+- `research_start(query, mode="plan")` — Standard. Liefert Plan + Arbeitsschritte,
+  das Modell fuehrt sie aus.
+- `research_start(query, mode="auto")` — laeuft hier durch: Suche, paralleles Lesen
+  (6 Threads), Fundstellen-Extraktion, optional eine Nachfassrunde bei `depth>=4`.
+  Ergebnis sind **Fundstellen mit Quellenbezug**, keine fertige Prosa — die Synthese
+  bleibt beim Modell.
+- `schedule="24h"` merkt einen wiederkehrenden Auftrag; `research_status(show_orphans=true)`
+  meldet faellige Auftraege als `schedules_due`. Kein Cron im Plugin.
+- Bei nicht erreichbarem Firecrawl: ehrlicher Fehler, kein leeres "fertig".
+  Konfiguration ueber `SCOUT_FIRECRAWL_URL` (Default http://127.0.0.1:3002)
+  und `SCOUT_FIRECRAWL_TIMEOUT`.
+
 | Schnelle Web-Suche | `mcp_firecrawl_firecrawl_search` | `web_search` | Firecrawl ist FIRST laut SOUL.md |
 | DB Health-Check | `mcp_postgres_mcp_analyze_db_health` | Manuelle Queries | Indizes, Connections, Vacuums in einem |
 | UI Gap Analysis | `analysis_ui_gap` | Manuelles Form-Vergleichen | Backend vs Frontend automatisch |

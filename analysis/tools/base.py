@@ -1,6 +1,7 @@
 """tools/base.py — Basis-Helper für Analyse-Tools."""
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import os
@@ -99,10 +100,27 @@ def _validate_and_resolve_path(path: str) -> Tuple[Optional[str], str]:
 _DEFAULT_TOOL_TIMEOUT = int(os.environ.get("ANALYSIS_TOOL_TIMEOUT", "120"))
 
 # Thread-Pool für Timeout-fähige Tool-Dispatches (ein Thread)
-_timeout_executor = ThreadPoolExecutor(max_workers=1)
+_timeout_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="scout-timeout")
 
 # Thread-Pool für parallele Tool-Dispatches (mehrere Threads)
-_parallel_executor = ThreadPoolExecutor(max_workers=4)
+_parallel_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="scout-parallel")
+
+
+def _shutdown_executors() -> None:
+    """Executors beim Prozessende sauber beenden.
+
+    Module-level ThreadPools ohne Shutdown leaken Threads, wenn das Plugin in
+    einem langlebigen Prozess neu geladen wird (Hermes-Reload) — jeder Reload
+    haette zwei neue Pools hinterlassen.
+    """
+    for ex in (_timeout_executor, _parallel_executor):
+        try:
+            ex.shutdown(wait=False, cancel_futures=True)
+        except Exception:  # pragma: no cover - Shutdown darf nie werfen
+            pass
+
+
+atexit.register(_shutdown_executors)
 
 
 def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -> Any:
@@ -208,52 +226,43 @@ def _run_shared_pattern_scans(
                 filtered.append(p)
         patterns = filtered
 
+    # Alle Patterns in einem Rutsch scannen — eine Implementierung fuer
+    # BugHunt und Analysis (shared/grep_batch.py), nicht zwei.
+    from scout.shared.grep_batch import grep_batch
+
+    batch_patterns = [
+        p for p in patterns
+        if p.get("scan_query") and p.get("pattern_id")
+    ]
+    batch_results = grep_batch(batch_patterns, path) if batch_patterns else {}
+
     matches = []
     for p in patterns:
-        scan_query = p.get("scan_query", "")
-        scan_file_glob = p.get("scan_file_glob", "")
-        if not scan_query:
+        pattern_id = p.get("pattern_id", "")
+        hits = batch_results.get(pattern_id) or []
+        if not hits:
             continue
 
+        hits = hits[:20]  # pro Pattern begrenzen, damit der Report lesbar bleibt
+        for hit in hits:
+            matches.append({
+                "pattern_id": pattern_id or "?",
+                "pattern_name": p.get("name", "?"),
+                "severity": p.get("severity", "P2"),
+                "category": p.get("category", ""),
+                "file": hit["file"],
+                "line": hit["line"],
+                "evidence": hit["match"],
+                "fix_description": p.get("fix_description", ""),
+            })
+
+        # Auto-Enrichment: match_count incrementieren (P5)
         try:
-            import subprocess
-            # grep bauen
-            grep_cmd = ["grep", "-rn"]
-            if scan_file_glob:
-                grep_cmd.extend(["--include", scan_file_glob])
-            grep_cmd.extend(["-e", scan_query])
-            grep_cmd.append(path)
+            from scout.shared.patterns import increment_match_count
 
-            result = subprocess.run(
-                grep_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-
-            if result.returncode == 0 and result.stdout.strip():
-                for line in result.stdout.strip().split("\n")[:20]:
-                    parts = line.split(":", 2)
-                    if len(parts) >= 2:
-                        matches.append({
-                            "pattern_id": p.get("pattern_id", "?"),
-                            "pattern_name": p.get("name", "?"),
-                            "severity": p.get("severity", "P2"),
-                            "category": p.get("category", ""),
-                            "file": parts[0],
-                            "line": parts[1],
-                            "evidence": parts[2] if len(parts) > 2 else "",
-                            "fix_description": p.get("fix_description", ""),
-                        })
-                # Auto-Enrichment: match_count incrementieren (P5)
-                try:
-                    from scout.shared.patterns import increment_match_count
-                    increment_match_count(p["pattern_id"])
-                except Exception as e:
-                    logger.debug("increment_match_count failed for %s: %s", p.get("pattern_id", "?"), e)
-        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-            logger.debug("shared pattern scan skipped for %s: %s",
-                         p.get("pattern_id"), e)
+            increment_match_count(pattern_id)
+        except Exception as e:  # noqa: BLE001 - Zaehler darf den Scan nicht kippen
+            logger.debug("increment_match_count failed for %s: %s", pattern_id, e)
 
     return {
         "pattern_matches": matches,

@@ -11,15 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from scout._fmt import fmt_err, fmt_ok
+from scout.shared import paths as _paths
 
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = PLUGIN_DIR / "data"
-PLANS_DIR = DATA_DIR / "plans"
-RESULTS_DIR = DATA_DIR / "results"
+DATA_DIR = _paths.RESEARCH_DIR
+PLANS_DIR = _paths.PLANS_DIR
+RESULTS_DIR = _paths.RESULTS_DIR
 
 # Ensure directories exist on first import
-PLANS_DIR.mkdir(parents=True, exist_ok=True)
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+_paths.ensure_dirs()
 
 
 # ---------------------------------------------------------------------------

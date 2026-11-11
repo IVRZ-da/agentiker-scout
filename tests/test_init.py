@@ -97,14 +97,20 @@ class TestRegisterTools:
         with patch.object(Path, "exists", return_value=False):
             _register_tools(mock_plugin_context)
 
-    def test_loads_registry_corrupt_json(self, mock_plugin_context):
+    def test_registry_json_is_not_a_source(self, mock_plugin_context):
+        """Seit 0.6.0 liest _register_tools die JSON-Datei nicht mehr.
+
+        Die Wahrheit liegt in den Domaenen (shared/tool_registry.collect());
+        scout_tool_registry.json ist ein erzeugtes Artefakt. Eine korrupte
+        Datei darf die Registrierung also weder stoeren noch verhindern.
+        """
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", return_value="corrupt json {"):
-                with patch("scout.logger") as mock_log:
-                    _register_tools(mock_plugin_context)
-                    mock_log.debug.assert_any_call(
-                        "scout_tool_registry.json konnte nicht geladen werden"
-                    )
+                _register_tools(mock_plugin_context)
+
+        assert mock_plugin_context.register_tool.called, "keine Tools registriert"
+        names = [c.args[0] for c in mock_plugin_context.register_tool.call_args_list]
+        assert all(isinstance(n, str) and n for n in names)
 
     def test_analysis_tools_failure_handled(self, mock_plugin_context):
         """Wenn analysis tools import fehlschlägt, wird abgefangen."""
