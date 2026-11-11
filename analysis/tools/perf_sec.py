@@ -131,7 +131,7 @@ def analysis_security_tool(args: dict, **kwargs) -> str:
 
         if "vulnerabilities" in kinds or "all" in kinds:
             try:
-                from tools.registry import registry
+                from scout.shared.registry import registry
                 sev_result = registry.dispatch("code_search_by_error", {
                     "path": path,
                     "error": "Vulnerability",
@@ -232,7 +232,7 @@ def analysis_ask_tool(args: dict, **kwargs) -> str:
                     logger.warning("analysis_ask context collection error: %s", e)
 
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         honcho = registry.dispatch("honcho_search", {
             "query": question[:200],
             "max_tokens": 400,

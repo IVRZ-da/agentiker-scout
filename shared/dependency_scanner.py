@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Tuple
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
-from shared.framework_detector import DetectedFramework, FrameworkEvidence
+from scout.shared.framework_detector import DetectedFramework, FrameworkEvidence
 
 logger = logging.getLogger("scout.dependency_scanner")
 

@@ -29,11 +29,12 @@ class TestPluginYaml:
         text = (PLUGIN_DIR / "plugin.yaml").read_text()
         data = yaml.safe_load(text)
         assert data["name"] == "agentiker-scout", "name != agentiker-scout"
-        assert "hooks" in data, "hooks section fehlt"
-        assert len(data["hooks"]) == 3, f"erwarte 3 hooks, habe {len(data['hooks'])}"
-        assert "pre_llm_call" in data["hooks"]
-        assert "post_tool_call" in data["hooks"]
-        assert "on_session_end" in data["hooks"]
+        assert "provides_hooks" in data, "provides_hooks section fehlt (Manifest v2)"
+        assert len(data["provides_hooks"]) == 3, f"erwarte 3 hooks, habe {len(data['provides_hooks'])}"
+        assert "pre_llm_call" in data["provides_hooks"]
+        assert "post_tool_call" in data["provides_hooks"]
+        assert "on_session_end" in data["provides_hooks"]
+        assert data.get("manifest_version") == 2
 
     def test_plugin_yaml_version_exists(self):
         import yaml

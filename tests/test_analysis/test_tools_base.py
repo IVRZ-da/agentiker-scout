@@ -245,21 +245,13 @@ class TestParallelDispatch:
             results = _parallel_dispatch(calls)
             assert results.get("k1") == {"parsed": True}
 
-    def test_registry_import_fail_returns_empty(self) -> None:
-        """Wenn tools.registry nicht importiert werden kann, leeres Dict."""
+    def test_registry_import_fail_returns_empty(self, monkeypatch) -> None:
+        """Wenn die Plugin-Registry nicht importierbar ist, leeres Dict."""
         import sys
-        saved = sys.modules.pop("tools.registry", None)
-        saved_tools = sys.modules.pop("tools", None)
-        try:
-            result = _parallel_dispatch(
-                [{"key": "k", "name": "t", "kwargs": {}}]
-            )
-            assert result == {}
-        finally:
-            if saved:
-                sys.modules["tools.registry"] = saved
-            if saved_tools:
-                sys.modules["tools"] = saved_tools
+
+        monkeypatch.setitem(sys.modules, "scout.shared.registry", None)
+        result = _parallel_dispatch([{"key": "k", "name": "t", "kwargs": {}}])
+        assert result == {}
 
 
 # ── _clear_symbol_line_cache / _find_symbol_line ─────────────────────

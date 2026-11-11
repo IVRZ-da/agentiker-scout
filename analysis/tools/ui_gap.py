@@ -42,7 +42,7 @@ def _try_generate_plan_from_gaps(project_root: str, gaps: List[Dict]) -> Optiona
         tasks.append(f"🟢 {g['module']}: {g['detail']}")
 
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         entry = registry.get_entry("plan_create")
         if entry is None:
             return None

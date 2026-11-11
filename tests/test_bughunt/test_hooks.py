@@ -6,7 +6,7 @@ from scout.bughunt.bughunt_hooks import (
     _hook_cache,
     _is_bughunt_related,
     on_post_tool_call,
-    on_pre_llm_call,
+    session_context,
 )
 
 
@@ -51,57 +51,62 @@ class TestKeywordDetection:
 
 
 # ======================================================================
-# pre_llm_call Tests
+# session_context Tests (Baustein des zentralen pre_llm_call-Hooks)
 # ======================================================================
 
-class TestPreLlmCall:
-    def test_no_messages(self):
-        assert on_pre_llm_call() is None
-        assert on_pre_llm_call(messages=[]) is None
-
-    def test_no_keyword(self):
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Wie ist das Wetter?"}
-        ])
-        assert result is None
-
-    def test_keyword_triggers_injection(self):
+class TestSessionContext:
+    def test_no_active_session_still_returns_block(self):
+        import bughunt_core as core
+        core.get_tracker().reset()
         clear_cache()
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Starte einen Bug-Hunt"}
-        ])
+        result = session_context()
         assert result is not None
         assert "[BUG-HUNT PLUGIN]" in result
 
-    def test_active_session_in_banner(self):
+    def test_active_session_in_context(self):
         clear_cache()
         import bughunt_core as core
         tracker = core.get_tracker()
         s = core.BugHuntSession(project="/test")
         core.save_session(s)
         tracker.start(s.session_id)
+        try:
+            result = session_context()
+            assert s.session_id in result
+            assert "Aktive Session" in result
+        finally:
+            tracker.reset()
 
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Zeige die Bugs"}
-        ])
-        # Cleanup
-        tracker.reset()
-        assert result is not None
-        assert s.session_id in result
-
-    def test_non_dict_message(self):
-        """Messages mit non-dict content werden ignoriert."""
-        result = on_pre_llm_call(messages=["just a string"])
-        assert result is None
-
-    def test_cached_recent_sessions(self):
+    def test_active_session_with_findings(self):
         clear_cache()
-        # Erster Aufruf ohne aktive Session
-        on_pre_llm_call(messages=[
-            {"role": "user", "content": "Bug-Hunt starten"}
-        ])
-        # Cache sollte jetzt gefüllt sein
-        assert "recent_sessions" in _hook_cache
+        import bughunt_core as core
+        tracker = core.get_tracker()
+        s = core.BugHuntSession(project="/test")
+        s.add_finding(core.Finding(title="P0 Bug", severity="P0"))
+        core.save_session(s)
+        tracker.start(s.session_id)
+        try:
+            assert "P0=1" in session_context()
+        finally:
+            tracker.reset()
+
+
+# ======================================================================
+# Integration: der registrierte pre_llm_call-Hook haengt den Block an
+# ======================================================================
+
+class TestIntentHookIntegration:
+    def test_bug_intent_appends_session_block(self):
+        from scout.shared.intent import on_pre_llm_call
+
+        clear_cache()
+        result = on_pre_llm_call(
+            user_message="Starte einen Bug-Hunt",
+            conversation_history=[],
+            is_first_turn=True,
+        )
+        assert result is not None
+        assert "BUG-HUNT" in result
 
 
 # ======================================================================

@@ -1,9 +1,10 @@
 """analysis_core — Kernlogik des Analyse-Plugins.
 
 Funktionen:
-  - inject_analysis_context: pre_llm_call — erkennt Analyse-Intention + injects Kontext
   - track_tool_call: post_tool_call — trackt relevante Tool-Calls
   - persist_analysis_session: on_session_end — persistiert in Honcho
+
+Der pre_llm_call-Hook lebt zentral in shared/intent.py (ein Hook pro Plugin).
 
 Importiert Sub-Module:
   - intent_helpers: Keywords + Intent-Detection + File-Refs + Recommendations
@@ -15,18 +16,16 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import time
 from datetime import datetime
 from typing import Any, Optional
 
 from scout.analysis.intent_helpers import (
     ANALYSIS_TOOLS,
-    _build_tool_recommendations,
-    _detect_intent,
-    _extract_file_refs,
-    _is_analysis_query,
-    _query_honcho_analysis_history,
+    _build_tool_recommendations,  # noqa: F401  Re-Export fuer Tests/analysis_tools
+    _detect_intent,  # noqa: F401  Re-Export fuer Tests
+    _extract_file_refs,  # noqa: F401  Re-Export fuer Tests
+    _is_analysis_query,  # noqa: F401  Re-Export fuer Tests
+    _query_honcho_analysis_history,  # noqa: F401  Re-Export fuer Tests
 )
 
 from .analysis_session import (
@@ -119,90 +118,8 @@ def _aggregate_findings(tool_name: str, args: dict, result: Any) -> None:
 # ---------------------------------------------------------------------------
 # Hooks
 # ---------------------------------------------------------------------------
-
-def inject_analysis_context(**kwargs: Any) -> Optional[str]:
-    """pre_llm_call hook: Erkennt Analyse-Intention und injects Kontext.
-
-    Erkennt Analyse-Keywords in der letzten User-Nachricht, ermittelt die
-    Intention (code/architecture/db/...), sucht nach früheren Analysen in
-    Honcho und injectt Tool-Empfehlungen + historischen Kontext.
-    """
-    try:
-        messages = kwargs.get("messages", [])
-        if not messages:
-            return None
-
-        # Letzte User-Nachricht extrahieren
-        last_msg = ""
-        for m in reversed(messages):
-            if isinstance(m, dict) and m.get("role") == "user":
-                content = m.get("content", "")
-                if isinstance(content, str):
-                    last_msg = content
-                break
-
-        if not last_msg:
-            return None
-
-        # Prüfen ob Analyse-Anfrage
-        if not _is_analysis_query(last_msg):
-            return None
-
-        intent = _detect_intent(last_msg)
-        if not intent:
-            intent = "code"  # Fallback
-
-        # Analyse-Session starten
-        _analysis_session.start(intent, last_msg)
-
-        # Datei-Referenzen extrahieren
-        file_refs = _extract_file_refs(last_msg)
-
-        # Tool-Empfehlungen bauen
-        recommendations = _build_tool_recommendations(intent, file_refs)
-
-        # Historischen Kontext aus Honcho abrufen
-        history_ctx = _query_honcho_analysis_history(last_msg)
-
-        # Endergebnis zusammensetzen
-        parts = []
-        parts.append(f"[analysis-plugin] 🔍 Analyse erkannt (Typ: {intent})")
-
-        if history_ctx and history_ctx != "None" and history_ctx != "[]":
-            parts.append(f"  Bereits bekannt: {history_ctx[:300]}")
-
-        if file_refs:
-            parts.append(f"  Dateien: {', '.join(file_refs)}")
-            # Versuche code-intel Kontext via tools.registry
-            try:
-                from tools.registry import registry
-                for fref in file_refs:
-                    path = fref
-                    if not os.path.isabs(path):
-                        path = os.path.join(os.getcwd(), path)
-                    if os.path.exists(path):
-                        syms = registry.dispatch(
-                            "code_symbols",
-                            {"path": path, "pattern": "", "include_body": False},
-                        )
-                        if syms:
-                            parsed = json.loads(syms) if isinstance(syms, str) else syms
-                            sym_list = parsed if isinstance(parsed, list) else parsed.get("symbols", [])
-                            if sym_list:
-                                summary = f"  {fref}: {len(sym_list)} Symbole"
-                                for s in sym_list[:5]:
-                                    summary += f"\n    L{s.get('line', '?')} {s.get('kind', '')} {s.get('name', '?')}"
-                                parts.append(summary)
-            except ImportError:
-                pass
-
-        parts.append(f"  Empfohlene Tools:\n{recommendations}")
-
-        return "\n".join(parts)
-
-    except Exception as e:
-        logger.warning("analysis-plugin: inject_analysis_context error: %s", e)
-        return None
+# Der pre_llm_call-Hook lebt zentral in shared/intent.py (ein Hook pro Plugin).
+# Die fruehere, nie registrierte Duplikat-Logik hier wurde entfernt.
 
 
 def track_tool_call(**kwargs: Any) -> None:
@@ -272,22 +189,24 @@ def persist_analysis_session(**kwargs: Any) -> None:
         summary = _build_analysis_summary(_analysis_session)
 
         try:
-            from hermes_cli.plugins import invoke_hook
-            invoke_hook(
-                "post_llm_call",
-                action="honcho_conclude",
-                conclusion=(
-                    f"analysis:{_analysis_session.intent}:"
-                    f"{datetime.now().strftime('%Y-%m-%d')}: "
-                    f"{summary[:200]}"
-                ),
-                metadata={
-                    "tools_used": [t["name"] for t in _analysis_session.tools_used],
-                    "files_analyzed": list(_analysis_session.files_analyzed),
-                    "findings": _analysis_session.findings,
-                    "duration_ms": int((time.monotonic() - _analysis_session.started_at) * 1000),
-                    "intent": _analysis_session.intent,
+            from scout.shared.registry import registry
+
+            registry.dispatch(
+                "honcho_conclude",
+                {
+                    "conclusion": (
+                        f"analysis:{_analysis_session.intent}:"
+                        f"{datetime.now().strftime('%Y-%m-%d')}: "
+                        f"{summary[:200]}"
+                    ),
+                    "peer": "analysis",
                 },
+            )
+            logger.debug(
+                "analysis persist: tools=%d files=%d findings=%s",
+                len(_analysis_session.tools_used),
+                len(_analysis_session.files_analyzed),
+                _analysis_session.findings,
             )
         except Exception as e:
             logger.debug("honcho persist failed (expected if honcho not configured): %s", e)
@@ -313,7 +232,5 @@ from scout.analysis.analysis_profiles import (  # noqa: E402,F401 — re-export 
     ANALYSIS_PROFILES,  # noqa: F401
     get_active_analysis_profile,  # noqa: F401
     get_profile_tools,  # noqa: F401
-    inject_steering_hints,  # noqa: F401
     inject_subagent_steering,  # noqa: F401
-    patch_delegate_task,  # noqa: F401
 )

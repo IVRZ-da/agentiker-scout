@@ -1,5 +1,53 @@
 # Scout Plugin — CHANGELOG
 
+## [0.5.17] — 2026-11-11
+
+### Fixed — Kompatibilität mit Hermes Agent 0.23.1
+- **pre_llm_call-Hook war tot:** Hermes 0.23.1 uebergibt `user_message` + `conversation_history`,
+  nicht mehr `messages`. Der Hook las nur `messages` und lieferte still `None` — die
+  Intent-Injektion (Tool-Empfehlungen bei "analysiere/recherchiere/bug hunt") fand nicht statt.
+  Neu: `_last_user_message(kwargs)` mit Reihenfolge `user_message` → `conversation_history` →
+  `messages` (Rueckwaerts-Kompatibilitaet). Content darf str oder Block-Liste sein.
+- **Bug-Hunt-Sessionblock wieder erreichbar:** `bughunt_hooks.on_session_end`/`on_pre_llm_call`
+  waren nie registriert. Der dynamische Session-Block kommt jetzt ueber den zentralen Hook
+  (`bughunt_hooks.session_context()`), wenn der Intent als `bug` erkannt wird.
+- **Testsuite war rot:** `test_hooks_coverage.py` importierte `on_session_end` aus
+  `bughunt_hooks` (nach `shared/honcho.py` verschoben) → Collection-Error, jeder Pre-Commit
+  blockiert. Tests auf die neue Struktur umgestellt.
+- **Vertragstest:** `tests/test_shared/test_hook_contract.py` haelt den 0.23.1-Kwarg-Satz fest
+  (aktueller Vertrag, conversation_history-Fallback, legacy `messages`, Block-Listen,
+  unbekannte Kwargs, Fehlerrobustheit).
+
+### Changed — Manifest v2
+- `plugin.yaml`: `manifest_version: 2`, `provides_tools` (56) und `provides_hooks` (3)
+  werden per `scripts/gen_manifest_capabilities.py` aus der echten Registrierung erzeugt
+  (vorher fehlten sie komplett → `hermes plugins validate` schlug fehl).
+- `python_dependencies` mit Obergrenzen (`PyYAML>=6.0,<7`, `packaging>=23.0,<27`).
+- `tests/test_manifest_sync.py` verhindert kuenftige Drift.
+- `SECURITY.md`: `hermes plugins validate`-Findings erklaert (Pattern-Definitionen in
+  gitignorierten `data/`-Verzeichnissen, clean clone = `verdict: safe`).
+
+### Changed — Tool-Dispatch repariert
+- `scout.shared.registry.registry.dispatch()` leitete an eine lokale Dummy-Registry:
+  `honcho_search`, `honcho_reasoning`, `code_search_by_error`, `honcho_conclude` waren
+  wirkungslos. Jetzt wird in `register(ctx)` die echte Hermes-Registry via
+  `ctx.dispatch_tool` angebunden (`bind_context`).
+- Analyse-Persistenz nutzt `registry.dispatch("honcho_conclude", ...)` statt des privaten
+  `hermes_cli.plugins.invoke_hook("post_llm_call", action=...)`, fuer das es keinen Consumer gab.
+
+### Removed — Isolation & tote Pfade
+- `sys.modules`-Shims fuer `tools` und `shared`: der `tools`-Shim haette bei unguenstiger
+  Ladereihenfolge die Hermes-Core-Registry ueberschrieben. Alle 32 Importe zeigen jetzt auf
+  `scout.shared.*`; `scout` bleibt als Namespace-Paket registriert.
+- `_ensure_deps()`: kein `pip install` in die Hermes-Umgebung zur Laufzeit mehr.
+- `analysis_profiles.patch_delegate_task()` / `inject_steering_hints()` (nie aufgerufen,
+  patchten private Hermes-Attribute).
+- `analysis_core.inject_analysis_context` — nie registrierte Duplikat-Logik des zentralen Hooks.
+- `hermes plugins validate` meldet keine `private core imports` mehr.
+
+### Tests
+- 2156 passed, 42 skipped, 0 Fehler — identisch auf Python 3.13.5 und 3.14.9.
+
 ## [0.5.16] — 2026-06-30
 
 ### Changed

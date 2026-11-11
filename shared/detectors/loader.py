@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
-from shared.yaml_rule_loader import YamlRuleLoader
+from scout.shared.yaml_rule_loader import YamlRuleLoader
 
 from .base import (
     _YAML_DETECTOR_INSTANCE_CACHE,

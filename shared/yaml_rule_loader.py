@@ -183,7 +183,7 @@ class YamlRuleLoader:
         if rule.name in self._detector_cache:
             return self._detector_cache[rule.name]
 
-        from shared.framework_detector import _TechDetector
+        from scout.shared.framework_detector import _TechDetector
 
         markers = rule.to_marker_tuples()
 

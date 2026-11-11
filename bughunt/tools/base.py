@@ -123,7 +123,7 @@ def _try_create_bughunt_plan(project: str, session_id: str,
         dict with plan status, or None if plan_follow unavailable.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         entry = registry.get_entry("plan_create")
         if entry is None:
             return None

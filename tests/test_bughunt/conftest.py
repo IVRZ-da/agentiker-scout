@@ -56,13 +56,20 @@ _h.plugins.PluginContext = MockPluginContext
 sys.modules["hermes_cli"] = _h
 sys.modules["hermes_cli.plugins"] = _h.plugins
 
-# tools.registry — Immer setzen (überschreibt root conftest für bughunt Tools)
-_t = types.ModuleType("tools")
-_t.registry = types.ModuleType("tools.registry")
-_t.registry.registry = MockRegistry()
-_t.registry.dispatch = lambda n, a: json.dumps({"tool": n, "status": "mocked", "args": a})
-sys.modules["tools"] = _t
-sys.modules["tools.registry"] = _t.registry
+# Plugin-Registry: dieselbe Modul-Instanz wie im Plugin (scout.shared.registry),
+# damit 'from tools.registry import registry' und der Plugin-Import dasselbe
+# Singleton sehen. Der Mock ersetzt nur das Registry-Objekt, nicht das Modul.
+import scout.shared.registry as _plugin_registry_mod  # noqa: E402
+
+_mock_registry = MockRegistry()
+_mock_registry.dispatch = lambda n, a=None, **kw: json.dumps(
+    {"tool": n, "status": "mocked", "args": a}
+)
+_plugin_registry_mod.registry = _mock_registry
+_tools_mod = types.ModuleType("tools")
+_tools_mod.registry = _plugin_registry_mod
+sys.modules["tools"] = _tools_mod
+sys.modules["tools.registry"] = _plugin_registry_mod
 
 # _fmt mock
 _f = types.ModuleType("_fmt")

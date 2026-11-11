@@ -17,7 +17,7 @@ logger = logging.getLogger("scout.honcho")
 def _get_honcho_tool(tool_name: str) -> Any:
     """Lazy import honcho tool via registry dispatch."""
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         return registry.get_entry(tool_name)
     except Exception:
         return None

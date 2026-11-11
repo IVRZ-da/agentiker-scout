@@ -172,32 +172,80 @@ def _build_intent_context(domain: str) -> str | None:
     _INTENT_CACHE[domain] = (now, context)
     return context
 
+def _content_to_text(content: Any) -> str:
+    """Normalisiert Message-Content zu Text (str oder Block-Liste)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, (list, tuple)):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+            elif isinstance(block, str):
+                parts.append(block)
+        return "\n".join(parts)
+    return ""
+
+
+def _last_user_message(kwargs: dict[str, Any]) -> str:
+    """Aktuelle User-Nachricht aus den Hook-Kwargs ziehen.
+
+    Hermes 0.23.1 uebergibt ``user_message`` (aktueller Turn) plus
+    ``conversation_history`` (bisheriger Verlauf). Aeltere Versionen uebergaben
+    nur ``messages``. Reihenfolge: user_message -> conversation_history -> messages.
+    """
+    text = _content_to_text(kwargs.get("user_message"))
+    if text.strip():
+        return text
+
+    for key in ("conversation_history", "messages"):
+        history = kwargs.get(key)
+        if not isinstance(history, (list, tuple)):
+            continue
+        for msg in reversed(history):
+            if not isinstance(msg, dict) or msg.get("role") != "user":
+                continue
+            text = _content_to_text(msg.get("content"))
+            if text.strip():
+                return text
+    return ""
+
+
+def _bughunt_session_context() -> str | None:
+    """Dynamischer Bug-Hunt-Session-Block (nur bei aktiver/letzter Session)."""
+    try:
+        from scout.bughunt import bughunt_hooks
+
+        return bughunt_hooks.session_context()
+    except Exception as e:  # Plugin-Teil nicht ladbar -> Intent-Kontext bleibt
+        logger.debug("scout: bughunt session context skipped: %s", e)
+        return None
+
+
 def on_pre_llm_call(**kwargs: Any) -> Optional[str]:
     """Single pre_llm_call hook — detects intent across all 3 domains.
 
     Replaces 3 separate hooks from analysis, bughunt, and deep-research.
     Returns tool recommendations if a domain intent is detected.
     """
-    messages = kwargs.get("messages", [])
-    if not messages:
+    try:
+        last_user_msg = _last_user_message(kwargs)
+        if not last_user_msg:
+            return None
+
+        # Single-pass detection: findet besten Domain-Match
+        domain = _detect_intent(last_user_msg)
+        if not domain:
+            return None
+
+        context = _build_intent_context(domain)
+        if domain == "bug":
+            extra = _bughunt_session_context()
+            if extra:
+                context = f"{context}\n{extra}" if context else extra
+        if context:
+            logger.debug("scout: injected %s context", domain)
+        return context
+    except Exception as e:
+        logger.warning("scout: on_pre_llm_call error: %s", e)
         return None
-
-    # Find the last user message
-    last_user_msg = None
-    for msg in reversed(messages):
-        if msg.get("role") == "user":
-            last_user_msg = msg.get("content", "")
-            break
-
-    if not last_user_msg:
-        return None
-
-    # Single-pass detection: findet besten Domain-Match
-    domain = _detect_intent(last_user_msg)
-    if not domain:
-        return None
-
-    context = _build_intent_context(domain)
-    if context:
-        logger.debug("scout: injected %s context", domain)
-    return context

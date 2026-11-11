@@ -26,7 +26,7 @@ def analysis_framework_tool(args: dict, **kwargs) -> str:
     fast = args.get("fast", False)
 
     try:
-        from shared.framework_detector import (
+        from scout.shared.framework_detector import (
             FrameworkDetector,
             format_profile_summary,
         )

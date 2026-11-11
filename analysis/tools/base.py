@@ -120,7 +120,7 @@ def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -
         Tool-Ergebnis (dict/list/str) oder {"error": ...} bei Fehler/Timeout.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         # Dispatch in Thread mit Timeout
         future = _timeout_executor.submit(registry.dispatch, name, kwargs)
@@ -157,7 +157,7 @@ def _call_tool_direct(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs:
         Tool-Ergebnis oder {"error": ...} bei Fehler.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         result = registry.dispatch(name, kwargs)
         if isinstance(result, str):
@@ -275,7 +275,7 @@ def _parallel_dispatch(
         Dict mit keys → Ergebnisse (inkl. "key_error" bei Fehlern).
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
     except ImportError:
         logger.warning("tools.registry nicht verfügbar — _parallel_dispatch fällt aus")
         return {}
@@ -380,25 +380,22 @@ def _summarize_diagnostics(diag: Any) -> Dict[str, int]:
 
 
 def _persist_analysis(intent: str, report: Dict[str, Any], metadata: Dict[str, Any]) -> None:
-    """Persistiert Analyse-Ergebnisse in Honcho."""
+    """Persistiert Analyse-Ergebnisse in Honcho (ueber das honcho_conclude-Tool)."""
     try:
-        from hermes_cli.plugins import invoke_hook
-        invoke_hook(
-            "post_llm_call",
-            action="honcho_conclude",
-            conclusion=(
-                f"analysis:{intent}:"
-                f"{datetime.now().strftime('%Y-%m-%d')}: "
-                f"{_build_summary_line(report, metadata)[:200]}"
-            ),
-            metadata={
-                "tools_called": report.get("summary", {}).get("tools_called", 0),
-                "path": metadata.get("path", ""),
-                "symbol": metadata.get("symbol"),
-                "findings": report.get("findings", {}),
-                "intent": intent,
+        from scout.shared.registry import registry
+
+        registry.dispatch(
+            "honcho_conclude",
+            {
+                "conclusion": (
+                    f"analysis:{intent}:"
+                    f"{datetime.now().strftime('%Y-%m-%d')}: "
+                    f"{_build_summary_line(report, metadata)[:200]}"
+                ),
+                "peer": "analysis",
             },
         )
+        logger.debug("analysis %s persist: %s", intent, metadata.get("path", ""))
     except Exception:
         logger.info(
             "analysis %s: %s | %s",
@@ -437,7 +434,7 @@ def _try_create_plan_follow_plan(tool_name: str, path: str) -> dict | None:
     Nur wenn das plan_follow Plugin geladen ist (lose Kopplung via Registry).
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         entry = registry.get_entry("plan_create")
         if entry is None:
@@ -464,7 +461,7 @@ def _try_create_bughunt_finding(severity: str, title: str, details: dict) -> dic
     Nur wenn das bughunt Plugin geladen ist.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         entry = registry.get_entry("bug_hunt_finding")
         if entry is None:

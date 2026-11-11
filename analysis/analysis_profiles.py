@@ -4,8 +4,6 @@ Bietet:
   - ANALYSIS_PROFILES: 6 Profile (all/code/architecture/deadcode/db/web)
   - get_active_analysis_profile / get_profile_tools
   - inject_subagent_steering: Steering-Text für Subagents
-  - patch_delegate_task: Inject Analyse-Tools in Subagent-Prompts
-  - inject_steering_hints: Patch Built-in-Tool-Beschreibungen
 """
 
 from __future__ import annotations
@@ -110,55 +108,3 @@ def inject_subagent_steering() -> str:
         "- `code_complexity` / `code_hot_paths` — performance hotspots\n\n"
         "Results are automatically tracked and persisted in Honcho for future reference."
     )
-
-
-def patch_delegate_task() -> None:
-    """Patch delegate_task to include analysis steering in subagent prompts."""
-    try:
-        import tools.delegate_tool as dt
-
-        _ANALYSIS_STEERING = inject_subagent_steering()
-
-        _orig_build_prompt = dt._build_child_system_prompt
-        def _patched_build_prompt(*args, **kwargs):
-            base = _orig_build_prompt(*args, **kwargs)
-            if _ANALYSIS_STEERING not in base:
-                base = base + _ANALYSIS_STEERING
-            return base
-        dt._build_child_system_prompt = _patched_build_prompt
-
-        if "analysis" not in dt.DEFAULT_TOOLSETS:
-            dt.DEFAULT_TOOLSETS.append("analysis")
-
-        logger.info("analysis-plugin: delegate_task patched with analysis steering")
-    except Exception as e:
-        logger.warning("analysis-plugin: delegate_task patch failed: %s", e)
-
-
-def inject_steering_hints() -> None:
-    """Patch built-in tool descriptions to prefer analysis tools."""
-    try:
-        import tools.registry
-
-        hints = [
-            ("read_file",
-             "\n\nFor understanding what a file contains (list of functions, classes, "
-             "methods), prefer code_symbols — much more token-efficient than reading "
-             "the entire file. For a full multi-step analysis, use analysis_inspect."),
-            ("search_files",
-             "\n\nFor AST-aware structural search inside source files "
-             "(find function calls, imports, decorators, etc.), prefer code_search. "
-             "For automated multi-step analysis, use analysis_inspect or analysis_architecture."),
-            ("code_symbols",
-             "\n\nFor a full multi-step analysis including references, call hierarchy, "
-             "and dependency graph, use analysis_inspect with increasing depth levels."),
-        ]
-
-        for tool_name, hint_text in hints:
-            entry = tools.registry.registry.get_entry(tool_name)
-            if entry and "description" in entry.schema and hint_text not in entry.schema["description"]:
-                entry.schema["description"] += hint_text
-
-        logger.info("analysis-plugin: steering hints injected into built-in tools")
-    except Exception as e:
-        logger.warning("analysis-plugin: steering hints injection failed: %s", e)

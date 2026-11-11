@@ -1,7 +1,7 @@
 ---
 name: agentiker-scout
-description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 55 Tools, 69 Bug-Patterns, 3 Domains."
-version: 0.5.0
+description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 56 Tools, 71 Bug-Patterns, 3 Domains."
+version: 0.5.17
 author: agentiker
 tags: [analysis, bughunt, research, patterns, code-analysis, security, web-research]
 related_skills: [plan-follow, code-intel-plugin-maintenance, hermes-plugin-development]
@@ -17,7 +17,7 @@ Fusion von **analysis**, **bughunt** und **deep-research** in ein Plugin mit Sha
 scout/                          # Plugin-Root
 ├── __init__.py                 # Ein register() für alle 3 Domains (3 Hooks statt 9)
 ├── _fmt.py                     # Shared Formatierung (ersetzt 3 Duplikate)
-├── plugin.yaml                 # Manifest v0.4.0
+├── plugin.yaml                 # Manifest v2 (manifest_version: 2)
 │
 ├── shared/                     # Gemeinsame Infrastruktur
 │   ├── intent.py               # 1× Keyword-Detection statt 3× (mit Prioritäts-Wertung)
@@ -90,7 +90,7 @@ research_start(pattern=...) → patterns_research.get() ←┘
 research_save → findings → _auto_deduce_patterns() ────┘
 ```
 
-## Tools (55 total)
+## Tools (56 total)
 
 ### Code-Analyse (25)
 `analysis_inspect`, `analysis_architecture`, `analysis_deadcode`, `analysis_performance`,
@@ -177,3 +177,32 @@ skills:
 ```
 
 Nach config-Änderung: `pkill hermes && hermes`
+
+## Hook-Vertrag (Hermes 0.23.1)
+
+Es gibt genau EINEN `pre_llm_call`-Hook: `shared/intent.py::on_pre_llm_call`.
+
+Hermes uebergibt seit 0.23.1:
+
+```text
+session_id, task_id, turn_id, user_message, conversation_history,
+is_first_turn, model, platform, parent_session_id, sender_id
+```
+
+`messages` gibt es NICHT mehr. `shared/intent._last_user_message(kwargs)` liest deshalb in
+dieser Reihenfolge: `user_message` -> letzte User-Nachricht aus `conversation_history` ->
+`messages` (Altverhalten). Content darf `str` oder eine Block-Liste sein.
+
+Der Bug-Hunt-Sessionblock kommt nicht mehr aus einem eigenen (nie registrierten) Hook,
+sondern aus `bughunt_hooks.session_context()`, das der Intent-Hook bei Domain `bug` anhaengt.
+
+Regel: Ein Hook, der einen Kwarg liest, den Hermes nicht mehr sendet, faellt STILL aus
+(kein Log, kein Fehler). Deshalb haelt `tests/test_shared/test_hook_contract.py` den
+Kwarg-Satz fest.
+
+## Tool-Dispatch
+
+Domain-Module rufen Hermes-Tools ueber `scout.shared.registry.registry.dispatch(name, args)`.
+In `register(ctx)` wird die echte Hermes-Registry via `ctx.dispatch_tool` angebunden.
+KEIN `tools.registry`-Shim mehr: der zeigte frueher auf eine lokale Dummy-Registry,
+wodurch `honcho_search`, `honcho_reasoning`, `code_search_by_error` usw. wirkungslos waren.

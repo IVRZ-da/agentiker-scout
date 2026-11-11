@@ -248,7 +248,7 @@ def _ai_detect_intent(text: str) -> Optional[str]:
         del _ai_intent_cache[cache_key]
 
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         result = registry.dispatch("honcho_reasoning", {
             "query": f"Classify the intent of this user message into one of: "
                      f"code, architecture, deadcode, bug, performance, db, web. "
@@ -411,7 +411,7 @@ def _query_honcho_analysis_history(query: str) -> Optional[str]:
             return value
 
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         result = registry.dispatch("honcho_search", {
             "query": f"analysis:{query[:100]}",
             "max_tokens": 300,

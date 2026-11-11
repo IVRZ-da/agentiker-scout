@@ -228,7 +228,7 @@ def _search_orphan_plans(query: str, N: int, df_map: dict, avgdl: float) -> list
 def _check_honcho_available() -> bool:
     """Prüfe ob honcho_search via Registry verfügbar ist."""
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         return registry.get_entry("honcho_search") is not None
     except Exception:
         return False

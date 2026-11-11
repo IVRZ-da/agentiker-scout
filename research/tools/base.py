@@ -128,7 +128,7 @@ def _try_create_plan_follow_plan(query: str, research_id: str) -> dict | None:
     Wirft keine Exceptions — Fehler werden als dict returned.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         entry = registry.get_entry("plan_create")
         if entry is None:

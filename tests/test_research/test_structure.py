@@ -59,15 +59,12 @@ def test_plugin_yaml_is_valid():
     assert data["name"] == "agentiker-scout", "plugin name muss 'agentiker-scout' sein"
     assert "version" in data, "plugin.yaml braucht 'version'"
     assert "description" in data, "plugin.yaml braucht 'description'"
-    assert "hooks" in data, "plugin.yaml braucht 'hooks'"
-    # Hooks sind als Liste definiert
-    hook_names = [h if isinstance(h, str) else list(h.keys())[0] for h in data["hooks"]]
-    assert "pre_llm_call" in hook_names or any("pre_llm_call" in v for v in data["hooks"]), \
-        "plugin.yaml hooks muss 'pre_llm_call' enthalten"
-    assert "post_tool_call" in hook_names or any("post_tool_call" in v for v in data["hooks"]), \
-        "plugin.yaml hooks muss 'post_tool_call' enthalten"
-    assert "on_session_end" in hook_names or any("on_session_end" in v for v in data["hooks"]), \
-        "plugin.yaml hooks muss 'on_session_end' enthalten"
+    assert "provides_hooks" in data, "plugin.yaml braucht 'provides_hooks' (Manifest v2)"
+    hook_names = data["provides_hooks"]
+    assert "pre_llm_call" in hook_names, "provides_hooks muss 'pre_llm_call' enthalten"
+    assert "post_tool_call" in hook_names, "provides_hooks muss 'post_tool_call' enthalten"
+    assert "on_session_end" in hook_names, "provides_hooks muss 'on_session_end' enthalten"
+    assert "provides_tools" in data and len(data["provides_tools"]) >= 50
 
 
 def test_research_init_importable():

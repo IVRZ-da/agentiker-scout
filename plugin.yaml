@@ -1,10 +1,72 @@
 name: agentiker-scout
-version: 0.5.15
-description: "Unified analysis, bug-hunt, and web-research plugin. 69 bug patterns, 25 analysis tools, 55 total tools."
+version: 0.5.17
+description: "Unified analysis, bug-hunt, and web-research plugin. 71 bug patterns, 26 analysis tools, 56 total tools."
 author: agentiker
 license: MIT
 repo: https://git.agentiker.de/johannes/agentiker-scout
-hooks:
-  - pre_llm_call
-  - post_tool_call
+python_dependencies:
+  - "PyYAML>=6.0,<7"
+  - "packaging>=23.0,<27"
+
+manifest_version: 2
+provides_tools:
+  - analysis_architecture
+  - analysis_ask
+  - analysis_code_move
+  - analysis_code_query
+  - analysis_deadcode
+  - analysis_dependency_risk
+  - analysis_diff
+  - analysis_diff_analysis
+  - analysis_duplicates
+  - analysis_framework
+  - analysis_graph
+  - analysis_graph_query
+  - analysis_inspect
+  - analysis_migration
+  - analysis_pattern_discover
+  - analysis_performance
+  - analysis_report
+  - analysis_review
+  - analysis_risk
+  - analysis_security
+  - analysis_test_insight
+  - analysis_timeline
+  - analysis_trend
+  - analysis_ui_gap
+  - analysis_ui_inspect
+  - analysis_watch
+  - bug_hunt_close
+  - bug_hunt_export
+  - bug_hunt_finding
+  - bug_hunt_fix
+  - bug_hunt_history
+  - bug_hunt_list
+  - bug_hunt_pattern
+  - bug_hunt_report
+  - bug_hunt_scan
+  - bug_hunt_start
+  - bug_hunt_stats
+  - bug_hunt_triage
+  - bug_hunt_verify
+  - research_auto
+  - research_cleanup
+  - research_compare
+  - research_delete
+  - research_export
+  - research_export_all
+  - research_merge
+  - research_save
+  - research_schedule
+  - research_search
+  - research_start
+  - research_stats
+  - research_status
+  - research_synthesize
+  - research_tag
+  - research_update
+  - research_verify
+provides_hooks:
   - on_session_end
+  - post_tool_call
+  - pre_llm_call

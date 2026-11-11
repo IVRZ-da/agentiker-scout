@@ -37,7 +37,7 @@ def analysis_ui_inspect_tool(args: dict, **kwargs) -> str:
 
     # Pruefen ob Chrome DevTools MCP verfuegbar ist
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         mcp_available = registry.get_entry(
             "mcp_chrome_devtools_list_console_messages"
         ) is not None
@@ -134,7 +134,7 @@ def _run_ui_inspection(url: str, include_dom: bool,
                        store_baseline: bool = False,
                        compare_baseline: bool = False) -> str:
     """Fuehrt die UI-Inspektion via MCP-Tools durch."""
-    from tools.registry import registry
+    from scout.shared.registry import registry
 
     # 1. Navigation zur URL
     nav_result = _call_mcp(registry, "mcp_chrome_devtools_navigate_page",

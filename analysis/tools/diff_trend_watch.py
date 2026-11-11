@@ -163,7 +163,7 @@ def analysis_trend_tool(args: dict, **kwargs) -> str:
 
     # Honcho nach Analyse-Historie durchsuchen
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
 
         query_parts = ["analysis"]
         if intent:

@@ -61,18 +61,14 @@ class TestPreLlmCall:
         assert result is not None
         assert "Keine" in result or "noch keine" in result.lower()
 
-    def test_graceful_on_import_error(self):
-        """pre_llm_call crasht nicht wenn tools.registry nicht verfuegbar."""
+    def test_graceful_on_import_error(self, monkeypatch):
+        """pre_llm_call crasht nicht wenn die Plugin-Registry nicht importierbar ist."""
         import sys
-        saved = sys.modules.pop("tools.registry", None)
 
         from scout.research.research_hooks import on_pre_llm_call
 
-        result = on_pre_llm_call()
-        assert result is None
-
-        if saved:
-            sys.modules["tools.registry"] = saved
+        monkeypatch.setitem(sys.modules, "scout.shared.registry", None)
+        assert on_pre_llm_call() is None
 
 
 # ---------------------------------------------------------------------------

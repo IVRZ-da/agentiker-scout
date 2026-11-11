@@ -38,7 +38,7 @@ def bug_hunt_history(args: dict, **kwargs) -> str:
             if symbol:
                 timeline_kwargs["symbol"] = symbol
                 timeline_kwargs["max_commits"] = 5
-            from tools.registry import registry
+            from scout.shared.registry import registry
             entry = registry.get_entry("analysis_timeline")
             if entry:
                 tl_result = entry.handler(timeline_kwargs)

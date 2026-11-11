@@ -53,27 +53,14 @@ def _set_cached(key: str, val: str) -> None:
 
 
 # ======================================================================
-# Hook: pre_llm_call
+# Hook-Baustein: Bug-Hunt-Session-Block
 # ======================================================================
+# Wird vom zentralen pre_llm_call-Hook (shared/intent.py) aufgerufen, wenn die
+# User-Nachricht als Bug-Hunt-Intent erkannt wurde. Kein eigener Hermes-Hook:
+# es gibt genau einen pre_llm_call-Handler pro Plugin.
 
-def on_pre_llm_call(**kwargs: Any) -> Optional[str]:
-    """Inject active bug-hunt context when keywords detected."""
-    messages = kwargs.get("messages", [])
-    if not messages:
-        return None
-
-    # Extract last user message
-    last_msg = ""
-    for m in reversed(messages):
-        if isinstance(m, dict) and m.get("role") == "user":
-            content = m.get("content", "")
-            if isinstance(content, str):
-                last_msg = content
-            break
-
-    if not last_msg or not _is_bughunt_related(last_msg):
-        return None
-
+def session_context() -> str | None:
+    """Session-Block fuer den Intent-Kontext (aktiv oder letzte Sessions)."""
     lines = ["[BUG-HUNT PLUGIN]"]
 
     # 1. Active session

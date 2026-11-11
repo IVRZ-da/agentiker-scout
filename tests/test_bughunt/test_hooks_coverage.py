@@ -19,8 +19,6 @@ from scout.bughunt.bughunt_hooks import (
     _map_security_severity,
     _set_cached,
     on_post_tool_call,
-    on_pre_llm_call,
-    on_session_end,
 )
 
 
@@ -64,71 +62,6 @@ class TestCacheHelpers:
 # ======================================================================
 # on_pre_llm_call — remaining branches
 # ======================================================================
-
-class TestPreLlmCallCoverage:
-    def setup_method(self):
-        clear_cache()
-
-    def test_import_fallback(self):
-        """Exercise the import fallback path in on_pre_llm_call."""
-        with patch.dict('sys.modules', {'scout.bughunt.bughunt_hooks.bughunt_core': None}):
-            pass
-        # The fallback is try: from . import bughunt_core except ImportError: import bughunt_core as core
-        # We can test by making the relative import fail
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Starte Bug-Hunt"}
-        ])
-        # Should not crash, result may be None if bughunt_core not importable
-        # Normally it succeeds - so just verify it runs
-        assert result is not None or True
-
-    def test_active_session_with_findings(self):
-        """on_pre_llm_call shows findings count when session has findings."""
-        clear_cache()
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        s.add_finding(core.Finding(title="P0 Bug", severity="P0"))
-        s.add_finding(core.Finding(title="P1 Bug", severity="P1"))
-        s.add_finding(core.Finding(title="P2 Bug", severity="P2"))
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Zeige die Bugs"}
-        ])
-        tracker.reset()
-        assert result is not None
-        assert "[BUG-HUNT PLUGIN]" in result
-        assert "P0=1" in result
-        assert "P1=1" in result
-        assert "P2=1" in result
-
-    def test_cached_recent_sessions_hit(self):
-        """on_pre_llm_call uses cached recent sessions."""
-        clear_cache()
-        _hook_cache["recent_sessions"] = (
-            "  Letzte Sessions: abc-123\n  Nutze bug_hunt_history(limit=5) für Details.",
-            time.monotonic(),
-        )
-        # Ensure no active session
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        tracker.reset()
-
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": "Bug-Hunt starten"}
-        ])
-        assert result is not None
-        assert "Letzte Sessions" in result
-
-    def test_content_is_not_string(self):
-        """non-string content is handled gracefully."""
-        result = on_pre_llm_call(messages=[
-            {"role": "user", "content": ["array", "content"]}
-        ])
-        assert result is None
-
 
 # ======================================================================
 # _deduce_scan_query — all branches
@@ -765,112 +698,9 @@ class TestAutoDeducePatterns:
 # on_session_end — remaining branches
 # ======================================================================
 
-class TestOnSessionEndCoverage:
-    def setup_method(self):
-        clear_cache()
-        import bughunt_core as core
-        core.get_tracker().reset()
-
-    def test_session_not_found(self):
-        """session_id has no loaded session → tracker reset."""
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        # Create a session but delete it so load fails
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-        core.delete_session(s.session_id)
-
-        on_session_end()
-        # Tracker should be reset
-        assert not tracker.is_active()
-
-    def test_no_findings_summary(self):
-        """Session with no findings shows 'no findings' in summary."""
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        on_session_end()
-        loaded = core.load_session(s.session_id)
-        assert loaded is not None
-        assert "no findings" in loaded.summary
-
-    def test_auto_deduction_success(self):
-        """Auto-deduction runs successfully on session end."""
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        s.add_finding(core.Finding(
-            title="SQL Injection",
-            severity="P2",
-            evidence="execSync('danger')",
-            file="/src/app.ts",
-        ))
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        with patch('scout.shared.patterns.count_patterns') as mock_count:
-            mock_count.return_value = {"total": 10}
-            on_session_end()
-
-        loaded = core.load_session(s.session_id)
-        assert loaded.status == "closed"
-
-    def test_honcho_dispatch_error(self):
-        """Honcho dispatch error is caught (warning logged)."""
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        # Make registry.dispatch raise an exception to test the error path
-        with patch('tools.registry.registry.dispatch', side_effect=Exception("dispatch failed")):
-            on_session_end()
-
-        loaded = core.load_session(s.session_id)
-        assert loaded.status == "closed"
-
-    def test_auto_deduction_exception(self):
-        """Exception during auto-deduction is caught."""
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        with patch('scout.bughunt.bughunt_hooks._auto_deduce_patterns') as mock_deduce:
-            mock_deduce.side_effect = Exception("deduction failed")
-            on_session_end()
-
-        loaded = core.load_session(s.session_id)
-        assert loaded.status == "closed"
-
-
 # ======================================================================
 # on_session_end — ImportError fallback (simulated)
 # ======================================================================
-
-class TestOnSessionEndImportFallback:
-    def test_import_fallback(self):
-        """Verify the import fallback path is reachable."""
-        # The code does: try: from . import bughunt_core as core except ImportError: import bughunt_core as core
-        # We can test this by making the relative import fail
-        # But since we can't easily do that, let's mock the module
-        with patch.dict('sys.modules', {'scout.bughunt.bughunt_core': None}, clear=False):
-            pass
-        # If we import the module while scout.bughunt is not available,
-        # it should use the fallback.
-        # But the module is already loaded, so this is tricky.
-        # The fallback path is already exercised by normal test execution
-        # since tests import from scout.bughunt.bughunt_hooks, which means
-        # the from . import bughunt_core path works. The fallback is only
-        # used when running as a standalone script.
-        pass
-
 
 # ======================================================================
 # Integration: _auto_deduce_patterns with real session
@@ -936,16 +766,6 @@ class TestImportFallbackPaths:
     but bughunt_core remains available via sys.modules (injected by conftest).
     """
 
-    def test_on_pre_llm_call_import_fallback(self):
-        """Verify ImportError fallback in on_pre_llm_call works."""
-        from scout.bughunt import bughunt_hooks as hooks_mod
-        with patch.object(hooks_mod, '__package__', '__bad__'):
-            result = hooks_mod.on_pre_llm_call(messages=[
-                {"role": "user", "content": "Bug-Hunt starten"}
-            ])
-            # Should not crash - fallback import bughunt_core is in sys.modules
-            # but tracker is not active, so result depends on state
-            assert result is not None
 
     def test_on_post_tool_call_import_fallback(self):
         """Verify ImportError fallback in on_post_tool_call works."""
@@ -954,12 +774,6 @@ class TestImportFallbackPaths:
             # Should not crash even with inactive tracker
             hooks_mod.on_post_tool_call(tool_name="code_search")
 
-    def test_on_session_end_import_fallback(self):
-        """Verify ImportError fallback in on_session_end works."""
-        from scout.bughunt import bughunt_hooks as hooks_mod
-        with patch.object(hooks_mod, '__package__', '__bad__'):
-            # Should not crash even with inactive tracker
-            hooks_mod.on_session_end()
 
     def test_auto_create_findings_import_fallback(self):
         """Verify ImportError fallback in _auto_create_findings_from_security works."""
@@ -1007,11 +821,3 @@ class TestMiscellaneous:
     def test_is_bughunt_related_none(self):
         """None text returns False."""
         assert _is_bughunt_related(None) is False
-
-    def test_on_pre_llm_call_no_user_message(self):
-        """Messages without user role user returns None."""
-        result = on_pre_llm_call(messages=[
-            {"role": "system", "content": "You are a bot"},
-            {"role": "assistant", "content": "Hello"},
-        ])
-        assert result is None

@@ -51,25 +51,15 @@ class TestDispatchMechanism:
 
     @pytest.fixture
     def echo_env(self, echo_handler_registry):
-        """Patched sys.modules mit echo_handler_registry."""
-        import sys
-        import types
+        """Ersetzt die Plugin-Registry durch echo_handler_registry (und zurueck)."""
+        from scout.shared import registry as registry_mod
 
-        _t = types.ModuleType("tools")
-        _t.registry = types.ModuleType("tools.registry")
-        _t.registry.registry = echo_handler_registry
-        _t.registry.dispatch = echo_handler_registry.dispatch
-
-        old = {}
-        for m in ("tools", "tools.registry"):
-            old[m] = sys.modules.get(m)
-            sys.modules[m] = _t if m == "tools" else _t.registry
-        yield echo_handler_registry
-        for m, v in old.items():
-            if v is not None:
-                sys.modules[m] = v
-            else:
-                sys.modules.pop(m, None)
+        old = registry_mod.registry
+        registry_mod.registry = echo_handler_registry
+        try:
+            yield echo_handler_registry
+        finally:
+            registry_mod.registry = old
 
     def test_dispatch_routes_to_handler(self, echo_env):
         """_call_tool ruft den registrierten Handler auf."""
@@ -111,22 +101,13 @@ class TestDispatchMechanism:
 
     def test_dispatch_handles_string_result(self, echo_env):
         """Handler der einen String returned wird von _call_tool parsed."""
-        import sys
-        import types as _types
-
         # Zusätzlicher Handler der raw String returned
         def _handle_raw(args, **kw):
             return '{"status": "ok", "from": "raw_string"}'
 
         echo_env.register("raw_string_tool", _handle_raw)
-        # Refresh sys.modules
-        _t = _types.ModuleType("tools")
-        _t.registry = _types.ModuleType("tools.registry")
-        _t.registry.registry = echo_env
-        _t.registry.dispatch = echo_env.dispatch
-        for m in ("tools", "tools.registry"):
-            sys.modules.get(m)
-            sys.modules[m] = _t if m == "tools" else _t.registry
+        # Registry kommt bereits aus dem echo_env-Fixture
+        # Registry kommt bereits aus dem echo_env-Fixture
 
         result = _call_tool("raw_string_tool")
         assert isinstance(result, dict)
@@ -135,21 +116,12 @@ class TestDispatchMechanism:
 
     def test_handler_exception_is_caught(self, echo_env):
         """Exception im Handler wird von _call_tool abgefangen."""
-        import sys
-        import types as _types
-
         def _handle_crash(args, **kw):
             raise RuntimeError("simulated crash")
 
         echo_env.register("crash_tool", _handle_crash)
-        # Refresh sys.modules
-        _t = _types.ModuleType("tools")
-        _t.registry = _types.ModuleType("tools.registry")
-        _t.registry.registry = echo_env
-        _t.registry.dispatch = echo_env.dispatch
-        for m in ("tools", "tools.registry"):
-            sys.modules.get(m)
-            sys.modules[m] = _t if m == "tools" else _t.registry
+        # Registry kommt bereits aus dem echo_env-Fixture
+        # Registry kommt bereits aus dem echo_env-Fixture
 
         result = _call_tool("crash_tool")
         assert isinstance(result, dict)
@@ -157,9 +129,6 @@ class TestDispatchMechanism:
 
     def test_multiple_registrations(self, echo_env):
         """Mehrere Handler können registriert werden."""
-        import sys
-        import types as _types
-
         def _handle_a(args, **kw):
             return json.dumps({"status": "ok", "tool": "tool_a"})
 
@@ -169,13 +138,7 @@ class TestDispatchMechanism:
         echo_env.register("tool_a", _handle_a)
         echo_env.register("tool_b", _handle_b)
 
-        _t = _types.ModuleType("tools")
-        _t.registry = _types.ModuleType("tools.registry")
-        _t.registry.registry = echo_env
-        _t.registry.dispatch = echo_env.dispatch
-        for m in ("tools", "tools.registry"):
-            sys.modules.get(m)
-            sys.modules[m] = _t if m == "tools" else _t.registry
+        # Registry kommt bereits aus dem echo_env-Fixture
 
         result_a = _call_tool("tool_a")
         result_b = _call_tool("tool_b")
@@ -192,16 +155,10 @@ class TestRealDispatchWithRealHandlers:
 
     @pytest.fixture
     def patched_registry(self, real_registry, monkeypatch):
-        """Patch sys.modules damit _call_tool die real_registry nutzt."""
-        import sys
-        import types as _types
+        """Setzt die Plugin-Registry auf real_registry."""
+        from scout.shared import registry as _reg_mod
 
-        _t = _types.ModuleType("tools")
-        _t.registry = _types.ModuleType("tools.registry")
-        _t.registry.registry = real_registry
-        _t.registry.dispatch = real_registry.dispatch
-        monkeypatch.setitem(sys.modules, "tools", _t)
-        monkeypatch.setitem(sys.modules, "tools.registry", _t.registry)
+        monkeypatch.setattr(_reg_mod, "registry", real_registry)
         return real_registry
 
     def test_dispatch_analysis_diff(self, patched_registry, tmp_path):

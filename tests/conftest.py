@@ -72,15 +72,19 @@ _hermes.plugins.PluginContext = MockPluginContext
 sys.modules["hermes_cli"] = _hermes
 sys.modules["hermes_cli.plugins"] = _hermes.plugins
 
-# tools.registry Shim — nutzt MockRegistry aus fakes/
-_tools = types.ModuleType("tools")
-_tools.registry = types.ModuleType("tools.registry")
-_tools.registry.registry = create_registry()
-sys.modules["tools"] = _tools
-sys.modules["tools.registry"] = _tools.registry
+# Plugin-Registry: EINE Modul-Instanz fuer alle Testpfade.
+# Das Plugin importiert 'scout.shared.registry'; der historische Pfad
+# 'tools.registry' zeigt auf dasselbe Modulobjekt, damit bestehende Tests, die
+# sys.modules["tools.registry"] patchen, weiterhin den echten Dispatch treffen.
+import scout.shared.registry as _plugin_registry_mod  # noqa: E402
+
+_tools_mod = types.ModuleType("tools")
+_tools_mod.registry = _plugin_registry_mod
+sys.modules["tools"] = _tools_mod
+sys.modules["tools.registry"] = _plugin_registry_mod
 
 # Eintraege mit statischen Handlern (kein self!)
-_dispatch_registry = _tools.registry.registry
+_dispatch_registry = _plugin_registry_mod.registry
 _dispatch_registry._entries = {}
 
 

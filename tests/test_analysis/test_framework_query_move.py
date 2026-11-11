@@ -61,8 +61,8 @@ class TestAnalysisFrameworkTool:
         mock_detector.detect_fast.return_value = mock_profile
 
         with (
-            patch("shared.framework_detector.FrameworkDetector", return_value=mock_detector) as MockDet,
-            patch("shared.framework_detector.format_profile_summary", return_value="Profil: Python 3.12"),
+            patch("scout.shared.framework_detector.FrameworkDetector", return_value=mock_detector) as MockDet,
+            patch("scout.shared.framework_detector.format_profile_summary", return_value="Profil: Python 3.12"),
         ):
             result = analysis_framework_tool({"path": "/some/project"})
             MockDet.assert_called_once_with("/some/project")
@@ -77,8 +77,8 @@ class TestAnalysisFrameworkTool:
         mock_detector.detect_fast.return_value = mock_profile
 
         with (
-            patch("shared.framework_detector.FrameworkDetector", return_value=mock_detector),
-            patch("shared.framework_detector.format_profile_summary", return_value="Profil: Node.js"),
+            patch("scout.shared.framework_detector.FrameworkDetector", return_value=mock_detector),
+            patch("scout.shared.framework_detector.format_profile_summary", return_value="Profil: Node.js"),
         ):
             result = analysis_framework_tool({"path": "/p", "fast": True})
             mock_detector.detect_fast.assert_called_once()
@@ -87,14 +87,14 @@ class TestAnalysisFrameworkTool:
 
     def test_value_error_returns_error(self):
         """ValueError → fmt_err."""
-        with patch("shared.framework_detector.FrameworkDetector",
+        with patch("scout.shared.framework_detector.FrameworkDetector",
                    side_effect=ValueError("invalid path")):
             result = analysis_framework_tool({"path": "/bad"})
         assert "invalid path" in result
 
     def test_generic_exception_returns_error(self):
         """Beliebige Exception → fmt_err."""
-        with patch("shared.framework_detector.FrameworkDetector",
+        with patch("scout.shared.framework_detector.FrameworkDetector",
                    side_effect=RuntimeError("unexpected")):
             result = analysis_framework_tool({"path": "/broken"})
         assert "unexpected" in result

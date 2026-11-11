@@ -22,7 +22,7 @@ def _resolve_scan_patterns(pattern_ids: list, preset_name: str, fw_list: list, c
     fw_profile = None
     if not fw_list:
         try:
-            from shared.framework_detector import FrameworkDetector
+            from scout.shared.framework_detector import FrameworkDetector
             detector = FrameworkDetector(scan_path)
             fw_profile = detector.detect_fast().to_dict()
             fw_frameworks = fw_profile.get("frameworks", {})

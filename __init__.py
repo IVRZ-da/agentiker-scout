@@ -112,12 +112,12 @@ def _register_hooks(ctx: PluginContext) -> None:
         logger.debug("honcho hooks nicht registriert: %s", e)
 
 
-# ─── Namespace-Shims ───────────────────────────────────────────────
-# Hermes lädt Plugins als hermes_plugins.scout, nicht als scout.
-# Damit absolute 'from scout.X import Y' und 'from shared.X import Y'
-# Imports funktionieren, registrieren wir beide als sys.modules-Shims.
+# ─── Namespace-Paket ───────────────────────────────────────────────
+# Hermes laedt Plugins unter einem eigenen Modulnamen. Damit die absoluten
+# 'from scout.X import Y'-Importe funktionieren, wird 'scout' als
+# Namespace-Paket in sys.modules registriert (nur der eigene Name - kein
+# Eingriff in 'tools' oder 'shared').
 _SCOUT_SHIM_REGISTERED = False
-_SHARED_SHIM_REGISTERED = False
 
 
 def _ensure_scout_namespace() -> None:
@@ -133,28 +133,12 @@ def _ensure_scout_namespace() -> None:
     _SCOUT_SHIM_REGISTERED = True
 
 
-def _ensure_shared_namespace() -> None:
-    """Registriert 'shared' als sys.modules-Shim für 'from shared.X' Imports.
-
-    Ermöglicht lazy imports wie 'from shared.framework_detector import X'
-    ohne dass alle 6+ Stellen auf 'scout.shared.X' umgestellt werden müssen.
-    """
-    global _SHARED_SHIM_REGISTERED
-    if _SHARED_SHIM_REGISTERED:
-        return
-    if "shared" not in sys.modules:
-        shared_mod = type(sys)("shared")
-        shared_mod.__path__ = [str(PLUGIN_DIR / "shared")]
-        shared_mod.__package__ = "shared"
-        shared_mod.__name__ = "shared"
-        sys.modules["shared"] = shared_mod
-    _SHARED_SHIM_REGISTERED = True
-
-
 # → Module-Level Execution ←
-# Shims werden SOFORT beim Plugin-Load aktiviert, nicht erst in register()
+# 'scout' wird als Namespace-Paket registriert, damit die absoluten
+# 'from scout.X import Y'-Importe auch funktionieren, wenn Hermes das Plugin
+# unter einem anderen Modulnamen laedt. KEIN Shim fuer 'tools'/'shared' mehr:
+# die haetten den Hermes-Core-Namespace ueberschrieben (siehe 0.5.17).
 _ensure_scout_namespace()
-_ensure_shared_namespace()
 
 
 # ─── Data-Dirs ───────────────────────────────────────────────────────
@@ -167,74 +151,22 @@ def _ensure_dirs() -> None:
     (PLUGIN_DIR / "analysis" / "data").mkdir(parents=True, exist_ok=True)
 
 
-def _ensure_deps() -> None:
-    """Auto-install fehlender Dependencies beim ersten Plugin-Start."""
-    import importlib
-    import logging
-    import re
-    import shlex
-    import subprocess
-    import sys
-    logger = logging.getLogger(__name__)
-
-    missing: list[str] = []
-    allowed_pkgs = [
-        ("PyYAML", "yaml"),
-        ("packaging", "packaging"),
-    ]
-    for pkg_name, import_name in allowed_pkgs:
-        try:
-            importlib.import_module(import_name)
-        except ImportError:
-            # Package-Name validieren: nur alphanumerisch + - + .
-            if not re.match(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$", pkg_name):
-                logger.warning("Überspringe ungültigen Package-Namen: %s", pkg_name)
-                continue
-            missing.append(pkg_name)
-
-    if not missing:
-        return
-
-    # Versuch 1: pip ins aktive Venv
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install"] + missing,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        logger.info("✅ Dependencies auto-installiert: %s", missing)
-        return
-    except (subprocess.CalledProcessError, OSError) as e:
-        logger.warning("Auto-Install (venv) fehlgeschlagen: %s. Versuche --user ...", e)
-
-    # Versuch 2: --user Fallback (für systemd/root/Docker)
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--user"] + missing,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        logger.info("✅ Dependencies via --user installiert: %s", missing)
-        return
-    except (subprocess.CalledProcessError, OSError) as e:
-        safe_cmd = "%s -m pip install %s" % (
-            shlex.quote(sys.executable),
-            " ".join(shlex.quote(p) for p in missing),
-        )
-        logger.error("❌ Auto-Install fehlgeschlagen: %s. Manuell: %s", e, safe_cmd)
-
-
 # ─── Plugin Entry Point ──────────────────────────────────────────────
 
 def register(ctx: PluginContext) -> None:
-    """Plugin entry point — registers hooks + tools."""
-    _ensure_deps()
+    """Plugin entry point — registers hooks + tools.
 
-    # tools.registry Shim (für 19 Stellen in Domain-Modulen)
-    # Ersetzt das fehlende `tools.registry` Modul.
+    Abhaengigkeiten stehen im Manifest (``python_dependencies``); fehlende Pakete
+    meldet Hermes selbst und installiert sie via ``hermes pm repair``. Kein
+    pip-Aufruf zur Laufzeit mehr.
+    """
+    # Plugin-Dispatch an die echte Hermes-Tool-Registry binden
+    # (analysis/research/bughunt rufen honcho_search, code_search_by_error, ...).
     from scout.shared import registry as _registry_mod
-    _tools_mod = type(sys)("tools")
-    _tools_mod.registry = _registry_mod
-    sys.modules.setdefault("tools", _tools_mod)
-    sys.modules.setdefault("tools.registry", _tools_mod.registry)
+
+    binder = getattr(_registry_mod.registry, "bind_context", None)
+    if callable(binder):
+        binder(ctx)
 
     _ensure_dirs()
     _register_tools(ctx)

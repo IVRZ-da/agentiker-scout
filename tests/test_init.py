@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from scout import (
     TOOL_DESCRIPTIONS,
-    _ensure_deps,
     _ensure_dirs,
     _ensure_scout_namespace,
-    _ensure_shared_namespace,
     _register_domain_tools,
     _register_hooks,
     _register_tools,
@@ -38,21 +36,6 @@ class TestEnsureScoutNamespace:
         finally:
             if saved:
                 sys.modules["scout"] = saved
-
-
-class TestEnsureSharedNamespace:
-    def test_registers_shared_module(self):
-        saved = sys.modules.pop("shared", None)
-        try:
-            import scout
-            scout._SHARED_SHIM_REGISTERED = False
-            _ensure_shared_namespace()
-            assert "shared" in sys.modules
-            mod = sys.modules["shared"]
-            assert hasattr(mod, "__path__")
-        finally:
-            if saved:
-                sys.modules["shared"] = saved
 
 
 class TestResolveHandler:
@@ -144,58 +127,71 @@ class TestEnsureDirs:
         assert True
 
 
-class TestEnsureDeps:
-    def test_all_deps_installed(self):
-        """Wenn alle deps vorhanden, wird nichts gemacht."""
-        result = _ensure_deps()
-        assert result is None
-
-    def test_missing_dep_triggers_pip_install(self):
-        """Wenn dep fehlt, wird pip install versucht."""
-        import subprocess as real_subprocess
-
-        def _side_effect(name):
-            if name in ("yaml", "packaging"):
-                raise ImportError(f"No module named {name}")
-            # For everything else, use real importlib
-            return real_subprocess  # dummy
-
-        saved_check_call = real_subprocess.check_call
-        real_subprocess.check_call = MagicMock()
-        try:
-            with patch("importlib.import_module", side_effect=_side_effect):
-                _ensure_deps()
-                assert real_subprocess.check_call.call_count >= 1
-        finally:
-            real_subprocess.check_call = saved_check_call
-
-    def test_pip_failure_fallback_to_user(self):
-        """Wenn pip fehlschlägt, wird --user versucht."""
-        import subprocess as real_subprocess
-
-        def _side_effect(name):
-            if name in ("yaml", "packaging"):
-                raise ImportError(f"No module named {name}")
-            return MagicMock()
-
-        import subprocess
-        saved_check_call = real_subprocess.check_call
-        real_subprocess.check_call = MagicMock(
-            side_effect=[subprocess.CalledProcessError(1, "pip"), None]
-        )
-        try:
-            with patch("importlib.import_module", side_effect=_side_effect):
-                _ensure_deps()
-                assert real_subprocess.check_call.call_count == 2
-        finally:
-            real_subprocess.check_call = saved_check_call
-
-
 class TestRegister:
-    def test_register_no_crash(self, mock_plugin_context):
-        """Full register() call should not crash."""
-        with patch("scout._ensure_deps"):
-            with patch("scout._ensure_dirs"):
-                with patch("scout._register_tools"):
-                    with patch("scout._register_hooks"):
-                        register(mock_plugin_context)
+    def test_register_binds_registry_context(self, mock_plugin_context, monkeypatch):
+        """register() muss den PluginContext an die Tool-Registry binden."""
+        from scout.shared import registry as registry_mod
+
+        real = registry_mod.Registry()
+        monkeypatch.setattr(registry_mod, "registry", real)
+        with patch("scout._ensure_dirs"), patch("scout._register_tools"), patch("scout._register_hooks"):
+            register(mock_plugin_context)
+        assert real._context is mock_plugin_context
+
+    def test_register_registers_hooks(self, mock_plugin_context):
+        """register() muss die drei Hooks anmelden."""
+        with patch("scout._ensure_dirs"), patch("scout._register_tools"):
+            register(mock_plugin_context)
+        names = [c.args[0] for c in mock_plugin_context.register_hook.call_args_list]
+        assert set(names) == {"pre_llm_call", "post_tool_call", "on_session_end"}
+
+
+class TestNamespaceIsolation:
+    """Der Plugin-Import darf den Hermes-Core-Namespace nicht veraendern."""
+
+    def test_no_tools_shim_in_source(self):
+        import inspect
+
+        import scout
+
+        src = inspect.getsource(scout)
+        assert "sys.modules.setdefault(\"tools\"" not in src
+        assert "sys.modules[\"tools\"]" not in src
+
+    def test_no_shared_shim_in_source(self):
+        import inspect
+
+        import scout
+
+        src = inspect.getsource(scout)
+        assert "_ensure_shared_namespace" not in src
+        assert "sys.modules.setdefault(\"shared\"" not in src
+
+    def test_no_runtime_pip_install(self):
+        import inspect
+
+        import scout
+
+        src = inspect.getsource(scout)
+        assert "_ensure_deps" not in src
+        assert "pip install" not in src
+
+    def test_tools_namespace_untouched_by_import(self):
+        """Ein frischer Import von scout legt kein 'tools'-Modul an."""
+        import subprocess
+
+        from scout import PLUGIN_DIR
+
+        code = (
+            "import sys, importlib.util\n"
+            f"d = r'{PLUGIN_DIR}'\n"
+            "spec = importlib.util.spec_from_file_location('scout', d + '/__init__.py', "
+            "submodule_search_locations=[d])\n"
+            "m = importlib.util.module_from_spec(spec)\n"
+            "sys.modules['scout'] = m\n"
+            "spec.loader.exec_module(m)\n"
+            "print('DIRTY' if 'tools' in sys.modules else 'CLEAN')\n"
+        )
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+        assert out.returncode == 0, out.stderr
+        assert out.stdout.strip().splitlines()[-1] == "CLEAN", out.stdout

@@ -274,51 +274,6 @@ class TestArgSummarization:
 # Tests: pre_llm_call Hook
 # ---------------------------------------------------------------------------
 
-class TestPreLlmCall:
-
-    def test_returns_none_without_messages(self):
-        result = core.inject_analysis_context()
-        assert result is None
-
-    def test_returns_none_with_empty_messages(self):
-        result = core.inject_analysis_context(messages=[])
-        assert result is None
-
-    def test_returns_none_for_normal_query(self):
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Hallo, wie geht es dir?"}
-        ])
-        assert result is None
-
-    def test_returns_context_for_analysis_query(self):
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere die Architektur"}
-        ])
-        assert result is not None
-        assert "analysis-plugin" in result
-        assert "Analyse erkannt" in result
-
-    def test_includes_recommendations(self):
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere die Architektur"}
-        ])
-        assert "code_dependency_graph" in result
-        assert "code_cycle_detector" in result
-
-    def test_includes_file_refs(self):
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere src/main.py"}
-        ])
-        assert result is not None
-        assert "src/main.py" in result
-
-    def test_sets_session_active(self):
-        core._analysis_session.reset()
-        core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere die Performance"}
-        ])
-        assert core._analysis_session.active is True
-        assert core._analysis_session.intent == "performance"
 
 
 # ---------------------------------------------------------------------------
@@ -366,43 +321,6 @@ class TestPostToolCall:
 # Tests: Integration — Full Analysis Flow
 # ---------------------------------------------------------------------------
 
-class TestFullAnalysisFlow:
-
-    def test_detect_then_track_then_persist(self):
-        """Simuliert eine vollständige Analyse-Session."""
-        core._analysis_session.reset()
-
-        # 1. Analyse-Frage
-        ctx = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere die Abhängigkeiten in main.py"}
-        ])
-        assert ctx is not None
-        assert core._analysis_session.active is True
-
-        # 2. Tool-Calls tracken
-        core.track_tool_call(
-            tool_name="code_dependency_graph",
-            args={"path": "main.py", "format": "mermaid"},
-            result='{"graph": "A -> B"}',
-            duration_ms=200,
-            status="ok",
-        )
-        core.track_tool_call(
-            tool_name="code_cycle_detector",
-            args={"path": "main.py"},
-            result='{"cycles": [["A", "B", "A"]]}',
-            duration_ms=150,
-            status="ok",
-        )
-
-        assert len(core._analysis_session.tools_used) == 2
-        assert "main.py" in core._analysis_session.files_analyzed
-
-        # 3. Session persistieren (simuliert on_session_end)
-        core.persist_analysis_session()
-
-        # Nach Persistenz sollte Session resettet sein
-        assert core._analysis_session.active is False
 
 
 # ---------------------------------------------------------------------------
@@ -411,34 +329,9 @@ class TestFullAnalysisFlow:
 
 class TestEdgeCases:
 
-    def test_empty_message_in_messages_list(self):
-        """Messages mit leerem Content sollen nicht crashen."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": ""}
-        ])
-        assert result is None
 
-    def test_messages_with_only_tool_role(self):
-        """Messages ohne user-role sollen nicht crashen."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "assistant", "content": "Analysiere die Architektur"}
-        ])
-        assert result is None
 
-    def test_unicode_in_analysis_query(self):
-        """Unicode-Zeichen sollen nicht crashen."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysière die Übergabe-Struktür 🌟"}
-        ])
-        assert result is not None
 
-    def test_very_long_query_truncated_gracefully(self):
-        """Sehr lange Queries sollen nicht crashen."""
-        long_query = "Analysiere " + "x" * 10000
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": long_query}
-        ])
-        assert result is not None
 
     def test_detect_intent_empty_string(self):
         assert core._detect_intent("") is None
@@ -669,117 +562,6 @@ class TestAggregateFindings:
 # Tests: inject_analysis_context Edge Cases
 # ---------------------------------------------------------------------------
 
-class TestInjectContextEdgeCases:
-    """Tests für Randfälle in inject_analysis_context."""
-
-    def test_import_error_handled_gracefully(self):
-        """ImportError beim code_symbols Dispatch wird graceful abgefangen."""
-        # Simuliere eine Situation wo tools.registry nicht das erwartete dispatch hat
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere src/main.py"}
-        ])
-        assert result is not None
-        assert "analysis-plugin" in result
-
-    def test_inject_context_with_exception(self):
-        """Exception in inject_analysis_context wird abgefangen -> None."""
-        # Übergebe kaputte Messages-Datenstruktur
-        result = core.inject_analysis_context(messages="not_a_list")
-        assert result is None
-
-    def test_inject_context_non_dict_messages(self):
-        """messages-Einträge die keine dicts sind werden ignoriert."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Hallo"},
-            "not_a_dict",
-        ])
-        assert result is None
-
-    def test_inject_context_user_content_non_string(self):
-        """user content das kein string ist wird ignoriert."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": ["array", "content"]},
-        ])
-        assert result is None
-
-    def test_inject_context_history_context_included(self):
-        """Wenn history_ctx vorhanden, wird es eingebaut."""
-        import time
-
-        from scout.analysis.intent_helpers import _honcho_cache
-        cache_key = f"honcho_analysis:{hash('test query')%10000}"
-        _honcho_cache[cache_key] = ("vorherige Analyse gefunden", time.time())
-        try:
-            result = core.inject_analysis_context(messages=[
-                {"role": "user", "content": "test query mit analyse keyword"}
-            ])
-            # Kann None sein wenn _is_analysis_query nicht matched,
-            # aber sollte nicht crashen
-            if result:
-                assert "analysis-plugin" in result
-        finally:
-            _honcho_cache.pop(cache_key, None)
-
-    def test_inject_context_history_with_none_string(self):
-        """history_ctx = 'None' wird als leer betrachtet."""
-        import time
-
-        from scout.analysis.intent_helpers import _honcho_cache
-        cache_key = f"honcho_analysis:{hash('test query')%10000}"
-        _honcho_cache[cache_key] = ("None", time.time())
-        try:
-            core.inject_analysis_context(messages=[
-                {"role": "user", "content": "test query mit analyse keyword"}
-            ])
-            # sollte nicht crashen
-        finally:
-            _honcho_cache.pop(cache_key, None)
-
-    def test_inject_context_history_with_empty_list_string(self):
-        """history_ctx = '[]' wird als leer betrachtet."""
-        import time
-
-        from scout.analysis.intent_helpers import _honcho_cache
-        cache_key = f"honcho_analysis:{hash('test query')%10000}"
-        _honcho_cache[cache_key] = ("[]", time.time())
-        try:
-            core.inject_analysis_context(messages=[
-                {"role": "user", "content": "test query mit analyse keyword"}
-            ])
-        finally:
-            _honcho_cache.pop(cache_key, None)
-
-    def test_inject_context_with_file_refs_and_existing_path(self):
-        """Wenn file_refs existieren und Pfad existiert, werden Symbole abgerufen."""
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
-            f.write("class TestClass:\n    pass\n")
-            tmp_path = f.name
-        try:
-            result = core.inject_analysis_context(messages=[
-                {"role": "user", "content": f"Analysiere {tmp_path}"}
-            ])
-            assert result is not None
-            # Sollte Symbole enthalten (via registry.dispatch)
-            assert "analysis-plugin" in result
-        finally:
-            import os
-            os.unlink(tmp_path)
-
-    def test_inject_context_analysis_query_false(self):
-        """Keine Analyse wenn _is_analysis_query False."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Schreibe ein Gedicht"}
-        ])
-        assert result is None
-
-    def test_inject_context_intent_fallback_code(self):
-        """Wenn _detect_intent None liefert, Fallback auf 'code'."""
-        result = core.inject_analysis_context(messages=[
-            {"role": "user", "content": "Analysiere das"}
-        ])
-        # 'Analysiere' matched _is_analysis_query, aber nicht _detect_intent
-        assert result is not None
 
 
 # ---------------------------------------------------------------------------
@@ -1305,32 +1087,8 @@ class TestCoverageGaps:
         # Kein Crash, Exception wird geloggt
         assert True
 
-    def test_inject_context_outer_exception(self):
-        """Lines 216-218: Outer exception handler in inject_analysis_context."""
-        # Übergebe kaputte kwargs die Exception in der gesamten Funktion auslösen
-        core.inject_analysis_context(
-            messages=[{"role": "user", "content": "test"}],
-            # Extra kwarg sollte keinen Fehler verursachen
-        )
         # Normale Ausführung
 
-    def test_inject_context_path_exists_with_symbols(self):
-        """Lines 205-210: file_refs mit existierendem Pfad und Symbolen."""
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
-            f.write("class MyClass:\n    pass\n\ndef my_func():\n    pass\n")
-            tmp_path = f.name
-        try:
-            # Pfad muss existieren und das registry dispatch muss Symbole liefern
-            # Der Mock in conftest.py gibt {'tool': ..., 'status': 'mocked', ...} zurück
-            result = core.inject_analysis_context(messages=[
-                {"role": "user", "content": f"Analysiere {tmp_path}"}
-            ])
-            assert result is not None
-            assert "analysis-plugin" in result
-        finally:
-            import os
-            os.unlink(tmp_path)
 
     def test_persist_outer_exception(self):
         """Lines 315-316: Outer exception in persist_analysis_session."""

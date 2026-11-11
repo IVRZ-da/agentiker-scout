@@ -160,7 +160,7 @@ def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
     fw_names: list[str] = []
     if not frameworks_opt:
         try:
-            from shared.framework_detector import FrameworkDetector
+            from scout.shared.framework_detector import FrameworkDetector
             detector = FrameworkDetector(path)
             fw_profile = detector.detect_fast()
             fw_names = []

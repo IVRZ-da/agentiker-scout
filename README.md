@@ -3,7 +3,7 @@
 > Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
 > 43 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
 >
-> [![Version](https://img.shields.io/badge/version-0.5.16-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2148%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+> [![Version](https://img.shields.io/badge/version-0.5.17-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2156%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ## 📋 Table of Contents
 
@@ -75,9 +75,9 @@ bug_hunt_pattern(action="list_categories")
 
 <!-- README_AUTO -->
 
-[![Version](https://img.shields.io/badge/version-0.5.16-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2148%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.5.17-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2156%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-**Version:** 0.5.16
+**Version:** 0.5.17
 
 **Tests:** 2148 tests
 
@@ -326,3 +326,14 @@ See `CONTRIBUTING.md` and `BRANCHING.md` for details.
 ## 📄 License
 
 [MIT](LICENSE)
+
+## Compatibility
+
+Tested against **Hermes Agent v0.23.1** (Python 3.13 and 3.14).
+
+- `pre_llm_call` is called with `user_message` + `conversation_history` (Hermes >= 0.23);
+  the plugin also still accepts the legacy `messages` kwarg.
+- Manifest v2 (`manifest_version: 2`) with generated `provides_tools` / `provides_hooks`:
+  `python3 scripts/gen_manifest_capabilities.py` (add `--check` in CI).
+- Tool dispatch goes through `ctx.dispatch_tool` (public plugin API) - no `sys.modules`
+  patching of Hermes core packages.

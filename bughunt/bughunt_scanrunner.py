@@ -136,7 +136,7 @@ def is_mcp_devtools_available() -> bool:
         True wenn mcp_chrome_devtools Tools registriert sind.
     """
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         return registry.get_entry("mcp_chrome_devtools_list_console_messages") is not None
     except (ImportError, AttributeError):
         return False
@@ -252,7 +252,7 @@ def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
     kwargs["path"] = scan_path
 
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         entry = registry.get_entry(tool_name)
         if entry is None:
             logger.debug("code_intel scan skipped — %s not registered", tool_name)

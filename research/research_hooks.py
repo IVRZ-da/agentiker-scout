@@ -60,7 +60,7 @@ def on_pre_llm_call(**kwargs) -> str | None:
     der aktuellen User-Nachricht. Zeigt auch Tracking-Status an.
     """
     try:
-        from tools.registry import registry  # noqa: F401
+        from scout.shared.registry import registry  # noqa: F401
     except ImportError:
         return None
 
@@ -154,7 +154,7 @@ def on_post_tool_call(**kwargs) -> None:
         # Versuche honcho_reasoning für Auto-Synthese zu triggern
         # (Nur als Hinweis — der Hook kann keine Tools direkt aufrufen)
         try:
-            from tools.registry import registry
+            from scout.shared.registry import registry
             if registry.get_entry("honcho_conclude"):
                 _tool_call_tracker["_auto_synth_triggered"] = True
         except (ImportError, AttributeError):
@@ -240,7 +240,7 @@ def reset_tracker(research_id: str | None = None) -> None:
 
 def _check_honcho_available() -> bool:
     try:
-        from tools.registry import registry
+        from scout.shared.registry import registry
         return registry.get_entry("honcho_search") is not None
     except Exception:
         return False
