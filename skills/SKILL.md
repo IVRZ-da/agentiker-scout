@@ -111,6 +111,47 @@ research_save → findings → _auto_deduce_patterns() ────┘
 ### Web-Recherche (17)
 `research_start`, `research_save`, `research_search`, `research_status`, `research_delete`, `research_cleanup`, `research_export`, `research_compare`, `research_synthesize`, `research_schedule`, `research_auto`, `research_merge`, `research_tag`, `research_update`, `research_verify`, `research_export_all`, `research_stats`
 
+## Entscheidungsmatrix: Welches Tool für welche Aufgabe?
+
+| Situation | Tool | Statt | Grund |
+|-----------|------|-------|-------|
+| Source-Code nach Symbolen durchsuchen | `code_search` / `code_symbols` | `grep` / `search_files` | AST-sicher, keine False-Positives |
+| Datei-Struktur verstehen | `code_overview` / `code_capsule` | `read_file` | Token-Ersparnis 10-50x |
+| Go-to-Definition | `code_definition` | `grep -rn "def foo"` | LSP-praezise |
+| Referenzen finden | `code_references` | `grep -rn "foo("` | Cross-File, LSP |
+| Impact vor Refactoring | `code_impact` / `code_blast_radius` | Manuelle Analyse | Automatisch, transitiv |
+| Complexity messen | `code_complexity` | `radon cc` | Integriert, mit Breakdown |
+| Error-Handling finden | `code_search_by_error` | `grep "except\\|throw"` | Error-Typ-bewusst |
+| Unused Code finden | `code_unused_finder` | Manuelles Grep | AST-basiert |
+| Duplikate finden | `code_duplicates` | `grep` + manuell | AST-Vergleich |
+| TODO/FIXME finden | `code_todo_finder` | `grep -rn "TODO"` | Git-basiert, strukturiert |
+| Grosse Refactorings | `code_refactor` / `code_batch_refactor` | `sed` / `patch` | AST-bewusst, Dry-Run |
+| Plugin/Projekt analysieren | `analysis_inspect(depth=3)` | `search_files` + `read_file` | All-in-one: Symbole + Struktur + Diagnostics |
+| Architektur-Checks | `analysis_architecture` | `grep` + `tree` | Abhängigkeitsgraph + Zyklen |
+| Dead Code erkennen | `analysis_deadcode` | `grep` nach Imports | AST-gestützt, Cross-File |
+| Performance-Hotspots | `analysis_performance` | Manuelle Analyse | Complexity + Hot Paths |
+| Security-Scan | `analysis_security` oder `code_security_scan` | `grep` nach Secrets | Pattern-basiert, 30+ Rules |
+| Bug-Hunt automatisieren | `bug_hunt_scan` mit Pattern-IDs | `grep` + manuelle Findings | 69 Built-in Patterns, auto-categorize |
+| Bug-Hunt Session verwalten | `bug_hunt_start/finding/list/triage` | Todo-Liste | Strukturiert, persistiert, exportierbar |
+| Web-Recherche | `research_auto(query)` oder `mcp_firecrawl_firecrawl_search` | `web_search` | Tiefe Recherche, auto-synthetisiert |
+| Schnelle Web-Suche | `mcp_firecrawl_firecrawl_search` | `web_search` | Firecrawl ist FIRST laut SOUL.md |
+| DB Health-Check | `mcp_postgres_mcp_analyze_db_health` | Manuelle Queries | Indizes, Connections, Vacuums in einem |
+| UI Gap Analysis | `analysis_ui_gap` | Manuelles Form-Vergleichen | Backend vs Frontend automatisch |
+| Code Review zwischen Branches | `analysis_review` oder `code_review_assistant` | Manuelles Diff-Checken | Security + Complexity + Dead Code |
+| Framework erkennen | `analysis_framework` | `package.json` + `go.mod` lesen | Automatischer Tech-Stack |
+| Nach Session-Details suchen | `session_search(query=...)` | `honcho_search` oder `grep` | FTS5, schnell, strukturiert |
+
+### 🔴 Wann NIEMALS grep im Terminal
+
+| Vermeiden | Weil | Stattdessen |
+|-----------|------|-------------|
+| `grep -rn "pattern" *.ts` | False Positives aus Kommentaren | `code_search` (AST) |
+| `grep -rn "class Foo"` | Findet auch Kommentare/Strings | `code_symbols(kind="class")` |
+| `grep -rn "import.*from"` | Kein Struktur-Bewusstsein | `code_search(preset="imports")` |
+| `grep -rn "function"` | Matcht auch Aufrufe | `code_symbols(kind="function")` |
+| `find . -name "*.ts"` | `search_files(target="files")` ist schneller | `search_files(target="files")` |
+| `grep nach Fehlern in Logs` | ✅ **AUSNAHME** — Build/Git/Pre-Commit | `terminal("grep ...")` ist OK |
+
 ## Intent Detection (Single Hook)
 
 Ein `pre_llm_call` Hook ersetzt 3 separate Hooks. Bei Keyword-Overlap gewinnt die spezifischere Domain:

@@ -38,7 +38,7 @@ def _get_analysis_session() -> dict | None:
 
 
 def _get_bughunt_session() -> dict | None:
-    """Get active bug-hunt session if any."""
+    """Get active bug-hunt session as dict if any."""
     try:
         from scout.bughunt.bughunt_core import get_active_session
         session = get_active_session()
@@ -49,6 +49,18 @@ def _get_bughunt_session() -> dict | None:
             }
     except Exception:
         logger.debug("scout.honcho: no active bug-hunt session")
+    return None
+
+
+def _get_bughunt_session_obj():
+    """Get active BugHuntSession object (für pattern-deduction)."""
+    try:
+        from scout.bughunt.bughunt_core import get_tracker, load_session
+        tracker = get_tracker()
+        if tracker.is_active():
+            return load_session(tracker.active_session_id)
+    except Exception:
+        logger.debug("scout.honcho: no active bug-hunt session object")
     return None
 
 
@@ -115,12 +127,14 @@ def _persist_bughunt_summary() -> None:
     except Exception as e:
         logger.debug("scout.honcho: bughunt persist failed: %s", e)
 
-    # Auto-pattern-deduction (bisher in bughunt_hooks.on_session_end)
-    try:
-        from scout.bughunt.bughunt_hooks import _auto_deduce_patterns
-        _auto_deduce_patterns()
-    except Exception as e:
-        logger.debug("scout.honcho: pattern deduction failed: %s", e)
+    # Auto-pattern-deduction mit echtem BugHuntSession-Objekt
+    session_obj = _get_bughunt_session_obj()
+    if session_obj:
+        try:
+            from scout.bughunt.bughunt_hooks import _auto_deduce_patterns
+            _auto_deduce_patterns(session_obj)
+        except Exception as e:
+            logger.debug("scout.honcho: pattern deduction failed: %s", e)
 
 
 def _persist_research_summary() -> None:

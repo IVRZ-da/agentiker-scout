@@ -252,6 +252,32 @@ def analysis_pattern_discover_tool(args: dict, **kwargs) -> str:
             [c for c in candidates if c.get("confidence", 0) > 0.6]
         )
 
+        # 5. Auto-save: hochkonfidente Candidates ins Shared Repository
+        saved_count = 0
+        for c in candidates[:10]:
+            if c.get("confidence", 0) > 0.6:
+                try:
+                    from scout.shared.patterns import save_pattern
+                    save_pattern({
+                        "name": c.get("suggested_name", ""),
+                        "category": c.get("category", ""),
+                        "severity": c.get("severity", "P2"),
+                        "description": c.get("description", ""),
+                        "scan_type": c.get("scan_type", "grep"),
+                        "scan_query": c.get("scan_query", ""),
+                        "scan_file_glob": c.get("scan_file_glob", ""),
+                        "scan_language": c.get("scan_language", ""),
+                        "fix_description": c.get("suggested_fix", ""),
+                        "analysis_kinds": [c.get("category", "code-quality")],
+                        "auto_analysis": True,
+                        "source_plugin": "analysis",
+                    })
+                    saved_count += 1
+                except Exception as e:
+                    logger.debug("pattern auto-save failed for %s: %s",
+                                 c.get("suggested_name", "?"), e)
+        report["summary"]["auto_saved"] = saved_count
+
     except Exception as e:
         logger.warning("pattern discovery error: %s", e)
         report["summary"]["error"] = str(e)

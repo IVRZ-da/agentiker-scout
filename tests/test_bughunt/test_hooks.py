@@ -7,7 +7,6 @@ from scout.bughunt.bughunt_hooks import (
     _is_bughunt_related,
     on_post_tool_call,
     on_pre_llm_call,
-    on_session_end,
 )
 
 
@@ -202,60 +201,3 @@ class TestPostToolCall:
         on_post_tool_call(tool_name="mcp_not_devtools_test", args={})
         assert len(tracker.tools_used) == 0
         tracker.reset()
-
-
-# ======================================================================
-# on_session_end Tests
-# ======================================================================
-
-class TestOnSessionEnd:
-    def test_no_active_session(self):
-        import bughunt_core as core
-        core.get_tracker().reset()
-        # Sollte nicht crashen
-        on_session_end()
-
-    def test_active_session_gets_closed(self):
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        on_session_end()
-
-        # Session sollte geschlossen sein
-        loaded = core.load_session(s.session_id)
-        assert loaded is not None
-        assert loaded.status == "closed"
-        assert "Bug-Hunt" in loaded.summary
-        # Tracker sollte zurückgesetzt sein
-        assert not tracker.is_active()
-
-    def test_session_with_findings(self):
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        s.add_finding(core.Finding(title="P0 Bug", severity="P0"))
-        s.add_finding(core.Finding(title="P1 Bug", severity="P1"))
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        on_session_end()
-
-        loaded = core.load_session(s.session_id)
-        assert loaded.status == "closed"
-        assert "P0=1" in loaded.summary
-        assert "P1=1" in loaded.summary
-
-    def test_honcho_dispatch(self):
-        import bughunt_core as core
-        tracker = core.get_tracker()
-        s = core.BugHuntSession(project="/test")
-        core.save_session(s)
-        tracker.start(s.session_id)
-
-        # on_session_end versucht honcho_conclude zu dispatchen
-        # Should not crash even if honcho is not available
-        on_session_end()
-        assert not tracker.is_active()

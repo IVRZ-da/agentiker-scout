@@ -120,7 +120,6 @@ def _auto_create_findings_from_security(result_str: str, args: dict) -> None:
 
     Mit Deduplizierung via (path + hash) — KEINE Endlosschleife.
     """
-    import json
     import time
 
     try:
@@ -467,64 +466,3 @@ def _auto_deduce_patterns(session) -> List[str]:
             )
 
     return created_patterns
-
-
-# ======================================================================
-# Hook: on_session_end (erweitert)
-# ======================================================================
-
-def on_session_end(**kwargs: Any) -> None:
-    """Auto-save active session if not yet closed."""
-    try:
-        from . import bughunt_core as core  # Hermes Runtime (Package)
-    except ImportError:
-        import bughunt_core as core  # pytest (top-level Import)
-    tracker = core.get_tracker()
-    if not tracker.is_active():
-        return
-
-    session_id = tracker.active_session_id
-    session = core.load_session(session_id)
-    if not session:
-        tracker.reset()
-        return
-
-    counts = session.findings_count()
-    sev_parts = [f"{sev}={counts[sev]}" for sev in ["P0", "P1", "P2", "P3"] if counts.get(sev, 0) > 0]
-    summary = f"Bug-Hunt {session_id}: {', '.join(sev_parts) if sev_parts else 'no findings'}"
-    session.close(summary=summary)
-    core.save_session(session)
-
-    # Auto-Deduction: Findings → Shared Patterns (P2a)
-    try:
-        from scout.shared.patterns import count_patterns
-        created = _auto_deduce_patterns(session)
-        if created:
-            stats = count_patterns()
-            logger.info(
-                "bughunt: %d Patterns auto-deduced (%d total in shared repo)",
-                len(created), stats.get("total", 0)
-            )
-    except Exception as e:
-        logger.debug("bughunt: auto-deduction skipped: %s", e)
-
-    # Honcho persist via registry.dispatch (not invoke_hook!)
-    try:
-        from tools.registry import registry
-        registry.dispatch("honcho_conclude", {
-            "conclusion": json.dumps({
-                "type": "bug_hunt_session",
-                "session_id": session_id,
-                "project": session.project,
-                "scope": session.scope,
-                "summary": summary,
-                "findings_count": len(session.findings),
-                "counts_by_severity": counts,
-                "timestamp": session.closed_at,
-            }),
-            "peer": "bughunt",
-        })
-    except Exception as e:
-        logger.warning("bughunt: Honcho persist failed: %s", e)
-
-    tracker.reset()
