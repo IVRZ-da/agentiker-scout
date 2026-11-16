@@ -1,5 +1,18 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.2] — 2026-11-16
+
+### Fixed — Rauschen in den Regex-Regeln
+
+- **S022/S023 trafen Methodennamen statt Shell-/Dateiaufrufe.** `Signer.open(...)`
+  und `regexp.exec(req.searchParams...)` galten als Path Traversal bzw. Command
+  Injection, weil die Regeln nackte Property-Namen (`params.`, `query.`, `body.`)
+  als Beleg für Nutzer-Input akzeptierten. Jetzt nur noch in der Form
+  `req.params` / `request.query` / `ctx.body` — die Regel feuert weiter bei
+  `open(os.path.join(dir, request.args['f']))` und `os.system("x " + cmd)`,
+  aber nicht mehr bei gleichnamigen Methoden. Am Beispiel eines
+  TypeScript-Projekts: 16 → 14 Treffer, beide Falschtreffer weg.
+
 ## [0.6.1] — 2026-11-16
 
 Bug-Hunt-Nachlauf: der automatische Pattern-Scan lieferte Rauschen aus dem
