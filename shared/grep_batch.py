@@ -15,6 +15,8 @@ import logging
 import re
 import subprocess
 
+from scout.shared.scan_paths import build_exclude_flags
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 60
@@ -155,7 +157,7 @@ def grep_batch(
             # dort ist "eval(" ein Literal. Mit -E waere es ein Syntaxfehler und
             # wuerde den ganzen Batch kippen. Mehrere -e erhalten die Semantik
             # jedes einzelnen Patterns und brauchen trotzdem nur einen Prozess.
-            cmd = ["grep", "-rnI", *flags]
+            cmd = ["grep", "-rnI", *flags, *build_exclude_flags()]
             for pattern in chunk:
                 cmd.extend(["-e", pattern["scan_query"]])
             cmd.append(project_root)
@@ -166,7 +168,8 @@ def grep_batch(
                 # Ein Pattern im Chunk ist fuer grep ungueltig: einzeln nachfassen,
                 # damit die uebrigen nicht leer ausgehen.
                 for pattern in chunk:
-                    single = ["grep", "-rnI", *flags, "-e", pattern["scan_query"], project_root]
+                    single = ["grep", "-rnI", *flags, *build_exclude_flags(),
+                              "-e", pattern["scan_query"], project_root]
                     single_lines = _run_grep(single, timeout) or []
                     logger.debug("grep Einzellauf %s: %d Zeilen",
                                  pattern["pattern_id"], len(single_lines))

@@ -180,7 +180,7 @@ def _auto_create_findings_from_security(result_str: str, args: dict) -> None:
                 file=finding.get("file", path or ""),
                 line=finding.get("line", 0),
                 evidence=str(finding.get("evidence", finding.get("description", "")))[:200],
-                pattern_id="S025",
+                pattern_id=str(finding.get("rule") or finding.get("pattern_id") or "SECURITY_SCAN")[:40],
                 description=str(finding.get("description", ""))[:200],
             )
             session.add_finding(f)

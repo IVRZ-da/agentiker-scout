@@ -1344,13 +1344,13 @@
       },
       {
         "pattern_id": "S020",
-        "name": "Hardcoded Secrets (code_security_scan)",
+        "name": "Hardcoded Secrets",
         "category": "security",
         "severity": "P0",
         "description": "Hardcodierte Secrets, API-Keys, Tokens oder Passwörter",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:(?:api[_-]?key|apikey|secret|password|passwd|pwd|token|auth_token|access_key)\\s*[:=]\\s*['\\\"](?![${\\s])[^'\\\"\\n]{8,}['\\\"]|(?:password|passwd|pwd|secret|credential)\\s*=\\s*['\\\"](?![${\\s])[^'\\\"\\n]{4,}['\\\"])",
+        "scan_file_glob": "**/*.{py,js,mjs,cjs,ts,tsx,go,rb,java,php,cs,kt,sh,yml,yaml,toml}",
         "scan_language": "",
         "fix_description": "Secrets in .env oder Secret-Manager auslagern",
         "false_positive_notes": "FP bei Test-Fixtures, Platzhaltern und Beispielwerten in Doku statt echter Credentials",
@@ -1365,17 +1365,18 @@
         "frameworks": [
           "*"
         ],
-        "frameworks_required": false
+        "frameworks_required": false,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "S021",
-        "name": "SQL Injection (code_security_scan)",
+        "name": "SQL Injection",
         "category": "security",
         "severity": "P0",
         "description": "SQL Injection via String-Concatenation",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:(?:cursor|execute|exec|query|session\\.execute|db\\.execute|conn\\.execute)\\s*\\(\\s*(?:f['\\\"]|['\\\"])[^;\\n]{0,400}?(?:SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE)[^;\\n]{0,400}?\\+|(?:SELECT|INSERT\\s+INTO|UPDATE|DELETE\\s+FROM|CREATE\\s+TABLE|DROP\\s+TABLE)[^;\\n]{0,200}?['\\\"]\\s*\\+\\s*[a-zA-Z_]|(?:where|find_by_sql|execute|order|joins)\\s*\\(\\s*['\\\"][^'\\\"\\n]*#\\{)",
+        "scan_file_glob": "**/*.{py,js,mjs,cjs,ts,tsx,go,rb,java,php,cs,kt}",
         "scan_language": "",
         "fix_description": "Prepared Statements oder Query-Builder verwenden",
         "false_positive_notes": "FP bei parametrisierten Queries oder konstanten Statements ohne Variablen",
@@ -1390,17 +1391,18 @@
         "frameworks": [
           "*"
         ],
-        "frameworks_required": false
+        "frameworks_required": false,
+        "scan_flags": "is"
       },
       {
         "pattern_id": "S022",
-        "name": "Path Traversal (code_security_scan)",
+        "name": "Path Traversal",
         "category": "security",
         "severity": "P1",
         "description": "File-Operationen mit user-gesteuerten Pfaden",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:open|read_text|read_bytes|write_text|write_bytes|Path|readFile|readFileSync|join)\\s*\\([^)\\n]{0,200}?(?:request\\.(?:GET|POST|args|form|files|cookies|headers)|request\\[|request\\.get|request\\.json|input\\(|sys\\.argv|os\\.environ|req\\.|params\\.|query\\.|body\\.)",
+        "scan_file_glob": "**/*.{py,js,mjs,cjs,ts,tsx,go,rb,java,php,cs,kt}",
         "scan_language": "",
         "fix_description": "Pfad-Validierung via realpath + prefix-Check",
         "false_positive_notes": "FP wenn der Pfad gegen eine Whitelist geprueft oder per basename() entschaerft wird",
@@ -1415,17 +1417,18 @@
         "frameworks": [
           "*"
         ],
-        "frameworks_required": false
+        "frameworks_required": false,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "S023",
-        "name": "Command Injection (code_security_scan)",
+        "name": "Command Injection",
         "category": "security",
         "severity": "P0",
         "description": "Shell-Kommandos mit user-gesteuerten Parametern",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:os\\.system|os\\.popen|subprocess\\.(?:call|Popen|run|check_call|check_output)|exec|execSync|execFile|spawn|fork|Runtime\\.getRuntime\\(\\)\\.exec|ProcessBuilder)\\s*\\([^;\\n]{0,200}?(?:shell\\s*=\\s*True|\\$\\{|\\+\\s*(?:[a-zA-Z_]|['\\\"])|request|input|userInput|params|query|body|#\\{|`)",
+        "scan_file_glob": "**/*.{py,js,mjs,cjs,ts,tsx,go,rb,java,php,cs,kt,sh}",
         "scan_language": "",
         "fix_description": "exec/execSync vermeiden. spawn mit param-Array",
         "false_positive_notes": "FP bei konstantem Kommando ohne Interpolation oder mit shell=False und Arg-Liste",
@@ -1440,17 +1443,18 @@
         "frameworks": [
           "*"
         ],
-        "frameworks_required": false
+        "frameworks_required": false,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "S024",
-        "name": "Weak Cryptography (code_security_scan)",
+        "name": "Weak Cryptography",
         "category": "security",
         "severity": "P2",
         "description": "Veraltete Kryptographie (MD5, SHA1, DES, ECB)",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:hashlib\\.md5\\(|\\bmd5\\s*\\(|MessageDigest\\.getInstance\\(\\s*[\"']MD5|hashlib\\.sha1\\(|\\bsha1\\s*\\(|MessageDigest\\.getInstance\\(\\s*[\"']SHA-?1|(?:DES3?|RC2|ARC2|ARC4|RC4|Blowfish)(?:\\.new|/CBC|/ECB|/OFB)|Cipher\\.(?:DES|DES3|RC2|Blowfish)|create(?:De)?cipher(?:iv)?\\(\\s*[\"'](?:des|des3|rc4|rc2|bf))",
+        "scan_file_glob": "**/*.{py,js,mjs,cjs,ts,tsx,go,rb,java,php,cs,kt}",
         "scan_language": "",
         "fix_description": "SHA-256/512 oder Argon2 für Passwörter",
         "false_positive_notes": "FP wenn der Algorithmus nur fuer Signaturen/Tests genutzt wird und nicht fuer Secrets",
@@ -1465,57 +1469,8 @@
         "frameworks": [
           "*"
         ],
-        "frameworks_required": false
-      },
-      {
-        "pattern_id": "S025",
-        "name": "CRITICAL Vulnerability (code_security_scan)",
-        "category": "security",
-        "severity": "P0",
-        "description": "CRITICAL-gestufte Sicherheitslücke",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
-        "scan_language": "",
-        "fix_description": "Je nach Pattern — siehe Detail-Output",
-        "false_positive_notes": "FP bei Findings in Beispiel-/Fixture-Code oder in bewusst deaktivierten Regeln",
-        "source": "built-in",
-        "source_session": "",
-        "source_project": "",
-        "source_finding_id": "",
-        "match_count": 0,
-        "tags": [],
-        "created_at": "2026-06-28T07:32:42.146367+00:00",
-        "updated_at": "2026-06-28T07:32:42.146367+00:00",
-        "frameworks": [
-          "*"
-        ],
-        "frameworks_required": false
-      },
-      {
-        "pattern_id": "S026",
-        "name": "HIGH Vulnerability (code_security_scan)",
-        "category": "security",
-        "severity": "P1",
-        "description": "HIGH-gestufte Sicherheitslücke",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
-        "scan_language": "",
-        "fix_description": "Je nach Pattern — siehe Detail-Output",
-        "false_positive_notes": "FP bei Findings in generiertem Code oder bereits akzeptiertem Risiko mit Kommentar",
-        "source": "built-in",
-        "source_session": "",
-        "source_project": "",
-        "source_finding_id": "",
-        "match_count": 0,
-        "tags": [],
-        "created_at": "2026-06-28T07:32:42.146371+00:00",
-        "updated_at": "2026-06-28T07:32:42.146371+00:00",
-        "frameworks": [
-          "*"
-        ],
-        "frameworks_required": false
+        "frameworks_required": false,
+        "scan_flags": "i"
       }
     ],
     "JAVA_PATTERNS": [
@@ -1525,12 +1480,12 @@
         "category": "java",
         "severity": "P1",
         "description": "Log-Einträge mit ungesäubertem User-Input → Log Forging / Injection",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:log(?:ger)?\\.(?:info|warn|error|debug|trace)|System\\.(?:out|err)\\.print\\w*)\\s*\\([^;\\n]{0,120}?(?:getParameter|getHeader|getQueryString|getInputStream|request\\.)",
+        "scan_file_glob": "**/*.java",
         "scan_language": "",
-        "fix_description": "User-Input vor dem Loggen säubern oder als Parameter übergeben",
-        "false_positive_notes": "FP bei konstanten Log-Strings ohne Nutzereingabe",
+        "fix_description": "User-Input vor dem Loggen ersetzen (CR/LF entfernen, Länge begrenzen)",
+        "false_positive_notes": "FP wenn der Input vorher per replace/escape bereinigt wurde",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1542,7 +1497,8 @@
         "frameworks": [
           "java"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "J002",
@@ -1575,12 +1531,12 @@
         "category": "java",
         "severity": "P0",
         "description": "SQL-Queries mit String-Concatenation statt PreparedStatement",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:executeQuery|executeUpdate|createQuery|createNativeQuery|prepareStatement)\\s*\\(\\s*\"[^\"]{0,400}?(?:SELECT|INSERT|UPDATE|DELETE)[^\"]{0,400}?\"\\s*\\+",
+        "scan_file_glob": "**/*.java",
         "scan_language": "",
-        "fix_description": "PreparedStatement mit Parameter-Platzhaltern verwenden",
-        "false_positive_notes": "FP bei konstanten SQL-Strings ohne Variablenanteil",
+        "fix_description": "PreparedStatement mit Platzhaltern verwenden",
+        "false_positive_notes": "FP wenn der zusammengesetzte Teil nur ein konstanter Tabellen-/Spaltenname ist",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1592,7 +1548,8 @@
         "frameworks": [
           "java"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": "is"
       },
       {
         "pattern_id": "J004",
@@ -1600,12 +1557,12 @@
         "category": "java",
         "severity": "P1",
         "description": "ObjectInputStream.readObject() ohne Validierung → Deserialization-Angriff",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "new\\s+ObjectInputStream\\s*\\(|\\.readObject\\s*\\(\\s*\\)",
+        "scan_file_glob": "**/*.java",
         "scan_language": "",
-        "fix_description": "Validierung vor Deserialization oder Look-Ahead-Muster nutzen",
-        "false_positive_notes": "FP bei ObjectInputStream auf vertrauenswuerdigen, internen Streams",
+        "fix_description": "ObjectInputStream meiden oder mit ObjectInputFilter/Allowlist absichern",
+        "false_positive_notes": "FP wenn ein ObjectInputFilter gesetzt ist oder nur intern serialisierte Klassen gelesen werden",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1617,7 +1574,8 @@
         "frameworks": [
           "java"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       },
       {
         "pattern_id": "J005",
@@ -1625,12 +1583,12 @@
         "category": "java",
         "severity": "P0",
         "description": "Hardcodierte Zugangsdaten in Java-Quellcode",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:password|passwd|pwd|secret|credential|apiKey)\\s*=\\s*\"[^\"\\s]{4,}\"",
+        "scan_file_glob": "**/*.java",
         "scan_language": "",
-        "fix_description": "Credentials in Konfigurationsdateien/Environment-Variablen auslagern",
-        "false_positive_notes": "FP bei Test-Fixtures und offensichtlichen Platzhaltern",
+        "fix_description": "Zugangsdaten aus Konfiguration/Secret-Manager lesen",
+        "false_positive_notes": "FP bei Konstanten fuer Testdaten oder Beispiel-Konfiguration",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1642,7 +1600,8 @@
         "frameworks": [
           "java"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": "i"
       }
     ],
     "CPP_PATTERNS": [
@@ -1652,12 +1611,12 @@
         "category": "cpp",
         "severity": "P0",
         "description": "Potenzielle Buffer-Overflow durch unsichere String-Operationen (strcpy, gets)",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\b(?:strcpy|strcat|sprintf|vsprintf|gets|scanf|sscanf)\\s*\\(",
+        "scan_file_glob": "**/*.{c,h,cpp,hpp,cc,hh}",
         "scan_language": "",
-        "fix_description": "strncpy, snprintf oder std::string anstelle von strcpy/gets verwenden",
-        "false_positive_notes": "FP wenn die Laenge vorher geprueft wird (Analyzer sieht den Guard nicht)",
+        "fix_description": "strncpy/snprintf mit Zielgröße verwenden",
+        "false_positive_notes": "FP wenn die Zielpuffergroesse vorher geprueft wird (z. B. snprintf-Pattern im Wrapper)",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1669,7 +1628,8 @@
         "frameworks": [
           "cpp"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "CPP002",
@@ -1677,12 +1637,12 @@
         "category": "cpp",
         "severity": "P1",
         "description": "Allokierter Speicher wird nicht freigegeben (malloc ohne free, new ohne delete)",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\b(?:malloc|calloc|realloc)\\s*\\(",
+        "scan_file_glob": "**/*.{c,h,cpp,hpp,cc,hh}",
         "scan_language": "",
-        "fix_description": "Smart Pointer (unique_ptr, shared_ptr) oder RAII-Pattern verwenden",
-        "false_positive_notes": "FP bei Besitzuebergabe an den Aufrufer (ownership transfer) statt Leak",
+        "fix_description": "Jede Allokation braucht ein free auf allen Pfaden (ggf. goto-cleanup)",
+        "false_positive_notes": "FP wenn free in einer gemeinsamen Cleanup-Funktion oder per goto erfolgt — Einzelfall pruefen",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1694,7 +1654,8 @@
         "frameworks": [
           "cpp"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       },
       {
         "pattern_id": "CPP003",
@@ -1702,12 +1663,12 @@
         "category": "cpp",
         "severity": "P0",
         "description": "Zugriff auf freigegebenen Speicherpointer",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\bfree\\s*\\(\\s*([A-Za-z_]\\w*)\\s*\\)\\s*;(?:[^\\n]*\\n){0,3}[^\\n]{0,80}?\\1\\s*(?:->|\\[)",
+        "scan_file_glob": "**/*.{c,h,cpp,hpp,cc,hh}",
         "scan_language": "",
-        "fix_description": "Pointer nach delete/free auf nullptr setzen. Smart Pointer bevorzugen.",
-        "false_positive_notes": "FP wenn free() verschoben wurde oder ein Refcount/GC die Freigabe steuert",
+        "fix_description": "Pointer nach free auf NULL setzen und nicht weiterverwenden",
+        "false_positive_notes": "FP wenn der Pointer zwischen free und Zugriff neu zugewiesen wird",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1719,7 +1680,8 @@
         "frameworks": [
           "cpp"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       },
       {
         "pattern_id": "CPP004",
@@ -1727,12 +1689,12 @@
         "category": "cpp",
         "severity": "P2",
         "description": "Integer-Overflow in arithmetischen Operationen ohne Bereichsprüfung",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\b(?:malloc|calloc|realloc)\\s*\\(\\s*[^)]{0,80}?\\*[^)]{0,80}?\\)",
+        "scan_file_glob": "**/*.{c,h,cpp,hpp,cc,hh}",
         "scan_language": "",
-        "fix_description": "Overflow-Prüfung vor der Operation oder SafeInt-Bibliothek nutzen",
-        "false_positive_notes": "FP bei vorheriger Bereichspruefung oder Wechsel auf breiteren Typ",
+        "fix_description": "Größenmultiplikation auf Overflow prüfen (z. B. calloc(n, size) statt malloc(n*size))",
+        "false_positive_notes": "FP wenn der Faktor eine Konstante oder vorher bereichsgeprueft ist",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1744,7 +1706,8 @@
         "frameworks": [
           "cpp"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       },
       {
         "pattern_id": "CPP005",
@@ -1752,12 +1715,12 @@
         "category": "cpp",
         "severity": "P0",
         "description": "printf mit User-Input als Format-String → Speicher-Lesen/-Schreiben",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\b(?:printf|fprintf|sprintf|snprintf|syslog|vfprintf)\\s*\\(\\s*[A-Za-z_][\\w.\\[\\]>-]*\\s*[,)]",
+        "scan_file_glob": "**/*.{c,h,cpp,hpp,cc,hh}",
         "scan_language": "",
-        "fix_description": "printf(\"%s\", user_input) statt printf(user_input)",
-        "false_positive_notes": "FP wenn der Format-String konstant ist und alle Argumente typrichtig sind",
+        "fix_description": "Format-String immer als Literal: printf(\"%s\", eingabe)",
+        "false_positive_notes": "FP wenn die Variable nachweislich ein konstanter Format-String ist (%s, %d)",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1769,7 +1732,8 @@
         "frameworks": [
           "cpp"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       }
     ],
     "RUBY_PATTERNS": [
@@ -1779,12 +1743,12 @@
         "category": "ruby",
         "severity": "P1",
         "description": "Mass Assignment ohne Strong Parameters → Attribute Injection",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "\\.(?:new|create|create!|update|update!|update_attributes|assign_attributes)\\s*\\(\\s*params\\b",
+        "scan_file_glob": "**/*.rb",
         "scan_language": "",
-        "fix_description": "Strong Parameters (require/permit) in allen Controllern verwenden",
-        "false_positive_notes": "FP wenn explizit per require/permit gefiltert wird",
+        "fix_description": "Strong Parameters verwenden (params.require(:x).permit(:a, :b))",
+        "false_positive_notes": "FP wenn params vorher per slice/permit eingeschraenkt wurde",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1796,7 +1760,8 @@
         "frameworks": [
           "ruby"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       },
       {
         "pattern_id": "RB002",
@@ -1804,12 +1769,12 @@
         "category": "ruby",
         "severity": "P0",
         "description": "Shell-Kommandos mit User-Input via exec/system/backticks",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:\\bsystem|\\bexec|\\bspawn|IO\\.popen)\\s*\\(?\\s*[\"'][^\\n]{0,300}?#\\{|`[^`\\n]*#\\{|%x\\{[^}\\n]*#\\{",
+        "scan_file_glob": "**/*.rb",
         "scan_language": "",
-        "fix_description": "Open3.capture3 oder system mit Array-Argumenten verwenden",
-        "false_positive_notes": "FP bei konstantem Kommando ohne Interpolation",
+        "fix_description": "Shell-Escapes meiden: als Argument-Array übergeben (system(cmd, arg))",
+        "false_positive_notes": "FP wenn die Interpolation nur aus konstanten Werten besteht",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1821,7 +1786,8 @@
         "frameworks": [
           "ruby"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": "i"
       },
       {
         "pattern_id": "RB003",
@@ -1829,12 +1795,12 @@
         "category": "ruby",
         "severity": "P0",
         "description": "SQL-Queries mit String-Interpolation statt Parameter-Binding",
-        "scan_type": "code_security_scan",
-        "scan_query": "",
-        "scan_file_glob": "",
+        "scan_type": "regex",
+        "scan_query": "(?:where|find_by_sql|execute|order|group|joins|having)\\s*\\(\\s*[\"'][^\\n]{0,300}?#\\{",
+        "scan_file_glob": "**/*.rb",
         "scan_language": "",
-        "fix_description": "ActiveRecord Parameter-Binding (where('?', value)) statt String-Interpolation",
-        "false_positive_notes": "FP bei parametrisierten Queries oder ActiveRecord-Hash-Bedingungen",
+        "fix_description": "Platzhalter verwenden: where('name = ?', name)",
+        "false_positive_notes": "FP wenn die Interpolation nur einen konstanten Spaltennamen einsetzt",
         "source": "built-in",
         "source_session": "",
         "source_project": "",
@@ -1846,7 +1812,8 @@
         "frameworks": [
           "ruby"
         ],
-        "frameworks_required": true
+        "frameworks_required": true,
+        "scan_flags": ""
       }
     ]
   }

@@ -466,4 +466,4 @@ class TestGetCoreLoadsPatterns:
 
         from scout.bughunt.tools.base import _get_core
         core = _get_core()
-        assert len(core.PATTERNS_BY_ID) >= 69, f"Erwartet >= 69 Built-in-Patterns, habe {len(core.PATTERNS_BY_ID)}"
+        assert len(core.PATTERNS_BY_ID) >= 67, f"Erwartet >= 67 Built-in-Patterns, habe {len(core.PATTERNS_BY_ID)}"

@@ -1,5 +1,70 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.1] — 2026-11-16
+
+Bug-Hunt-Nachlauf: der automatische Pattern-Scan lieferte Rauschen aus dem
+Fremdcode und die Hälfte der Security-Regeln lief gar nicht mehr.
+
+### Fixed — Scan-Pfade
+
+- **Fremdcode und Build-Ausgaben sind ausgeschlossen.** Neues Modul
+  `shared/scan_paths.py` mit einer gemeinsamen Liste (`node_modules`, `vendor`,
+  `.venv`, `dist`, `build`, `out`, `target`, `.next`, `.git`, Caches, Lockfiles,
+  `*.min.js`, `*.map`). `grep_batch` übergibt sie als `--exclude-dir`/`--exclude`,
+  der neue Regex-Scanner nutzt denselben Walk. Anlass: ein Hunt in einem
+  Node-Projekt lieferte 41 von 41 Treffern aus `node_modules/@types/node`
+  (`child_process.d.ts` als „P0 execSync mit User-Input").
+  Eigene Ausschlüsse per `SCOUT_SCAN_EXCLUDES=generated,fixtures`.
+
+### Fixed — Security-Patterns liefen nach der code_intel-Namespace-Fusion nicht mehr
+
+- **17 Patterns von `scan_type=code_security_scan` auf `scan_type=regex`
+  umgestellt** (S020–S024, J001/J003/J004/J005, CPP001–CPP005, RB001–RB003).
+  Regelsatz aus code_intel `tools/security.py` übernommen, aber in Scout selbst
+  ausgewertet: die code_intel-Tools geben Rich-Panels zurück, die sich nicht als
+  JSON auswerten lassen — der Scan lief deshalb leer durch („Plugin nicht
+  verfügbar" mitten im Report).
+- **Neuer `scan_type=regex`** (`shared/regex_scan.py`): Python-`re` über denselben
+  Dateibaum, mit `scan_flags` (`i`/`m`/`s`/`x`), Datei-Glob, Binär- und
+  Größenlimit (1 MB), max. 200 Treffer pro Pattern. `grep` bleibt für die
+  BRE-Patterns; beide Wege liefern dieselbe Ergebnisform.
+- **S025/S026 entfernt.** „CRITICAL Vulnerability" und „HIGH Vulnerability" waren
+  Severity-Buckets des code_intel-Scans ohne eigene Regel — sie konnten nie einen
+  eigenen Treffer liefern, sondern nur die Warnung „übersprungen" erzeugen.
+  Damit 69 → 67 Patterns, 19 → 17 Security-Patterns.
+- **`scripts/lint_patterns.py`** prüft `scan_type=regex` jetzt hart: Muster muss
+  kompilieren (R7), `scan_flags` bekannt (R8), `scan_file_glob` gesetzt (R9).
+- **`bug_hunt_scan`-Hinweise nennen den echten Aufruf**: statt nur „Plugin nicht
+  verfügbar" steht jetzt `code_review (op=security_scan)`. Eine Rich-Ausgabe ohne
+  Funde („No Vulnerabilities Found") gilt als sauberer Lauf statt als Fehler.
+
+### Fixed — code_intel-Aufrufe in Scout (gleiche Ursache)
+
+- **`shared/tool_alias.py`**: alte Einzelnamen (`code_security_scan`,
+  `code_symbols`, `code_complexity`, …) werden auf die Namespace-Dispatcher
+  (`code_review` + `op="security_scan"`) aufgelöst, solange der Einzelname nicht
+  registriert ist. `_call_tool`/`_call_tool_direct` nutzen das zentral.
+  Ohne den Alias liefen `analysis_performance`, `analysis_architecture` und
+  `analysis_review` in ein „tool not registered", das sie still verschluckten —
+  der Vulnerability-Teil fehlte dann kommentarlos im Report.
+  Tabelle wird per Test gegen `code_intel/namespaces.py` geprüft.
+
+### Changed
+
+- `bughunt/bughunt_hooks.py`: importierte Security-Findings bekamen pauschal
+  `pattern_id="S025"` (existiert nicht mehr) — jetzt die Regel-ID des Findings
+  bzw. `SECURITY_SCAN`.
+- `skills/SKILL.md`: Nutzungsregeln zum Bug-Hunt auf den neuen Stand gebracht.
+
+### Tests
+
+- 35 neue Tests (`tests/test_bughunt/test_scan_paths_and_regex.py`,
+  `tests/test_tool_alias.py`): Ausschlussliste, Walk, Regex-Scanner (Flags,
+  Binärdateien, Limits, kaputtes Muster), je ein Fixture pro Security-Pattern
+  (alle 17 müssen treffen), Namespace-first/Legacy-Fallback des Dispatches,
+  Alias-Tabelle gegen den code_intel-Katalog.
+- Suite: 2649 passed, 42 skipped.
+
 ## [0.6.0] — 2026-11-11
 
 Grundueberholung nach einer Nutzungsanalyse: 56 Tools trugen 1,74 % aller

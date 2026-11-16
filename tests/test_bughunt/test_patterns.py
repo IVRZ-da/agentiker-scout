@@ -71,7 +71,7 @@ class TestPatternStructure:
 
     def test_all_have_scan_type(self, init_pats):
         valid = {
-            "code_search", "grep", "code_diagnostics",
+            "code_search", "grep", "regex", "code_diagnostics",
             "code_security_scan", "code_todo_finder", "code_duplicates",
             "code_merge_conflict", "code_search_by_error", "code_unused_finder",
         }
@@ -79,8 +79,15 @@ class TestPatternStructure:
             assert p.scan_type in valid, f"{p.pattern_id}: scan_type={p.scan_type} ungültig"
 
     def test_security_count(self, init_pats):
+        """17 Security-Patterns.
+
+        Frueher 19: S025/S026 hiessen "CRITICAL Vulnerability" und
+        "HIGH Vulnerability" und waren nur Severity-Buckets des code_intel-Scans
+        ohne eigene Regel — sie konnten nie einen eigenen Treffer liefern. Die
+        17 verbleibenden laufen als scan_type=regex direkt in Scout.
+        """
         pats = init_pats.get_patterns_by_category("security")
-        assert len(pats) == 19, f"security hat {len(pats)} patterns, erwarte 19"
+        assert len(pats) == 17, f"security hat {len(pats)} patterns, erwarte 17"
 
     def test_code_quality_count(self, init_pats):
         """17 Built-in; Custom-Patterns zaehlen hier bewusst nicht mit.

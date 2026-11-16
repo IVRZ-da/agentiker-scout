@@ -139,13 +139,18 @@ def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -
     """
     try:
         from scout.shared.registry import registry
+        from scout.shared.tool_alias import registry_is_available, resolve_tool_call
+
+        # code_intel 0.6.25: alte Einzelnamen auf die Namespace-Dispatcher
+        # umschreiben (code_security_scan -> code_review/op=security_scan).
+        tool_name, args = resolve_tool_call(name, kwargs, registry_is_available())
 
         # Dispatch in Thread mit Timeout
-        future = _timeout_executor.submit(registry.dispatch, name, kwargs)
+        future = _timeout_executor.submit(registry.dispatch, tool_name, args)
         try:
             result = future.result(timeout=timeout)
         except FuturesTimeout:
-            logger.warning("tool call %s timed out after %ds", name, timeout)
+            logger.warning("tool call %s timed out after %ds", tool_name, timeout)
             return {"error": f"timeout after {timeout}s", "tool": name}
 
         if isinstance(result, str):
@@ -176,8 +181,10 @@ def _call_tool_direct(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs:
     """
     try:
         from scout.shared.registry import registry
+        from scout.shared.tool_alias import registry_is_available, resolve_tool_call
 
-        result = registry.dispatch(name, kwargs)
+        tool_name, args = resolve_tool_call(name, kwargs, registry_is_available())
+        result = registry.dispatch(tool_name, args)
         if isinstance(result, str):
             try:
                 return json.loads(result)

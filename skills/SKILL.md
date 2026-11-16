@@ -111,7 +111,64 @@ research_save → findings → _auto_deduce_patterns() ────┘
 
 **Scan-Typen:** grep, code_security_scan, code_search_by_error, code_todo_finder, code_duplicates, code_merge_conflict, code_search, code_diagnostics
 
-**Patterns:** 69 Built-in (43→69: +7 Security, +6 Code-Quality, +5 Java, +5 C/C++, +3 Ruby)
+**Patterns:** 67 Built-in (43→67: +5 Security, +6 Code-Quality, +5 Java, +5 C/C++, +3 Ruby;
+zwei Severity-Buckets ohne eigene Regel entfallen)
+
+### 🔴 Bug-Hunt-Session: Nutzungsregeln (sonst unbrauchbarer Report)
+
+- **`bug_hunt_scan(path=…)` zeigt auf das Projekt, wie es ist.** Fremdcode und
+  Build-Ausgaben sind seit 0.6.1 ausgeschlossen (`shared/scan_paths.py`:
+  `node_modules`, `dist`, `.venv`, `.git`, Lockfiles, `*.min.js`); der Scan über
+  die Projektwurzel ist damit in Ordnung. Eigene Ausschlüsse ergänzen:
+  `SCOUT_SCAN_EXCLUDES=generated,fixtures`. Wenn ein Projekt bewusst in `build/`
+  sucht, dort eine zweite Session mit eigenem `path` starten.
+- **Die Security-Patterns (S020–S024, J00x, CPP00x, RB00x) laufen in Scout
+  selbst** (`scan_type=regex`, Regelsatz wie code_intel `code_security_scan`).
+  S025/S026 („CRITICAL/HIGH Vulnerability") gibt es nicht mehr — das waren nur
+  Severity-Buckets ohne eigene Regel. Ein Lauf mit „0 kritisch" ist trotzdem kein
+  Beweis: Semgrep (`p/typescript p/nodejs p/secrets p/owasp-top-ten`) und eigene
+  Tiefenanalyse parallel fahren.
+- **Auto-Treffer vor dem Report gegen den Fremdcode prüfen** und Falschtreffer
+  per `bug_hunt_triage(status="false_positive", notes=<Stelle im Fremdcode, die
+  den Treffer entkräftet>)` schließen. Ein P0, den das SDK selbst abfängt
+  (z. B. validierte `redirect_uri`), kostet sonst das Vertrauen in den ganzen
+  Report.
+- **`bug_hunt_list` ist gekürzt** (`findings_truncated`). Bei vielen Treffern
+  zuerst filtern (`severity`, `file`, `status`) oder die Noise-Quelle per
+  eigenem `path` ausschließen, statt sich auf die angezeigte Liste zu verlassen.
+- **Findings sofort mit `bug_hunt_finding` festhalten** (Severity, `file`,
+  `line`, `evidence` als echter Code/Befehl, `suggested_fix`). Sammeln und am
+  Ende schreiben verliert die Belege bei Kontextkompression. Mehrere Findings
+  gehören in EINEN `tool_call`-Block (ein Call pro Finding) — nicht in N Runden.
+- **Ein Bug-Hunt beginnt immer mit `bug_hunt_start`.** Auch wenn die Aufgabe
+  „nur" ein fremdes Repo betrifft und du sofort lesen könntest: erst Session
+  öffnen, `bug_hunt_scan` laufen lassen, dann Tiefenanalyse. Ein manueller Hunt
+  ohne Session produziert keinen exportierbaren Report und keine
+  Pattern-Lernschleife — der Nutzer erwartet das Plugin im Einsatz, nicht
+  daneben.
+- **Subagent-/Delegations-Findings sind Behauptungen, keine Belege.** Vor dem
+  Eintrag in den Report die zitierte Zeile selbst lesen. Zwei typische
+  Fehlklassen: (a) Severity inflationär, weil die Vorbedingung fehlt (ein
+  „P0 beliebiger lokaler Dateizugriff" ist P2, wenn der Codepfad nur im
+  stdio-Modus existiert); (b) schlichtweg falsch, weil der Prüfcode eine Ebene
+  tiefer liegt („confirm ist nicht an die Vorschau gebunden" — obwohl die
+  Service-Methode die `confirmedIds` exakt gegen die Filterauswahl prüft).
+  Verworfene Kandidaten mit Begründung in den Report aufnehmen, sonst jagt die
+  nächste Session denselben Geist.
+- **Severity kalibrieren, nicht erben:** P0 = Sicherheitslücke/Datenverlust
+  ohne Vorbedingung, P1 = falsches Verhalten mit realer
+  Eintrittswahrscheinlichkeit, P2 = Randfall/umgebungsabhängig, P3 = Härtung.
+  „Nur im stdio-Modus erreichbar", „setzt fehlerhafte Konfiguration voraus"
+  und „durch SDK abgefangen" sind Severity-Senker, die im Finding-Text stehen
+  müssen.
+- **Behauptungen dynamisch nachweisen, statt sie zu behaupten.** Für
+  TS/JS-Repos: kleines Probe-Skript gegen die echten Module (`npx tsx`), siehe
+  [references/bughunt-dynamic-probes.md](references/bughunt-dynamic-probes.md).
+  Ein per Probe belegtes Finding („falsches Passwort → `verifyPassword` gibt
+  `true`") trägt den Report; ein nur gelesenes nicht.
+- **Verifikation in einem Rutsch abschließen:** alle geprüften IDs mit
+  `bug_hunt_triage(finding_ids=[…], status="verified", notes="…")` in EINEM
+  Call markieren — nicht 17 einzelne `bug_hunt_verify`-Aufrufe.
 
 ### Web-Recherche (17)
 `research_start`, `research_save`, `research_search`, `research_status`, `research_cleanup`, `research_update` (Aktionen: patch/delete/tag/verify/merge/compare), `research_export` (`all=true` fuer alles), `research_synthesize`, `research_stats`
@@ -136,7 +193,7 @@ research_save → findings → _auto_deduce_patterns() ────┘
 | Dead Code erkennen | `analysis_deadcode` | `grep` nach Imports | AST-gestützt, Cross-File |
 | Performance-Hotspots | `analysis_performance` | Manuelle Analyse | Complexity + Hot Paths |
 | Security-Scan | `analysis_security` oder `code_security_scan` | `grep` nach Secrets | Pattern-basiert, 30+ Rules |
-| Bug-Hunt automatisieren | `bug_hunt_scan` mit Pattern-IDs | `grep` + manuelle Findings | 69 Built-in Patterns, auto-categorize |
+| Bug-Hunt automatisieren | `bug_hunt_scan` mit Pattern-IDs | `grep`+`regex` + manuelle Findings | 67 Built-in Patterns, auto-categorize |
 | Bug-Hunt Session verwalten | `bug_hunt_start/finding/list/triage` | Todo-Liste | Strukturiert, persistiert, exportierbar |
 | Web-Recherche | `research_auto(query)` oder `mcp_firecrawl_firecrawl_search` | `web_search` | Tiefe Recherche, auto-synthetisiert |
 
@@ -174,7 +231,7 @@ entferntes Tool macht 5 Tests rot).
   vorher liefen diese 13 Patterns nie, weil `code_search` ein AST-Tool ist.
 - `_timeout_executor` hat 4 Worker statt 1.
 - `scripts/lint_patterns.py` erzwingt `false_positive_notes` (>= 20 Zeichen),
-  eindeutige IDs und gueltige Severities. Alle 69 Patterns haben Notes.
+  eindeutige IDs und gueltige Severities. Alle 67 Patterns haben Notes.
 
 ### Recherche: plan vs. auto (seit 0.6.0)
 

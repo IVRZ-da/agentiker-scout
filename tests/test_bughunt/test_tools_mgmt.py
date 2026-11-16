@@ -152,7 +152,7 @@ class TestBugHuntPattern:
         import bughunt_core as core
         core.init_patterns()
         result = _ok(bug_hunt_pattern({"category": "security"}))
-        assert result["count"] == 19, f"Erwartet 19 security patterns, habe {result['count']}"
+        assert result["count"] == 17, f"Erwartet 17 security patterns, habe {result['count']}"
 
 
 # ======================================================================

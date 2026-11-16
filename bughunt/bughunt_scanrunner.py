@@ -1,9 +1,14 @@
-"""Scan-Runner für bug_hunt_scan() — automatische Ausführung von grep + code_intel Scans.
+"""Scan-Runner für bug_hunt_scan() — automatische Ausführung von grep, regex + code_intel Scans.
 
 Architektur:
 - **grep-Scans** (security, code-quality pattern mit scan_type=grep) → automatisch via subprocess
-- **code_intel-Scans** (code_security_scan, code_search_by_error, code_todo_finder) → via Registry Dispatch
+- **regex-Scans** (scan_type=regex) → Python-``re`` über denselben Dateibaum (kein BRE-Limit)
+- **code_intel-Scans** (Custom-Patterns mit scan_type=code_security_scan & Co.) → via Registry
+  Dispatch, Namespace-first (``code_review``/``op=security_scan``), Legacy-Fallback
 - **code_search** / **code_diagnostics** → weiterhin Instructions (kein auto-exec)
+
+Alle Wege teilen dieselben Verzeichnisausschlüsse (``shared/scan_paths``): kein
+Treffer aus ``node_modules``, ``dist`` oder ``.venv``.
 """
 import logging
 import re
@@ -11,8 +16,13 @@ import subprocess
 from typing import Optional
 
 from scout.shared.grep_batch import grep_batch
+from scout.shared.regex_scan import regex_batch
+from scout.shared.scan_paths import build_exclude_flags
 
 logger = logging.getLogger(__name__)
+
+#: ANSI-Escapes aus Rich-Ausgaben entfernen, bevor Text geprüft wird.
+_ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 # ASCII-freundliche Severity-Icons
 SEVERITY_ICONS = {"P0": "[P0]", "P1": "[P1]", "P2": "[P2]", "P3": "[P3]", "INFO": "[INFO]"}
@@ -49,7 +59,7 @@ def run_grep_scan(scan_query: str, scan_file_glob: str,
             else:
                 include_flag = ["--include", pattern]
 
-        cmd = ["grep", "-rnI"] + include_flag + [scan_query, project_root]
+        cmd = ["grep", "-rnI", *include_flag, *build_exclude_flags(), scan_query, project_root]
         logger.debug("Scan-Runner: %s", " ".join(str(c) for c in cmd))
 
         proc = subprocess.run(
@@ -87,9 +97,17 @@ def run_grep_scan(scan_query: str, scan_file_glob: str,
 # und als "not available" vermerkt (kein Abbruch des gesamten Batches).
 
 # Mapping: scan_type → registry tool name
+#
+# code_intel 0.6.25 hat seine 70 Einzeltools zu 7 Namespace-Dispatchern gefaltet:
+# ``code_security_scan`` heißt jetzt ``code_review`` mit ``op="security_scan"``.
+# Die alten Namen sind mit ``CODE_INTEL_NAMESPACES=0`` noch da, deshalb steht
+# ``legacy`` daneben: der Scan nimmt den Namespace, wenn er registriert ist, und
+# fällt sonst auf den Einzelnamen zurück.
 _CODE_INTEL_SCAN_MAP = {
     "code_security_scan": {
-        "tool": "code_security_scan",
+        "tool": "code_review",
+        "op": "security_scan",
+        "legacy": "code_security_scan",
         "kwargs": {"severity": "all"},
         "finding_extractor": lambda r: [
             {"file": f.get("file", ""), "line": f.get("line", 0),
@@ -99,7 +117,9 @@ _CODE_INTEL_SCAN_MAP = {
         ],
     },
     "code_search_by_error": {
-        "tool": "code_search_by_error",
+        "tool": "code_search",
+        "op": "search_by_error",
+        "legacy": "code_search_by_error",
         "kwargs": {},
         "finding_extractor": lambda r: [
             {"file": e.get("file", ""), "line": e.get("line", 0),
@@ -109,7 +129,9 @@ _CODE_INTEL_SCAN_MAP = {
         ],
     },
     "code_diagnostics": {
-        "tool": "code_diagnostics",
+        "tool": "code_lsp",
+        "op": "diagnostics",
+        "legacy": "code_diagnostics",
         "kwargs": {},
         "finding_extractor": lambda r: [
             {"file": d.get("file", d.get("path", "")), "line": d.get("line", d.get("range", {}).get("start", {}).get("line", 0) if isinstance(d.get("range"), dict) else 0),
@@ -119,7 +141,9 @@ _CODE_INTEL_SCAN_MAP = {
         ],
     },
     "code_todo_finder": {
-        "tool": "code_todo_finder",
+        "tool": "code_search",
+        "op": "todo_finder",
+        "legacy": "code_todo_finder",
         "kwargs": {},
         "finding_extractor": lambda r: [
             {"file": m.get("file", ""), "line": m.get("line", 0),
@@ -252,6 +276,11 @@ def _map_security_severity(sev: str) -> str:
 def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
     """Führt einen code-intel Scan via Registry Dispatch aus.
 
+    code_intel 0.6.25 registriert standardmäßig nur noch die 7
+    Namespace-Dispatcher (``code_review`` mit ``op="security_scan"``). Der
+    Legacy-Einzelname existiert nur mit ``CODE_INTEL_NAMESPACES=0`` — deshalb
+    erst den Namespace versuchen, dann den alten Namen.
+
     🔴 F2: Bei fehlendem Plugin/Registry → graceful Fallback.
     Returns: dict mit "findings" (list) und "tool_status".
     """
@@ -259,17 +288,35 @@ def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
     if not scan_config:
         return {"findings": [], "tool_status": "unknown_scan_type"}
 
-    tool_name = scan_config["tool"]
     kwargs = dict(scan_config["kwargs"])
     kwargs["path"] = scan_path
+    op = scan_config.get("op")
+    if op:
+        kwargs["op"] = op
 
     try:
         from scout.shared.registry import registry
-        entry = registry.get_entry(tool_name)
-        if entry is None:
-            logger.debug("code_intel scan skipped — %s not registered", tool_name)
-            return {"findings": [], "tool_status": f"{tool_name} nicht verfügbar (Plugin?)"}
+    except (ImportError, AttributeError) as exc:
+        return {"findings": [], "tool_status": f"registry nicht verfügbar: {exc}"}
 
+    candidates = [scan_config["tool"]]
+    legacy = scan_config.get("legacy")
+    if legacy and legacy not in candidates:
+        candidates.append(legacy)
+
+    entry = None
+    tool_name = candidates[0]
+    for name in candidates:
+        entry = registry.get_entry(name)
+        if entry is not None:
+            tool_name = name
+            break
+    if entry is None:
+        logger.debug("code_intel scan skipped — %s not registered", " / ".join(candidates))
+        hint = f"{scan_config['tool']} (op={op})" if op else scan_config["tool"]
+        return {"findings": [], "tool_status": f"{hint} nicht verfügbar (Plugin?)"}
+
+    try:
         # Handle both handler signatures:
         # (args: dict, **kwargs) — standard Hermes pattern
         # (**kwargs) — some tools only accept keyword args
@@ -282,10 +329,17 @@ def _run_code_intel_scan(scan_type: str, scan_path: str) -> dict:
             try:
                 result = json.loads(result)
             except (json.JSONDecodeError, TypeError):
-                # Rich-format output (e.g. code_intel fmt_ok Panels) —
-                # cannot be parsed as JSON automatically.
-                # The user can run the tool manually via the instruction.
-                return {"findings": [], "tool_status": f"{tool_name}: rich output (nicht automatisch parsebar)"}
+                # code_intel rendert Panels (Rich) — nicht als JSON parsebar.
+                # "keine Funde" lässt sich trotzdem sicher erkennen, alles andere
+                # muss der Agent selbst nachsehen.
+                plain = _ANSI.sub("", result)
+                if "No Vulnerabilities Found" in plain:
+                    return {"findings": [], "tool_status": "ok", "raw_count": 0}
+                hint = f"{scan_config['tool']} (op={op})" if op else tool_name
+                return {
+                    "findings": [],
+                    "tool_status": f"{hint}: Ergebnis ist Rich-Text, nicht JSON — bitte diesen Aufruf direkt ausführen",
+                }
 
         extractor = scan_config["finding_extractor"]
         findings = extractor(result) if callable(extractor) else []
@@ -347,6 +401,15 @@ def batch_grep_scans(patterns: list[dict], project_root: str) -> dict:
     ]
     grep_results = grep_batch(grep_patterns, project_root) if grep_patterns else {}
 
+    # Python-Regex-Patterns (scan_type=regex): grep kann sie nicht abbilden
+    # (BRE, kein (?x)). Ein Dateibaum-Durchlauf für alle, gleiche Ergebnisform.
+    regex_patterns = [
+        p for p in patterns
+        if p.get("scan_type") == "regex" and p.get("scan_query")
+    ]
+    if regex_patterns:
+        grep_results.update(regex_batch(regex_patterns, project_root))
+
     for pattern in patterns:
         scan_type = pattern.get("scan_type", "")
         scan_query = pattern.get("scan_query", "")
@@ -355,7 +418,7 @@ def batch_grep_scans(patterns: list[dict], project_root: str) -> dict:
         name = pattern.get("name", "")
         severity = pattern.get("severity", "P2")
 
-        if scan_type in ("grep", "code_search") and scan_query:
+        if scan_type in ("grep", "code_search", "regex") and scan_query:
             matches = grep_results.get(pattern_id) or []
             if matches:
                 for m in matches:

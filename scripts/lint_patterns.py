@@ -22,8 +22,8 @@ PATTERNS_FILE = PLUGIN_ROOT / "bughunt" / "data" / "patterns_data.json"
 
 MIN_NOTES_CHARS = 20
 VALID_SEVERITIES = {"P0", "P1", "P2", "P3", "INFO"}
-#: grep/manual/semgrep plus alle code_intel-Tools (Praefix "code_").
-VALID_SCAN_TYPES = {"grep", "manual", "semgrep"}
+#: grep/manual/semgrep, die Python-Regex-Variante und alle code_intel-Tools (Praefix "code_").
+VALID_SCAN_TYPES = {"grep", "manual", "semgrep", "regex"}
 REQUIRED_FIELDS = ("pattern_id", "name", "category", "severity", "description")
 
 
@@ -36,6 +36,36 @@ def load_patterns(path: Path = PATTERNS_FILE) -> list[dict]:
 
 
 WARNINGS: list[str] = []
+
+
+def _check_regex_pattern(pid: str, pattern: dict) -> list[dict]:
+    """``scan_type=regex`` muss kompilierbar sein — sonst liefert es still nichts."""
+    violations: list[dict] = []
+    query = pattern.get("scan_query") or ""
+    if not query:
+        return [{"pattern_id": pid, "rule": "R6",
+                 "message": "scan_type=regex ohne scan_query"}]
+
+    letters = (pattern.get("scan_flags") or "").lower()
+    unknown = set(letters) - set("imsx")
+    if unknown:
+        violations.append({"pattern_id": pid, "rule": "R8",
+                           "message": f"unbekannte scan_flags {sorted(unknown)}"})
+
+    if not pattern.get("scan_file_glob"):
+        violations.append({"pattern_id": pid, "rule": "R9",
+                           "message": "scan_type=regex ohne scan_file_glob (prueft dann jede Datei)"})
+
+    flags = re.MULTILINE
+    for letter, flag in (("i", re.IGNORECASE), ("s", re.DOTALL), ("x", re.VERBOSE)):
+        if letter in letters:
+            flags |= flag
+    try:
+        re.compile(query, flags)
+    except re.error as exc:
+        violations.append({"pattern_id": pid, "rule": "R7",
+                           "message": f"scan_query ist kein gueltiger Python-Regex: {exc}"})
+    return violations
 
 
 def check(patterns: list[dict]) -> list[dict]:
@@ -79,6 +109,10 @@ def check(patterns: list[dict]) -> list[dict]:
         if scan_type == "grep" and not pattern.get("scan_query"):
             violations.append({"pattern_id": pid, "rule": "R6",
                                "message": "scan_type=grep ohne scan_query"})
+
+        if scan_type == "regex":
+            violations.extend(_check_regex_pattern(pid, pattern))
+            continue
 
         query = pattern.get("scan_query") or ""
         if query:
