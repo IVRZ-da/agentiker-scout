@@ -56,6 +56,39 @@ def has_any(files: list[str], *suffixes: str) -> bool:
     return any(f.endswith(suf) for f in files for suf in suffixes)
 
 
+#: Reine Dokumentation. Nur was hier True liefert, darf die Tests überspringen.
+DOC_EXTENSIONS = (
+    ".md", ".rst", ".txt", ".adoc", ".asciidoc",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
+    ".pdf", ".woff", ".woff2", ".ttf",
+)
+DOC_FILES = (
+    "LICENSE", "NOTICE", "AUTHORS", "CONTRIBUTORS",
+    ".gitignore", ".gitattributes", ".editorconfig", ".mailmap",
+)
+DOC_DIR_PREFIXES = ("docs/", "doc/", "assets/", "images/")
+
+
+def is_doc_path(path: str) -> bool:
+    """Reine Dokumentation — keine Tests nötig?
+
+    Fail-closed: unbekannte Dateitypen gelten NICHT als Doku. Vorher hieß es
+    ``only_docs = not has_any(staged, ".py")`` — damit rutschten
+    ``bughunt/data/patterns_data.json`` (der Regelsatz selbst), ``plugin.yaml``
+    (Tool-Oberfläche) und ``scripts/pre-commit-hook`` als "Doku" durch und die
+    Testsuite lief nicht.
+    """
+    p = path.replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    name = p.rsplit("/", 1)[-1]
+    if name in DOC_FILES:
+        return True
+    if any(p.startswith(prefix) for prefix in DOC_DIR_PREFIXES):
+        return True
+    return name.lower().endswith(DOC_EXTENSIONS)
+
+
 def run_cmd(cmd: list[str], timeout: int = 30, cwd: str | None = None) -> subprocess.CompletedProcess:
     """Run a command and return the CompletedProcess. Handles errors gracefully."""
     try:
@@ -607,10 +640,19 @@ MODULE_TEST_MAP = {
     # Core modules
     "__init__.py": ["test_bughunt/structure", "test_auto_discovery"],
     "_fmt.py": ["test_analysis/fmt", "test_bughunt/tools_basic"],
-    # Scripts / config
-    "conftest.py": [],
+    # Scripts / config — conftest wirkt auf jede Suite, der Hook auf alle Checks.
+    "conftest.py": ["all"],
     "pyproject.toml": ["all"],
-    "scripts/pre-commit-hook": [],
+    # Manifest: steuert die Tool-Oberfläche im Host.
+    "plugin.yaml": ["all"],
+    # Der Pattern-Regelsatz selbst — Änderungen daran verändern Scan-Ergebnisse.
+    "bughunt/data/patterns_data.json": [
+        "test_bughunt/patterns",
+        "test_bughunt/tools_mgmt",
+        "test_bughunt/scan_paths_and_regex",
+    ],
+    "bughunt/data/patterns_data.py": ["test_bughunt/patterns"],
+    "scripts/pre-commit-hook": ["all"],
 }
 
 # Threshold: wenn mehr als N Module geändert, volle Test-Suite
@@ -618,12 +660,45 @@ MODULE_TEST_MAP = {
 MODULE_CHANGE_THRESHOLD = 6
 
 
+def resolve_test_file(tf: str) -> str | None:
+    """Test-Kurzname aus MODULE_TEST_MAP auf eine existierende Datei abbilden.
+
+    Der Katalog ist historisch ohne ``test_``-Präfix gepflegt
+    (``test_bughunt/patterns``), die Dateien heißen aber
+    ``tests/test_bughunt/test_patterns.py``. Ohne diese Auflösung existierten
+    nur 6 von 59 Einträgen — der Hook ließ die restlichen still fallen und lief
+    dann mit einer Teilmenge statt der betroffenen Suiten.
+
+    Returns:
+        Pfad relativ zum Repo (``tests/...``) oder ``None``, wenn nichts passt.
+    """
+    p = tf.replace("\\", "/").strip("/")
+    kandidaten = [p]
+    verzeichnis, _, name = p.rpartition("/")
+    if not name.startswith("test_"):
+        kandidaten.append(f"{verzeichnis}/test_{name}" if verzeichnis else f"test_{name}")
+    for kandidat in kandidaten:
+        datei = kandidat if kandidat.endswith(".py") else f"{kandidat}.py"
+        if os.path.exists(os.path.join(REPO_ROOT, "tests", datei)):
+            return f"tests/{datei}"
+    # Ganze Verzeichnisse sind erlaubt (z.B. "test_analysis")
+    for kandidat in kandidaten:
+        if os.path.isdir(os.path.join(REPO_ROOT, "tests", kandidat)):
+            return f"tests/{kandidat}"
+    return None
+
+
 def determine_test_files(staged_files: list[str]) -> list[str]:
     """Determine which test files to run based on changed modules.
 
-    - If a test file itself changed → run only that test file
-    - If ≤ MODULE_CHANGE_THRESHOLD modules changed → run matching tests
-    - If > MODULE_CHANGE_THRESHOLD modules changed → run all tests
+    - Geänderte Testdateien laufen immer mit
+    - Zusätzlich die Suiten der betroffenen Module (MODULE_TEST_MAP)
+    - Nicht auflösbar / ungemappt / „all" → volle Suite
+    - Nur Doku → keine Tests
+
+    Die frühere Kurzschluss-Regel „Testdatei geändert → *nur* diese" ist weg:
+    ein Commit aus Hook + Quellmodul + neuer Testdatei lief damit allein mit der
+    neuen Testdatei durch, die betroffenen Suiten liefen nicht.
     """
     staged_tests = [
         f for f in staged_files
@@ -640,34 +715,44 @@ def determine_test_files(staged_files: list[str]) -> list[str]:
         for f in staged_files
     ):
         return ["all"]
+
+    # Module der Nicht-Test-Dateien auf ihre Suiten abbilden
     changed_modules = set()
-
-    # First pass: check if test files themselves changed
-    if staged_tests:
-        return staged_tests
-
-    # Second pass: map source modules to test files
     for f in staged_files:
         f = f.replace("\\", "/")
         for module in MODULE_TEST_MAP:
             if f == module or f.endswith("/" + module):
                 changed_modules.add(module)
 
+    test_files = list(staged_tests)
+
+    for mod in changed_modules:
+        zuordnung = MODULE_TEST_MAP.get(mod, [])
+        if not zuordnung:
+            # Leere Liste hiesse "keine Tests nötig" — das ist fuer ein Modul,
+            # das Verhalten traegt, nie belegbar. Volle Suite.
+            return ["all"]
+        for tf in zuordnung:
+            if tf == "all":
+                return ["all"]
+            test_file = resolve_test_file(tf)
+            if test_file is None:
+                # Nicht auflösbar → lieber die volle Suite als eine Teilmenge,
+                # die die betroffene Datei gar nicht abdeckt.
+                return ["all"]
+            test_files.append(test_file)
+
     if not changed_modules:
-        return []  # No code changes — skip tests
+        # Fail-closed: eine Datei ohne Mapping, die keine Doku ist, kann Verhalten
+        # ändern (bughunt/data/*.json = Regelsatz, plugin.yaml = Tool-Oberfläche,
+        # der Hook selbst) — dann ist nur die volle Suite eine Aussage.
+        unbekannt = [f for f in staged_files if not is_doc_path(f) and not f.startswith("tests/")]
+        if unbekannt:
+            return ["all"]
 
     # If threshold exceeded, run all tests
     if len(changed_modules) > MODULE_CHANGE_THRESHOLD:
         return ["all"]
-
-    test_files = []
-    for mod in changed_modules:
-        for tf in MODULE_TEST_MAP.get(mod, []):
-            if tf == "all":
-                return ["all"]
-            test_file = f"tests/{tf}.py"
-            if os.path.exists(os.path.join(REPO_ROOT, test_file)):
-                test_files.append(test_file)
 
     # Deduplicate while preserving order
     seen = set()
@@ -677,7 +762,10 @@ def determine_test_files(staged_files: list[str]) -> list[str]:
             seen.add(tf)
             unique_test_files.append(tf)
 
-    return unique_test_files or ["all"]
+    if not unique_test_files:
+        # Nichts zu laufen: nur Doku → keine Tests, alles andere → volle Suite.
+        return [] if all(is_doc_path(f) for f in staged_files) else ["all"]
+    return unique_test_files
 
 
 def run_tests(test_files: list[str]) -> bool:
@@ -794,7 +882,8 @@ def main():
     n_staged = len(staged)
     print(f"🔍 Pre-Commit-Check: {n_staged} Datei{'en' if n_staged != 1 else ''} staged" + (" (dry-run)" if dry_run else ""))
 
-    only_docs = not has_any(staged, ".py")
+    # Nur reine Doku überspringt die Tests (is_doc_path, nicht "kein .py").
+    only_docs = bool(staged) and all(is_doc_path(f) for f in staged)
     py_files = [f for f in staged if f.endswith(".py")]
 
     print_header("⚠️  Warnings (non-blocking)")

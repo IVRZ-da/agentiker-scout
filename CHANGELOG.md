@@ -1,5 +1,48 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.3] — 2026-11-17
+
+### Fixed — Pre-Commit-Hook übersprang die Tests bei Datendateien
+
+Der Hook hielt alles für „Dokumentation", was keine `.py`-Datei ist
+(`only_docs = not has_any(staged, ".py")`). Ein Commit, der nur
+`bughunt/data/patterns_data.json` (den Pattern-Regelsatz), `plugin.yaml` oder
+den Hook selbst änderte, lief deshalb ohne Testsuite durch — genau die Änderung,
+die Scan-Ergebnisse und Tool-Oberfläche verschiebt.
+
+- **`is_doc_path()` statt „kein .py"**: nur echte Doku (`.md`/`.rst`/`.txt`,
+  Bilder/Fonts, `docs/`, `assets/`, `LICENSE`, `.gitignore`) überspringt die
+  Tests. Unbekannter Dateityp gilt als Code — fail-closed.
+- **`determine_test_files()` fail-closed**: Dateien ohne Eintrag im
+  `MODULE_TEST_MAP`, die keine Doku sind, lösen die volle Suite aus statt
+  „keine Änderung, keine Tests". Neue Einträge für `plugin.yaml` (→ `all`) und
+  `bughunt/data/patterns_data.json` (→ Patterns, Tools-Mgmt, Scan-Pfade).
+- **`resolve_test_file()` behebt 53 tote Mapping-Einträge**: der Katalog ist
+  ohne `test_`-Präfix gepflegt (`test_bughunt/patterns`), die Dateien heißen
+  `tests/test_bughunt/test_patterns.py`. Vorher existierten 6 von 59 Einträgen —
+  die übrigen fielen still weg, übrig blieb eine zufällige Teilmenge. Jetzt
+  werden beide Schreibweisen aufgelöst; ist ein Eintrag nicht auflösbar, läuft
+  die volle Suite.
+- **„Testdatei geändert → nur diese" ist weg**: ein Commit aus Hook, Quellmodul
+  und neuer Testdatei lief allein mit der neuen Testdatei durch — die
+  betroffenen Suiten liefen nicht. Geänderte Testdateien laufen jetzt *zusätzlich*
+  zu den gemappten Suiten; „nur Doku" ergibt weiterhin keine Tests.
+- **Leere Test-Zuordnungen gelten nicht mehr als „keine Tests nötig"**:
+  `"scripts/pre-commit-hook": []` und `"conftest.py": []` trugen nichts bei,
+  während `changed_modules` nicht leer war — die fail-closed-Prüfung griff
+  dadurch nicht und es lief nur die zufällig mitgeänderte Testdatei. Beide
+  zeigen jetzt auf `all`; eine leere Liste erzwingt generell die volle Suite.
+
+Wirkung: Änderung an `bughunt/bughunt_hooks.py` lief bisher in die volle Suite
+(Mapping tot), jetzt in `tests/test_bughunt/test_hooks.py`; Änderung am
+Regelsatz läuft in die drei zuständigen Suiten statt in keine.
+
+### Tests
+
+- `tests/test_pre_commit_hook.py`: 36 Tests (Doku-Erkennung, Regelsatz-JSON,
+  Manifest, Hook, unbekannte Pfade, Auflösung aller 59 Katalog-Einträge).
+  Suite: 2685 passed, 42 skipped.
+
 ## [0.6.2] — 2026-11-16
 
 ### Fixed — Rauschen in den Regex-Regeln
