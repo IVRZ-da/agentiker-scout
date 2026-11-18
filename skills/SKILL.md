@@ -1,7 +1,7 @@
 ---
 name: agentiker-scout
-description: "Fusion von analysis, bughunt und deep-research in ein Plugin mit Shared Pattern Pipeline. 42 Tools, 69 Bug-Patterns, 3 Domains."
-version: 0.6.0
+description: "Bug-Hunt mit Scout: Scan-Presets, Triage, Fix-Pipeline."
+version: 0.6.2
 author: agentiker
 tags: [analysis, bughunt, research, patterns, code-analysis, security, web-research]
 related_skills: [plan-follow, code-intel-plugin-maintenance, hermes-plugin-development]
@@ -232,6 +232,19 @@ entferntes Tool macht 5 Tests rot).
 - `_timeout_executor` hat 4 Worker statt 1.
 - `scripts/lint_patterns.py` erzwingt `false_positive_notes` (>= 20 Zeichen),
   eindeutige IDs und gueltige Severities. Alle 67 Patterns haben Notes.
+- **Jede Regel braucht einen Positiv-Test, sonst ist "kein Treffer" nicht von
+  "Regel kaputt" zu unterscheiden.** Fuer `scan_type=regex` je eine Fixture-Datei
+  mit gepflanzter Luecke (`~/.hermes/cache/scratch/vuln-fixture/`) und im Test
+  behaupten, dass die Regel dort trifft — plus ein Negativ-Fall, damit die Regel
+  nicht einfach alles matcht. Grund: eine Regel mit kaputtem Quoting liefert still
+  0 Treffer und sieht im Report wie ein sauberes Projekt aus.
+- **Regeln nicht auf nackte Property-/Methodennamen stuetzen.** `params.`,
+  `query.`, `body.`, `exec(`, `open(`, `join(` treffen auch `regexp.exec(...)`,
+  `Signer.open(...)` und `path.join(...)` — im TypeScript-Alltag zwei Falschtreffer
+  pro Datei. Input-Belege qualifizieren (`req.params`, `request.args`, `ctx.body`),
+  Shell-/Dateifunktionen mit Zusatzbedingung (`+ var`, `${`, `shell=True`).
+  Reichweite lieber eine Ebene enger als Severity-Buckets ohne eigene Regel
+  (S025/S026).
 
 ### Recherche: plan vs. auto (seit 0.6.0)
 
@@ -319,3 +332,18 @@ Domain-Module rufen Hermes-Tools ueber `scout.shared.registry.registry.dispatch(
 In `register(ctx)` wird die echte Hermes-Registry via `ctx.dispatch_tool` angebunden.
 KEIN `tools.registry`-Shim mehr: der zeigte frueher auf eine lokale Dummy-Registry,
 wodurch `honcho_search`, `honcho_reasoning`, `code_search_by_error` usw. wirkungslos waren.
+
+Zwei Fallen beim Aufruf fremder Plugins:
+
+- **Alte Einzelnamen existieren nicht mehr.** code_intel (ab 0.6.25) registriert nur
+  noch 7 Namespace-Dispatcher; `code_security_scan`, `code_symbols` usw. laufen in
+  ein "tool not registered" — je nach Aufrufer sichtbar oder still in
+  `except Exception: logger.debug` verschluckt. Deshalb geht jeder Aufruf durch
+  `shared/tool_alias.py::resolve_tool_call()` (Alias-Tabelle → Dispatcher + `op`,
+  Legacy-Fallback). Neue code_intel-Aufrufe immer ueber diese Schicht, nie am Alias
+  vorbei; die Tabelle wird per Test gegen `code_intel/namespaces.py` geprueft.
+- **code_intel-Tools liefern Rich-Panels, kein JSON.** `registry.dispatch("code_review", …)`
+  gibt einen formatierten String zurueck, der sich nicht als Findings-Liste parsen
+  laesst. Ergebnisse fremder Analyse-Tools daher nur als Beleg durchreichen, nicht
+  maschinell auswerten; was maschinell ausgewertet werden muss, laeuft in Scout selbst
+  (`shared/regex_scan.py`).
