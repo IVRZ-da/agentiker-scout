@@ -1,5 +1,29 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.7] — 2026-11-18
+
+### 📉 Deferral-Kosten gesenkt: Hints liefern den fertigen Aufruf
+
+Messung vor diesem Release (state.db, 102.695 Tool-Calls): die drei Dispatcher
+wurden seit der Fusion **0×** gerufen, die alten Einzel-Tools zuletzt am 16.11.
+mit 762 Calls. Ein Hint, der `bughunt(op="scan")` nennt, aber nicht sagt, wie
+das deferred Tool erreichbar ist, verweist ins Leere — das Modell weicht auf
+`read_file`/`terminal` aus (33.943 bzw. 21.195 Calls).
+
+- **`shared/intent.py`**: Die vier Intent-Contexts (`code`, `bug`, `research`,
+  `framework`) tragen im Namespace-Modus eine Präambel mit kopierbarem
+  `tool_call({"calls":[{...}]})`-Block samt Beispiel-op. Ein Turn statt drei
+  (`tool_search` → `tool_describe` → `tool_call`). Legacy-Modus und die
+  MCP-Contexts (`db`, `web`, `debug`) bleiben ohne Präambel — dort sind die
+  Tools eager.
+- **`shared/usage.py`** (neu): `post_tool_call`-Handler schreibt eine
+  JSONL-Zeile pro Scout-Aufruf (`ts`, `plugin`, `tool`, `op`, `session_id`,
+  `error`) nach `~/.hermes/logs/plugin-usage.jsonl`. Append-only, wirft nie.
+  Ohne diese Zahlen bleibt „wird kaum genutzt" Bauchgefühl.
+- **Tests**: `tests/test_usage_log.py` (6) + 3 neue Fälle in
+  `tests/test_intent_hints.py` (Payload ist valides JSON, Legacy/MCP ohne
+  Muster).
+
 ## [0.6.6] — 2026-11-18
 
 ### 🎟️ Katalogfähig: Core-Rebind entfernt (Regel 9)

@@ -72,3 +72,42 @@ def test_hint_ops_exist_in_the_dispatchers(monkeypatch):
 
 def test_unknown_intent_returns_none():
     assert intent._contexts_for_mode().get("gibtsnicht") is None
+
+
+# ─── v0.6.7: kopierbares Bridge-Muster gegen tote Verweise ──────────────────
+
+import json as _json  # noqa: E402
+import re as _re  # noqa: E402
+
+
+def _bridge_payload(context: str) -> dict:
+    """Zieht den ``tool_call({...})``-Block aus einem Hint und parst ihn als JSON."""
+    match = _re.search(r"tool_call\((\{.*?\})\)", context, _re.DOTALL)
+    assert match, f"kein tool_call-Muster im Hint: {context!r}"
+    return _json.loads(match.group(1))
+
+
+def test_deferred_hints_carry_a_callable_payload(monkeypatch):
+    """Seit v0.6.6 sind die Dispatcher deferred — der Hint muss den Aufruf mitliefern."""
+    monkeypatch.delenv(namespaces.NAMESPACES_ENV, raising=False)
+    contexts = intent._contexts_for_mode()
+    for key, domain in (("code", "analysis"), ("bug", "bughunt"), ("research", "research")):
+        payload = _bridge_payload(contexts[key])
+        call = payload["calls"][0]
+        assert call["name"] == domain
+        assert isinstance(call["arguments"].get("op"), str) and call["arguments"]["op"]
+
+
+def test_legacy_hints_have_no_bridge_payload(monkeypatch):
+    """Im Legacy-Modus sind die 42 Einzel-Tools eager — kein Bridge-Muster nötig."""
+    monkeypatch.setenv(namespaces.NAMESPACES_ENV, "0")
+    for key in ("code", "bug", "research"):
+        assert "tool_call(" not in intent._contexts_for_mode()[key]
+
+
+def test_mcp_hints_stay_bridge_free(monkeypatch):
+    """db/web/debug zielen auf eager MCP-Tools — kein tool_call-Muster."""
+    monkeypatch.delenv(namespaces.NAMESPACES_ENV, raising=False)
+    contexts = intent._contexts_for_mode()
+    for key in ("db", "web"):
+        assert "tool_call(" not in contexts[key]

@@ -84,6 +84,22 @@ for domain, keywords in INTENT_MAP.items():
 # Normalfall, siehe plugin-tool-surface-economics).
 
 
+def _bridge_preamble(domain: str, op: str, extra: str = "") -> str:
+    """Kopierbares Aufrufmuster für die deferred Dispatcher (v0.6.7).
+
+    Seit v0.6.6 sind ``analysis``/``bughunt``/``research`` deferred: sie stehen nicht im
+    Tool-Set, nur im Tool-Search-Katalog. Ein Hint, der nur ``bughunt(op="scan")`` nennt,
+    verweist damit ins Leere — das Modell müsste erst ``tool_search`` raten. Deshalb steht
+    der fertige ``tool_call``-Block im Hint: ein Turn statt drei.
+    """
+    args = f'"op":"{op}"' + (f", {extra}" if extra else "")
+    return (
+        "Deferred — Aufruf in EINEM Schritt:\n"
+        f'tool_call({{"calls":[{{"name":"{domain}","arguments":{{{args}}}}}]}})\n'
+        "Mehrere ops in einem tool_call bündeln.\n"
+    )
+
+
 def _hint(domain: str, op: str, args: str, beschreibung: str) -> str:
     """Eine Tool-Zeile in der Form, die im aktuellen Modus tatsaechlich existiert."""
     try:
@@ -131,13 +147,29 @@ _INTENT_SPECS: dict[str, tuple[str, list[tuple[str, str, str, str]]]] = {
     ]),
 }
 
+_PREAMBLE_ARGS: dict[str, tuple[str, str, str]] = {
+    "code": ("analysis", "inspect", '"path":"<pfad>"'),
+    "bug": ("bughunt", "start", '"project":"<projektpfad>"'),
+    "research": ("research", "start", '"query":"<thema>"'),
+    "framework": ("analysis", "framework", '"path":"<pfad>"'),
+}
+
+
 def _build_contexts() -> dict[str, str]:
     """Hints fuer den aktiven Modus — bei Moduswechsel neu gebaut."""
-    contexts: dict[str, str] = {
-    key: f"[SCOUT] {title} erkannt. Verfügbare Tools:\n"
-         + "\n".join(_hint(*spec) for spec in specs)
-    for key, (title, specs) in _INTENT_SPECS.items()
-}
+    try:
+        from scout.namespaces import namespaces_enabled
+
+        deferred = namespaces_enabled()
+    except Exception:  # Import defekt: Legacy-Form ist der sichere Default
+        deferred = False
+
+    contexts: dict[str, str] = {}
+    for key, (title, specs) in _INTENT_SPECS.items():
+        head = f"[SCOUT] {title} erkannt. "
+        if deferred and key in _PREAMBLE_ARGS:
+            head += _bridge_preamble(*_PREAMBLE_ARGS[key])
+        contexts[key] = head + "Verfügbare Tools:\n" + "\n".join(_hint(*spec) for spec in specs)
     contexts.update({
         "db": (
             "[SCOUT] Datenbank-Intent erkannt. Nutze PostgreSQL MCP Tools:\n"

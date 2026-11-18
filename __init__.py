@@ -191,6 +191,14 @@ def _register_hooks(ctx: PluginContext) -> None:
     except ImportError as e:
         logger.debug("honcho hooks nicht registriert: %s", e)
 
+    # Nutzungs-Messung (v0.6.7): eigenständiger Handler, damit ein Defekt in honcho
+    # die Messung nicht mitreißt (und umgekehrt).
+    try:
+        from scout.shared import usage as usage_mod
+        ctx.register_hook("post_tool_call", usage_mod.on_post_tool_call)
+    except ImportError as e:
+        logger.debug("usage hook nicht registriert: %s", e)
+
 
 # ─── Namespace-Paket ───────────────────────────────────────────────
 # Hermes laedt Plugins unter einem eigenen Modulnamen. Damit die absoluten
