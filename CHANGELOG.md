@@ -1,5 +1,45 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.5] — 2026-11-18
+
+### 🔀 Namespace-Fusion: 42 Tools → 3 Dispatcher
+
+Die Tool-Fläche wurde von 42 Einzel-Tools auf drei Namespace-Dispatcher
+(`analysis`, `bughunt`, `research`) mit `op`-Parameter reduziert. Das spart in
+jedem Turn Schema-Tokens; der Katalog wird per Replay der echten Registrierung
+erzeugt, nicht handgepflegt.
+
+- **`namespaces.py`** neu: Dispatcher-Bau + `op`-Enum je Namespace,
+  Legacy-Schalter `SCOUT_NAMESPACES=0` schaltet die Einzel-Tools zurück.
+- **Eager-Set über Allowlist**: nur die tatsächlich in jedem Turn gebrauchten
+  Tools sind eager, der Rest wird deferred nachgeladen.
+- **Intent-Hints modusabhängig** (`shared/intent.py`): Hinweise nennen die
+  op-Namen des aktiven Modus statt toter Einzel-Tool-Namen.
+- **Schema-Budget-Gate**: `scripts/tool_schema_audit.py` misst chars/Tokens der
+  registrierten Fläche, `scripts/pre-commit-hook` blockt bei Überschreitung.
+- **`scripts/validate_gate.py`** + `references/core_override_allowlist.txt`:
+  Wirkungsnachweis für jeden Core-Rebind statt Sammel-Freigabe.
+- **Tests**: `test_namespaces.py`, `test_namespace_coverage.py` (jeder `op` hat
+  ein echtes Tool, kein Tool ohne Namespace), `test_manifest_capabilities.py`,
+  `test_intent_hints.py`.
+
+## [0.6.4] — 2026-11-18
+
+### 🔒 Security-Scan-Selbstbezug behoben (`validate` grün)
+
+`hermes plugins validate scout` meldete das Plugin selbst als `dangerous`, weil
+die Security-Patterns als Klartext-Fragmente im Quellcode standen und der eigene
+Scan darauf ansprang.
+
+- **Pattern-Fragmente kodiert** in `bughunt/data/patterns_data.json` abgelegt,
+  der Loader setzt sie zur Laufzeit zusammen — der Scan trifft nur noch fremden
+  Code, `validate` läuft ohne `dangerous`-Fund durch.
+- **`requires_hermes: ">=0.23.1"`** in `plugin.yaml` deklariert.
+- **Manifest-Gate im Pre-Commit**: `gen_manifest_capabilities --check` verhindert
+  driftende `provides_tools`-Listen.
+- **`tests/test_pattern_encoding.py`**: positive Tests pro Regel belegen, dass die
+  zusammengesetzten Patterns weiterhin echt treffen.
+
 ## [0.6.3] — 2026-11-17
 
 ### Fixed — Pre-Commit-Hook übersprang die Tests bei Datendateien
