@@ -106,11 +106,33 @@ def _manifest_tools() -> list[str]:
 
 
 def test_manifest_lists_every_tool(tools):
+    """Manifest muss die **registrierten** Tools spiegeln.
+
+    Seit der Namespace-Fusion registriert ``register()`` drei Dispatcher statt der
+    42 Einzel-Tools — das Manifest folgt der Registrierung, nicht der Registry.
+    Mit ``SCOUT_NAMESPACES=0`` sind beide Mengen wieder identisch (Legacy).
+    """
+    import scout
+
+    class Stub:
+        def __init__(self):
+            self.names = set()
+
+        def register_tool(self, name, *a, **k):
+            self.names.add(name)
+
+        def register_hook(self, *a, **k):
+            pass
+
+        def __getattr__(self, item):
+            return lambda *a, **k: None
+
+    ctx = Stub()
+    scout.register(ctx)
     declared = set(_manifest_tools())
-    actual = {tool.name for tool in tools}
-    assert declared == actual, (
-        f"fehlt im Manifest: {sorted(actual - declared)}; "
-        f"zuviel: {sorted(declared - actual)}"
+    assert declared == ctx.names, (
+        f"fehlt im Manifest: {sorted(ctx.names - declared)}; "
+        f"zuviel: {sorted(declared - ctx.names)}"
     )
 
 

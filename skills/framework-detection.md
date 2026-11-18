@@ -187,14 +187,14 @@ BugPattern(
 
 ```python
 # Auto-Detection + Filter (empfohlen)
-bug_hunt_scan(session_id="...", patterns=["medusa"])
+bughunt(op="scan", session_id="...", patterns=["medusa"])
 # → Erkennt Framework automatisch, filtert Patterns
 
 # Explizite Framework-Angabe
-bug_hunt_scan(session_id="...", patterns=["all"], frameworks=["medusa", "nextjs"])
+bughunt(op="scan", session_id="...", patterns=["all"], frameworks=["medusa", "nextjs"])
 
 # Mit Preset (bequemste Variante)
-bug_hunt_scan(session_id="...", preset="medusa-full")
+bughunt(op="scan", session_id="...", preset="medusa-full")
 ```
 
 ## Presets

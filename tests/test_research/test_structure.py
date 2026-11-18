@@ -65,7 +65,7 @@ def test_plugin_yaml_is_valid():
     assert "pre_llm_call" in hook_names, "provides_hooks muss 'pre_llm_call' enthalten"
     assert "post_tool_call" in hook_names, "provides_hooks muss 'post_tool_call' enthalten"
     assert "on_session_end" in hook_names, "provides_hooks muss 'on_session_end' enthalten"
-    assert "provides_tools" in data and len(data["provides_tools"]) >= 40
+    assert "provides_tools" in data and len(data["provides_tools"]) == 3
 
 
 def test_research_init_importable():

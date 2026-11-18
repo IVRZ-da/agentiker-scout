@@ -90,13 +90,28 @@ def test_every_task_has_steps_and_tier(spec: dict) -> None:
 
 
 def test_referenced_tools_are_provided(spec: dict, provided_tools: set[str]) -> None:
-    """Kein Golden-Task darf ein Tool aufrufen, das das Manifest nicht anbietet."""
+    """Kein Golden-Task darf ein Tool aufrufen, das nicht erreichbar ist.
+
+    Seit der Namespace-Fusion (v0.6.5) sind die 42 Einzelnamen Ops der drei
+    Dispatcher: ``bug_hunt_start`` laeuft als ``bughunt(op="start")``. Die Evals
+    duerfen weiter die sprechenden Namen nennen — erreichbar sein muessen sie.
+    """
+    from scout.namespaces import DOMAIN_PREFIXES, short_name
+
     phantom: list[str] = []
     for task in spec["tasks"]:
         for step in task["steps"]:
-            if step["tool"] not in provided_tools:
-                phantom.append(f"{task['id']} -> {step['tool']}")
-    assert not phantom, f"Tools nicht im Manifest: {phantom}"
+            tool = step["tool"]
+            if tool in provided_tools:
+                continue
+            domain = next(
+                (d for d, prefixes in DOMAIN_PREFIXES.items() if any(tool.startswith(p) for p in prefixes)),
+                None,
+            )
+            if domain and domain in provided_tools and short_name(tool):
+                continue  # via <domain>(op=...) erreichbar
+            phantom.append(f"{task['id']} -> {tool}")
+    assert not phantom, f"Tools nicht erreichbar: {phantom}"
 
 
 def test_placeholders_have_capture_source(spec: dict) -> None:

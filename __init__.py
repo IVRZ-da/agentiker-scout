@@ -26,23 +26,82 @@ logging.raiseExceptions = False
 TOOL_DESCRIPTIONS: dict[str, str] = {}
 TOOL_SCHEMAS: dict[str, dict] = {}
 
+# ─── Eager-Tools (Namespace-Modus) ───────────────────────────────────
+
+# Die drei Dispatcher sind der Anker im Tool-Prompt. Gemessen: 42 Einzel-Tools
+# kosten 49.751 Zeichen (~12.438 Tokens) als Deferral-Katalog, aber jede Nutzung
+# einen Bridge-Turn (`tool_describe` -> `tool_call`). Bei 1.714 echten Calls
+# (references/tool-usage-baseline.md) ist der Bridge-Umweg der Kostentreiber,
+# nicht die Zahl der Schemata — deshalb sind genau diese 3 Tool-Namen eager.
+EAGER_TOOLS: tuple[str, ...] = ("analysis", "bughunt", "research")
+
+
+def _mark_tools_eager() -> None:
+    """Traegt die Dispatcher in Hermes' Core-Liste ein (macht sie eager).
+
+    ``tools/tool_search.py::is_deferrable_tool_name()`` haelt ein Tool nur dann
+    eager, wenn es in ``toolsets._HERMES_CORE_TOOLS`` steht. Plugin-Tools stehen
+    dort nie. Fail-open: bei geaenderten Interna bleibt es beim Deferral, ohne
+    Crash und ohne Startabbruch.
+
+    Bewusster Trade-off (User-Entscheidung): der Rebind macht
+    ``hermes plugins validate`` rot (``no core override``); das Repo-Gate
+    (``scripts/validate_gate.py`` + Allowlist) dokumentiert ihn.
+
+    Nebeneffekt wie in plan_follow: das GUI-Plugin-Panel leitet Plugin-Tools als
+    ``tools_registered - _HERMES_CORE_TOOLS`` ab — die 3 Dispatcher erscheinen
+    dort als "builtin".
+    """
+    try:
+        import toolsets  # type: ignore[import-not-found]
+
+        core = getattr(toolsets, "_HERMES_CORE_TOOLS", None)
+        if not isinstance(core, (list, tuple, set, frozenset)):
+            logger.warning(
+                "scout: _HERMES_CORE_TOOLS hat unerwarteten Typ %s — Tools bleiben deferred",
+                type(core).__name__,
+            )
+            return
+        if not isinstance(core, list):
+            core = list(core)
+            try:
+                toolsets._HERMES_CORE_TOOLS = core
+            except Exception as e:  # pragma: no cover
+                logger.warning("scout: _HERMES_CORE_TOOLS nicht schreibbar (%s)", e)
+                return
+        added = [name for name in EAGER_TOOLS if name not in core]
+        if added:
+            core.extend(added)
+            logger.debug("scout: %d Dispatcher eager: %s", len(added), ", ".join(added))
+    except ImportError:  # pragma: no cover - ausserhalb des Hosts
+        logger.debug("scout: toolsets nicht importierbar — Dispatcher bleiben deferred")
+
+
 # ─── Tool-Registrierung ──────────────────────────────────────────────
 
 def _register_tools(ctx: PluginContext) -> None:
-    """Registriert alle Tools aus der einen Wahrheit (``shared.tool_registry``).
+    """Registriert die Tools aus der einen Wahrheit (``shared.tool_registry``).
 
-    Frueher las diese Funktion ``scout_tool_registry.json`` und behandelte
-    Analysis separat — damit gab es zwei Quellen, die auseinanderlaufen konnten.
-    Jetzt sammelt ``collect()`` die Definitionen aus den Domaenen selbst; die
-    JSON-Datei ist nur noch ein erzeugtes Artefakt.
+    Zwei Modi:
+    * **Namespace (Default):** 3 Dispatcher (``analysis``/``bughunt``/``research``)
+      mit ``op``-Enum, gebaut per Replay der echten Registrierung
+      (``namespaces.py``). Sie werden eager gesetzt.
+    * **Legacy (``SCOUT_NAMESPACES=0``):** 1:1-Registrierung aller 42 Tools,
+      vollstaendig deferred.
+
+    In beiden Modi werden Handler, Schemas und Beschreibungen vorab aufgeloest —
+    die Dispatcher bekommen dieselben gewrappten Handler wie der Legacy-Pfad.
     """
     try:
+        from scout import namespaces
         from scout.shared.tool_registry import collect
     except ImportError as exc:
         logger.warning("Tool-Registry nicht ladbar: %s", exc)
         return
 
-    for tool in collect():
+    tools = list(collect())
+    resolved: dict[str, object] = {}
+    for tool in tools:
         try:
             handler = tool.handler
             if handler is None:
@@ -52,13 +111,38 @@ def _register_tools(ctx: PluginContext) -> None:
                              tool.handler_module, tool.handler_name, tool.name)
                 continue
 
-            handler = _wrap_response_format(handler, tool.schema)
-            ctx.register_tool(tool.name, tool.domain, tool.schema, handler,
-                              description=tool.description)
+            resolved[tool.name] = _wrap_response_format(handler, tool.schema)
             TOOL_DESCRIPTIONS[tool.name] = tool.description
             TOOL_SCHEMAS[tool.name] = tool.schema
         except Exception as exc:  # noqa: BLE001 - ein Tool darf nicht alle kippen
             logger.warning("Tool %s nicht registrierbar: %s", tool.name, exc)
+
+    if namespaces.namespaces_enabled():
+        catalog = namespaces.build_catalog(tools)
+        catalog = {
+            group: [tool for tool in members if tool.name in resolved]
+            for group, members in catalog.items()
+        }
+        count = namespaces.register_namespaces(
+            ctx, catalog, lambda tool: resolved.get(tool.name)
+        )
+        if count:
+            _mark_tools_eager()
+            logger.info("scout: %d Namespace-Dispatcher fuer %d Tools", count, len(resolved))
+        else:  # nichts dispatchbar -> lieber die Einzeltools als gar nichts
+            logger.warning("scout: keine Dispatcher gebaut — Fallback auf Einzel-Tools")
+            namespaces = None  # type: ignore[assignment]
+
+    if namespaces is None or not namespaces.namespaces_enabled():
+        for tool in tools:
+            handler = resolved.get(tool.name)
+            if handler is None:
+                continue
+            try:
+                ctx.register_tool(tool.name, tool.domain, tool.schema, handler,
+                                  description=tool.description)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Tool %s nicht registrierbar: %s", tool.name, exc)
 
 
 def _wrap_response_format(handler, schema: dict):

@@ -75,65 +75,120 @@ for domain, keywords in INTENT_MAP.items():
         _KEYWORD_TO_DOMAIN[kw] = domain
 
 # ─── Intent Context Builder ─────────────────────────────────────────────
+#
+# Die Hints nennen konkrete Tool-Namen. Seit der Namespace-Fusion (v0.6.5) heissen die
+# Tools ``analysis``/``bughunt``/``research`` mit ``op``-Parameter; mit
+# ``SCOUT_NAMESPACES=0`` sind es wieder die 42 Einzelnamen. Die Hints werden deshalb
+# aus ``(domain, op, args, beschreibung)`` gebaut statt als feste Strings — sonst
+# verweisen sie nach jedem Moduswechsel ins Leere (tote Namen im Prompt sind der
+# Normalfall, siehe plugin-tool-surface-economics).
 
-_INTENT_CONTEXTS: dict[str, str] = {
-    "code": (
-        "[SCOUT] Analyse-Intent erkannt. Verfügbare Tools:\n"
-        "- analysis_inspect(path, depth=1-5) — mehrstufige Code-Analyse\n"
-        "- analysis_architecture(path) — Abhängigkeitsgraph + Zyklen\n"
-        "- analysis_deadcode(path) — unused imports/functions/errors\n"
-        "- analysis_performance(path) — Complexity-Hotspots\n"
-        "- analysis_security(path) — Security-Pattern-Scan\n"
-        "- analysis_ask(question) — KI-gestützte Code-Frage\n"
-        "- analysis_report(scope, findings) — Ergebnisse persistieren"
-    ),
-    "bug": (
-        "[SCOUT] Bug-Hunt-Intent erkannt. Verfügbare Tools:\n"
-        "- bug_hunt_start(project) — Session starten\n"
-        "- bug_hunt_scan(patterns) — Automatische grep-Scans\n"
-        "- bug_hunt_finding(title, severity) — Finding erfassen\n"
-        "- bug_hunt_fix(session_id, finding_id) — Auto-Fix via Subagent\n"
-        "- bug_hunt_report(format) — Report generieren\n"
-        "- bug_hunt_pattern(list|save) — Pattern-Bibliothek"
-    ),
-    "research": (
-        "[SCOUT] Research-Intent erkannt. Verfügbare Tools:\n"
-        "- research_start(query, depth, pattern) — Recherche starten\n"
-        "- research_save(id, summary, findings) — Ergebnisse speichern\n"
-        "- research_search(query) — Lokale Recherchen durchsuchen\n"
-        "- research_compare(ids) — Recherchen vergleichen\n"
-        "- research_synthesize(query) — Honcho-Synthese\n"
-        "- research_schedule(query, interval) — Periodische Recherche"
-    ),
-    "db": (
-        "[SCOUT] Datenbank-Intent erkannt. Nutze PostgreSQL MCP Tools:\n"
-        "- execute_sql(sql) — Read-Only Queries\n"
-        "- explain_query(sql) — Execution Plan\n"
-        "- get_object_details(schema, table) — Schema-Info\n"
-        "- list_objects(schema) — Tabellen auflisten"
-    ),
-    "web": (
-        "[SCOUT] Web-Recherche-Intent erkannt. Nutze Firecrawl:\n"
-        "- firecrawl_search(query, limit) — Web-Suche\n"
-        "- firecrawl_scrape(url) — Seite extrahieren\n"
-        "- firecrawl_extract(urls, prompt) — Strukturierte Extraktion"
-    ),
-    "framework": (
-        "[SCOUT] Framework-Analyse-Intent erkannt. Verfügbare Tools:\n"
-        "- analysis_framework(path) — Framework-Profil anzeigen\n"
-        "- bug_hunt_scan(patterns, frameworks=...) — Framework-spezifischer Scan\n"
-        "- bug_hunt_scan(preset='medusa-full') — Preset-Scan für erkannten Stack"
-    ),
-    "debug": (
-        "[SCOUT] Debug-/UI-Intent erkannt. Chrome DevTools MCP verfügbar:\n"
-        "- mcp_chrome_devtools_navigate_page(url) — Seite laden\n"
-        "- mcp_chrome_devtools_list_console_messages() — Console Errors prüfen\n"
-        "- mcp_chrome_devtools_list_network_requests() — 4xx/5xx prüfen\n"
-        "- mcp_chrome_devtools_take_snapshot() — A11y Tree\n"
-        "- mcp_chrome_devtools_evaluate_script(fn) — JS ausführen\n"
-        "- bug_hunt_scan(patterns=['console_errors']) — Auto-Scan via Bughunt"
-    ),
+
+def _hint(domain: str, op: str, args: str, beschreibung: str) -> str:
+    """Eine Tool-Zeile in der Form, die im aktuellen Modus tatsaechlich existiert."""
+    try:
+        from scout.namespaces import DOMAIN_PREFIXES, namespaces_enabled
+
+        if namespaces_enabled():
+            call = f'{domain}(op="{op}"' + (f", {args}" if args else "") + ")"
+        else:
+            call = f"{DOMAIN_PREFIXES[domain][0]}{op}({args})"
+    except Exception:  # Import defekt: lieber Legacy-Form als gar kein Hint
+        call = f"{domain}_{op}({args})"
+    return f"- {call} — {beschreibung}"
+
+
+_INTENT_SPECS: dict[str, tuple[str, list[tuple[str, str, str, str]]]] = {
+    "code": ("Analyse-Intent", [
+        ("analysis", "inspect", "path, depth=1-5", "mehrstufige Code-Analyse"),
+        ("analysis", "architecture", "path", "Abhängigkeitsgraph + Zyklen"),
+        ("analysis", "deadcode", "path", "unused imports/functions/errors"),
+        ("analysis", "performance", "path", "Complexity-Hotspots"),
+        ("analysis", "security", "path", "Security-Pattern-Scan"),
+        ("analysis", "ask", "question", "KI-gestützte Code-Frage"),
+        ("analysis", "report", "scope, findings", "Ergebnisse persistieren"),
+    ]),
+    "bug": ("Bug-Hunt-Intent", [
+        ("bughunt", "start", "project", "Session starten"),
+        ("bughunt", "scan", "patterns", "Automatische grep-Scans"),
+        ("bughunt", "finding", "title, severity", "Finding erfassen"),
+        ("bughunt", "fix", "session_id, finding_id", "Auto-Fix via Subagent"),
+        ("bughunt", "report", "format", "Report generieren"),
+        ("bughunt", "pattern", "list|save", "Pattern-Bibliothek"),
+    ]),
+    "research": ("Research-Intent", [
+        ("research", "start", "query, depth, pattern", "Recherche starten"),
+        ("research", "save", "id, summary, findings", "Ergebnisse speichern"),
+        ("research", "search", "query", "Lokale Recherchen durchsuchen"),
+        ("research", "synthesize", "query", "Honcho-Synthese"),
+        ("research", "update", "id, findings", "Recherche fortschreiben"),
+        ("research", "status", "id", "Fortschritt prüfen"),
+    ]),
+    "framework": ("Framework-Analyse-Intent", [
+        ("analysis", "framework", "path", "Framework-Profil anzeigen"),
+        ("bughunt", "scan", "patterns, frameworks=...", "Framework-spezifischer Scan"),
+        ("bughunt", "scan", "preset='medusa-full'", "Preset-Scan für erkannten Stack"),
+    ]),
 }
+
+def _build_contexts() -> dict[str, str]:
+    """Hints fuer den aktiven Modus — bei Moduswechsel neu gebaut."""
+    contexts: dict[str, str] = {
+    key: f"[SCOUT] {title} erkannt. Verfügbare Tools:\n"
+         + "\n".join(_hint(*spec) for spec in specs)
+    for key, (title, specs) in _INTENT_SPECS.items()
+}
+    contexts.update({
+        "db": (
+            "[SCOUT] Datenbank-Intent erkannt. Nutze PostgreSQL MCP Tools:\n"
+            "- execute_sql(sql) — Read-Only Queries\n"
+            "- explain_query(sql) — Execution Plan\n"
+            "- get_object_details(schema, table) — Schema-Info\n"
+            "- list_objects(schema) — Tabellen auflisten"
+        ),
+        "web": (
+            "[SCOUT] Web-Recherche-Intent erkannt. Nutze Firecrawl:\n"
+            "- firecrawl_search(query, limit) — Web-Suche\n"
+            "- firecrawl_scrape(url) — Seite extrahieren\n"
+            "- firecrawl_extract(urls, prompt) — Strukturierte Extraktion"
+        ),
+        "debug": (
+            "[SCOUT] Debug-/UI-Intent erkannt. Chrome DevTools MCP verfügbar:\n"
+            "- mcp_chrome_devtools_navigate_page(url) — Seite laden\n"
+            "- mcp_chrome_devtools_list_console_messages() — Console Errors prüfen\n"
+            "- mcp_chrome_devtools_list_network_requests() — 4xx/5xx prüfen\n"
+            "- mcp_chrome_devtools_take_snapshot() — A11y Tree\n"
+            "- mcp_chrome_devtools_evaluate_script(fn) — JS ausführen\n"
+            + _hint("bughunt", "scan", "patterns=['console_errors']", "Auto-Scan via Bughunt")
+        ),
+    })
+    return contexts
+
+
+def _contexts_for_mode() -> dict[str, str]:
+    """Liefert die Hints des aktiven Modus (Namespace oder Legacy).
+
+    Wird nur beim Cache-Miss in ``_context_for_domain`` aufgerufen — ein Moduswechsel
+    (``SCOUT_NAMESPACES``) kann so nicht zu toten Tool-Namen im Prompt fuehren.
+    """
+    global _CONTEXT_CACHE, _CONTEXT_MODE
+    try:
+        from scout.namespaces import namespaces_enabled
+
+        enabled = namespaces_enabled()
+    except Exception:  # Import defekt: Legacy-Form ist die sicherere Annahme
+        enabled = False
+    if _CONTEXT_CACHE is None or _CONTEXT_MODE is not enabled:
+        _CONTEXT_CACHE = _build_contexts()
+        _CONTEXT_MODE = enabled
+        _INTENT_CACHE.clear()
+    return _CONTEXT_CACHE
+
+
+_CONTEXT_CACHE: dict[str, str] | None = None
+_CONTEXT_MODE: bool | None = None
+_INTENT_CONTEXTS: dict[str, str] = _build_contexts()
+
 
 # ─── Intent Detection (Single pre_llm_call) ──────────────────────────────
 
@@ -168,7 +223,7 @@ def _build_intent_context(domain: str) -> str | None:
     if cached and (now - cached[0]) < _CACHE_TTL:
         return cached[1]
 
-    context = _INTENT_CONTEXTS.get(domain)
+    context = _contexts_for_mode().get(domain)
     _INTENT_CACHE[domain] = (now, context)
     return context
 

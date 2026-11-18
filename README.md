@@ -79,7 +79,13 @@ bug_hunt_pattern(action="list_categories")
 
 **Tests:** 2656 tests
 
-**Tools (62):**
+**Tools (3 Dispatcher, 42 Ops):**
+
+Seit v0.6.5 sind die 42 Einzel-Tools zu drei Namespace-Dispatchern fusioniert —
+`analysis(op=...)`, `bughunt(op=...)`, `research(op=...)`. Die Tabellen unten
+dokumentieren die Ops; die alten Namen (`analysis_inspect`, `bug_hunt_scan`, …)
+funktionieren weiter als `op`-Wert. `SCOUT_NAMESPACES=0` stellt die 1:1-Registrierung
+wieder her.
 
 
 ### Analysis — Code & Architecture (20 Tools)

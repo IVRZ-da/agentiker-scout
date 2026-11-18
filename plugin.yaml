@@ -1,6 +1,6 @@
 name: agentiker-scout
-version: 0.6.4
-description: "Unified analysis, bug-hunt, and web-research plugin. 71 bug patterns, 20 analysis tools, 42 total tools."
+version: 0.6.5
+description: "Unified analysis, bug-hunt, and web-research plugin. 71 bug patterns, 42 ops in 3 namespace dispatchers (analysis, bughunt, research)."
 author: agentiker
 license: MIT
 requires_hermes: ">=0.23.1"
@@ -11,48 +11,9 @@ python_dependencies:
 
 manifest_version: 2
 provides_tools:
-  - analysis_architecture
-  - analysis_ask
-  - analysis_deadcode
-  - analysis_dependency_risk
-  - analysis_diff
-  - analysis_diff_analysis
-  - analysis_framework
-  - analysis_graph
-  - analysis_inspect
-  - analysis_pattern_discover
-  - analysis_performance
-  - analysis_report
-  - analysis_review
-  - analysis_risk
-  - analysis_security
-  - analysis_test_insight
-  - analysis_trend
-  - analysis_ui_gap
-  - analysis_ui_inspect
-  - analysis_watch
-  - bug_hunt_close
-  - bug_hunt_export
-  - bug_hunt_finding
-  - bug_hunt_fix
-  - bug_hunt_history
-  - bug_hunt_list
-  - bug_hunt_pattern
-  - bug_hunt_report
-  - bug_hunt_scan
-  - bug_hunt_start
-  - bug_hunt_stats
-  - bug_hunt_triage
-  - bug_hunt_verify
-  - research_cleanup
-  - research_export
-  - research_save
-  - research_search
-  - research_start
-  - research_stats
-  - research_status
-  - research_synthesize
-  - research_update
+  - analysis
+  - bughunt
+  - research
 provides_hooks:
   - on_session_end
   - post_tool_call

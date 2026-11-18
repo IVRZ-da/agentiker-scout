@@ -63,4 +63,5 @@ def test_broken_tool_does_not_block_the_rest(monkeypatch, mock_plugin_context):
     scout._register_tools(mock_plugin_context)
 
     registered = [call.args[0] for call in mock_plugin_context.register_tool.call_args_list]
-    assert registered == ["analysis_ok"]
+    # Namespace-Modus: registriert wird der Dispatcher (Domain), nicht das Einzeltool
+    assert registered == ["analysis"]

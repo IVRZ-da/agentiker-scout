@@ -95,21 +95,30 @@ research_start(pattern=...) → patterns_research.get() ←┘
 research_save → findings → _auto_deduce_patterns() ────┘
 ```
 
-## Tools (56 total)
+## Tools (3 Dispatcher, 42 Ops)
 
-### Code-Analyse (25)
-`analysis_inspect`, `analysis_architecture`, `analysis_deadcode`, `analysis_performance`,
-`analysis_security`, `analysis_ask`, `analysis_diff`, `analysis_trend`, `analysis_watch`,
-`analysis_graph`, `analysis_report`, `analysis_pattern_discover`, `analysis_ui_gap`,
-`analysis_framework`, `analysis_dependency_risk`, `analysis_pattern_discover`,
-`analysis_diff_analysis`, `analysis_risk`, `analysis_review`, `analysis_test_insight`
-`analysis_diff_analysis`, `analysis_risk`,
-`analysis_review`, `analysis_graph` (Mermaid), `analysis_ui_gap`, `analysis_ui_inspect`
+Seit v0.6.5 sind die 42 Einzel-Tools zu **drei Namespace-Dispatchern** fusioniert
+(Analogie zu code_intel v0.6.25). Jeder Dispatcher nimmt `op` plus die Parameter des
+gewählten Ops; die Dispatcher sind eager, kosten zusammen ~3.400 Tokens Schema.
 
-### Bug-Hunt (13)
-`bug_hunt_start`, `bug_hunt_finding`, `bug_hunt_list`, `bug_hunt_close`, `bug_hunt_scan`, `bug_hunt_triage`, `bug_hunt_verify`, `bug_hunt_report`, `bug_hunt_export`, `bug_hunt_history`, `bug_hunt_pattern`, `bug_hunt_stats`, `bug_hunt_fix`
+| Dispatcher | Ops | Aufgabe |
+|---|---:|---|
+| `analysis` | 20 | Code- & Architektur-Analyse |
+| `bughunt` | 13 | Vulnerability-Scanning, Findings, Fixes |
+| `research` | 9 | Web-Recherche + Honcho-Synthese |
 
-**Scan-Typen:** grep, code_security_scan, code_search_by_error, code_todo_finder, code_duplicates, code_merge_conflict, code_search, code_diagnostics
+```python
+analysis(op="inspect", path="/srv/app", depth=3)
+bughunt(op="start", project="/srv/app")
+bughunt(op="scan", patterns=["medusa"], preset="medusa-full")
+research(op="start", query="...", depth=3)
+```
+
+Die alten Namen (`analysis_inspect`, `bug_hunt_scan`, …) funktionieren weiter als
+`op`-Wert — nicht mehr als eigener Tool-Name. `SCOUT_NAMESPACES=0` stellt die
+1:1-Registrierung aller 42 Tools wieder her (deferred, ohne Core-Rebind).
+
+**Scan-Typen (op=`scan`):** grep, code_security_scan, code_search_by_error, code_todo_finder, code_duplicates, code_merge_conflict, code_search, code_diagnostics
 
 **Patterns:** 67 Built-in (43→67: +5 Security, +6 Code-Quality, +5 Java, +5 C/C++, +3 Ruby;
 zwei Severity-Buckets ohne eigene Regel entfallen)
