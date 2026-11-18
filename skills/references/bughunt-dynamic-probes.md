@@ -60,7 +60,7 @@ am Verdachtspunkt.
 | Verdacht | Probe | Worauf achten |
 |---|---|---|
 | Parser akzeptiert fremdes Format | alle realistischen Eingabevarianten durchschicken, inkl. weggelassener Teile (Jahr fehlt, Zeitteil dabei, ein-/zweistellig) | Plausibilität gegen den Kalender, nicht nur gegen „kein Fehler": `3.11.` → Jahr 2001 fällt sonst nicht auf |
-| Auth-Vergleich fail-open | gespeicherten Hash mit Platzhaltern/Sonderzeichen füllen (`...`, `!!`, `CHANGEME`) | Länge der dekodierten Puffer: dekodieren beide Seiten zu 0 Byte, ist `timingSafeEqual` wahr |
+| Auth-Vergleich fail-open | gespeicherten Hash mit Platzhaltern/Sonderzeichen füllen (`...`, !!, `CHANGEME`) | Länge der dekodierten Puffer: dekodieren beide Seiten zu 0 Byte, ist `timingSafeEqual` wahr |
 | Backoff/Retry tot | `Number(null)`, `Number('')`, `Number(' ')` prüfen | `Number(null) === 0` erfüllt `isFinite && >= 0` → Wartezeit 0, Exponential-Fallback ist toter Code |
 | Prototype-Keys als Eingabe | `constructor`, `toString`, `__proto__`, `hasOwnProperty` durch den Parser schicken | erst prüfen, ob der Lookup vorher schon auf die geerbte Funktion fällt — dann ist es kein Bug |
 | Cache/TTL wird nicht invalidiert | Fehlerantwort (401) injizieren und Aufruf wiederholen | zweiter Aufruf muss einen neuen Token/Request auslösen, sonst hängt der Ausfall bis zum TTL-Ende |
