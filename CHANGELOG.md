@@ -1,5 +1,25 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.6] — 2026-11-18
+
+### 🎟️ Katalogfähig: Core-Rebind entfernt (Regel 9)
+
+Der Hermes-Plugin-Katalog lässt keine Runtime-Overrides von Hermes-Core zu
+(Regel 9). `hermes plugins validate` hat den Rebind von
+`toolsets._HERMES_CORE_TOOLS` deshalb als `no core override` abgelehnt — das
+Plugin war damit nicht einreichbar.
+
+- **`_mark_tools_eager()` entfernt**, `EAGER_TOOLS = ()`. Die drei Dispatcher
+  sind jetzt deferred: jeder Aufruf läuft über `tool_call`. Preis: ein
+  zusätzlicher Bridge-Turn pro Nutzung (Analyse/Bughunt wird stoßweise gerufen,
+  nicht pro Turn wie `plan_current`). Messwerte und Rückweg:
+  `references/core-override-analysis.md`.
+- **Gate geleert**: `references/core_override_allowlist.txt` enthält keinen
+  Eintrag mehr — `scripts/validate_gate.py` bricht jetzt bei jedem roten Check.
+- **Regressionstest** `test_plugin_never_writes_core_attributes`: kein
+  Schreibzugriff auf Core-Modul-Attribute mehr im Quellbaum.
+- **`hermes plugins validate` ist vollständig grün** — Katalog-Entry folgt.
+
 ## [0.6.5] — 2026-11-18
 
 ### 🔀 Namespace-Fusion: 42 Tools → 3 Dispatcher

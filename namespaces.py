@@ -3,8 +3,9 @@
 Warum: 42 Tool-Schemata sind nur dann billig, solange sie deferred sind. Jede Nutzung
 kostet dann aber einen Bridge-Turn (``tool_describe`` → ``tool_call``). Die Messung in
 ``references/tool-usage-baseline.md`` zeigt 1.714 echte Calls — der Bridge-Umweg ist der
-Kostentreiber, nicht die Anzahl der Tools. Drei Dispatcher mit ``op``-Enum sind billig
-genug, um sie eager zu halten, und behalten die gesamte Funktionsflaeche.
+Kostentreiber, nicht die Anzahl der Tools. Drei Dispatcher mit ``op``-Enum sind billig und behalten die gesamte Funktionsflaeche.
+Sie sind **deferred**: Hermes bietet keinen oeffentlichen Weg, Plugin-Tools eager zu
+setzen (Katalog-Regel 9 verbietet den frueheren Rebind von ``toolsets._HERMES_CORE_TOOLS``).
 
 Aufbau (bewusst kein zweites Mapping):
 * Der Katalog wird durch **Replay der echten Registrierung** aufgebaut

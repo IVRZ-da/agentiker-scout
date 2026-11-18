@@ -48,8 +48,16 @@ Extra-Turn pro Nutzung        = 1 (tool_call, Schema liegt nach tool_describe vo
 Eager-Kosten 3 Dispatcher     = 17.009 Zeichen ≈ 4.252 Tokens pro Turn (gemessen)
 ```
 
-Bei 1 Nutzung pro 3–5 Turns ist der Bridge-Umweg teurer als 4.252 Tokens dauerhaft:
-jeder vermiedene Extra-Turn spart einen kompletten Kontext-Durchlauf.
+Bei 1 Nutzung pro 3–5 Turns wäre der Bridge-Umweg teurer als 4.252 Tokens dauerhaft:
+jeder vermiedene Extra-Turn spart einen kompletten Kontext-Durchlauf. Genau deshalb
+wurden die Dispatcher ab v0.6.5 per Core-Rebind eager gesetzt.
+
+**Nachtrag v0.6.6 (2026-11-18):** Der Rebind ist entfallen — Hermes-Plugin-Katalog,
+Regel 9 verbietet Runtime-Overrides von Hermes-Core, und es gibt keinen öffentlichen
+Eager-Seam. Die Dispatcher sind jetzt deferred; der Bridge-Turn pro Nutzung ist der
+Preis für die Katalogfähigkeit. Messwerte und Rückweg:
+`references/core-override-analysis.md`. Das Upstream-Issue für einen Eager-Seam ist
+offen — kommt der Seam, wird die Rechnung oben wieder gültig.
 
 **Fusion: ja** — 42 Tools → 3 Namespace-Dispatcher (`analysis`, `bughunt`, `research`),
 Katalog per Replay der echten Registrierung, Legacy-Schalter `SCOUT_NAMESPACES=0`.

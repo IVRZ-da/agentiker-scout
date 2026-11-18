@@ -31,50 +31,22 @@ TOOL_SCHEMAS: dict[str, dict] = {}
 # Die drei Dispatcher sind der Anker im Tool-Prompt. Gemessen: 42 Einzel-Tools
 # kosten 49.751 Zeichen (~12.438 Tokens) als Deferral-Katalog, aber jede Nutzung
 # einen Bridge-Turn (`tool_describe` -> `tool_call`). Bei 1.714 echten Calls
-# (references/tool-usage-baseline.md) ist der Bridge-Umweg der Kostentreiber,
-# nicht die Zahl der Schemata — deshalb sind genau diese 3 Tool-Namen eager.
-EAGER_TOOLS: tuple[str, ...] = ("analysis", "bughunt", "research")
+# (references/tool-usage-baseline.md) war der Bridge-Umweg der Kostentreiber —
+# deshalb wurden die Namen frueher in die Core-Liste rebindet (eager).
+# Katalog-Regel 9 verbietet das; seither sind die Dispatcher deferred.
+EAGER_TOOLS: tuple[str, ...] = ()
+# Bewusst leer: Hermes hat (Stand 0.23.1, auch auf Upstream-main) keinen
+# oeffentlichen Weg, ein Plugin-Tool eager zu setzen. ``ctx.register_tool()``
+# kennt keinen ``eager``-Parameter, ``plugin.yaml`` kein solches Feld, und
+# ``tools/tool_search.py::is_deferrable_tool_name()`` macht nur Core-Tools bzw.
+# Tools aus ``_DIRECT_SURFACE_TOOLSETS`` eager. Der frueher genutzte Rebind von
+# ``toolsets._HERMES_CORE_TOOLS`` ist Katalog-Regel 9 (kein Runtime-Override von
+# Hermes-Core) und deshalb entfernt — die Dispatcher laufen ueber den
+# ``tool_call``-Bridge. Ein Upstream-Issue fuer einen echten Seam liegt vor
+# (siehe references/core-override-analysis.md).
+# ``scripts/tool_schema_audit.py`` rechnet mit leerem EAGER_TOOLS die Summe
+# aller Schemata als obere Schranke — das Pre-Commit-Budget bleibt damit gueltig.
 
-
-def _mark_tools_eager() -> None:
-    """Traegt die Dispatcher in Hermes' Core-Liste ein (macht sie eager).
-
-    ``tools/tool_search.py::is_deferrable_tool_name()`` haelt ein Tool nur dann
-    eager, wenn es in ``toolsets._HERMES_CORE_TOOLS`` steht. Plugin-Tools stehen
-    dort nie. Fail-open: bei geaenderten Interna bleibt es beim Deferral, ohne
-    Crash und ohne Startabbruch.
-
-    Bewusster Trade-off (User-Entscheidung): der Rebind macht
-    ``hermes plugins validate`` rot (``no core override``); das Repo-Gate
-    (``scripts/validate_gate.py`` + Allowlist) dokumentiert ihn.
-
-    Nebeneffekt wie in plan_follow: das GUI-Plugin-Panel leitet Plugin-Tools als
-    ``tools_registered - _HERMES_CORE_TOOLS`` ab — die 3 Dispatcher erscheinen
-    dort als "builtin".
-    """
-    try:
-        import toolsets  # type: ignore[import-not-found]
-
-        core = getattr(toolsets, "_HERMES_CORE_TOOLS", None)
-        if not isinstance(core, (list, tuple, set, frozenset)):
-            logger.warning(
-                "scout: _HERMES_CORE_TOOLS hat unerwarteten Typ %s — Tools bleiben deferred",
-                type(core).__name__,
-            )
-            return
-        if not isinstance(core, list):
-            core = list(core)
-            try:
-                toolsets._HERMES_CORE_TOOLS = core
-            except Exception as e:  # pragma: no cover
-                logger.warning("scout: _HERMES_CORE_TOOLS nicht schreibbar (%s)", e)
-                return
-        added = [name for name in EAGER_TOOLS if name not in core]
-        if added:
-            core.extend(added)
-            logger.debug("scout: %d Dispatcher eager: %s", len(added), ", ".join(added))
-    except ImportError:  # pragma: no cover - ausserhalb des Hosts
-        logger.debug("scout: toolsets nicht importierbar — Dispatcher bleiben deferred")
 
 
 # ─── Tool-Registrierung ──────────────────────────────────────────────
@@ -127,7 +99,6 @@ def _register_tools(ctx: PluginContext) -> None:
             ctx, catalog, lambda tool: resolved.get(tool.name)
         )
         if count:
-            _mark_tools_eager()
             logger.info("scout: %d Namespace-Dispatcher fuer %d Tools", count, len(resolved))
         else:  # nichts dispatchbar -> lieber die Einzeltools als gar nichts
             logger.warning("scout: keine Dispatcher gebaut — Fallback auf Einzel-Tools")

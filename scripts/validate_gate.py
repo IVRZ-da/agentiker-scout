@@ -9,9 +9,11 @@ soll nicht stillschweigend durchgehen. Dieses Skript
 * schlaegt fehl, wenn die Allowlist einen inzwischen gruenen Check nennt
   (veralteter Eintrag → Allowlist leeren).
 
-Einziger bewusst erlaubter roter Check ist ``no core override``: es gibt keine
-Plugin-API, die ein Tool eager macht — der Rebind von ``toolsets._HERMES_CORE_TOOLS``
-ist der einzige Hebel. Wirkungsnachweis: ``references/core-override-analysis.md``.
+Einziger Check, der frueher rot sein durfte, war ``no core override`` (Rebind von
+``toolsets._HERMES_CORE_TOOLS``, um die Dispatcher eager zu machen). Dieser Rebind
+ist entfernt: der Katalog (Regel 9) laesst keine Runtime-Overrides von Hermes-Core
+zu. Die Allowlist ist damit leer — jeder rote Check bricht das Gate.
+Hintergrund: ``references/core-override-analysis.md``.
 
 Allowlist-Datei: ``references/core_override_allowlist.txt``, eine Zeile je Check:
     check_name: Begruendung

@@ -99,7 +99,8 @@ research_save → findings → _auto_deduce_patterns() ────┘
 
 Seit v0.6.5 sind die 42 Einzel-Tools zu **drei Namespace-Dispatchern** fusioniert
 (Analogie zu code_intel v0.6.25). Jeder Dispatcher nimmt `op` plus die Parameter des
-gewählten Ops; die Dispatcher sind eager, kosten zusammen ~3.400 Tokens Schema.
+gewählten Ops; die Dispatcher sind deferred (kein offizieller eager-Seam in Hermes)
+und kosten deshalb keine Schema-Tokens pro Turn — jeder Aufruf geht über `tool_call`.
 
 | Dispatcher | Ops | Aufgabe |
 |---|---:|---|

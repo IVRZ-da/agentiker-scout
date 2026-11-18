@@ -1,7 +1,9 @@
 """Namespace-Fusion (T10): 42 Tools -> 3 Dispatcher mit ``op``-Enum.
 
-Warum drei Dispatcher eager sind: siehe ``references/tool-usage-baseline.md``
-(1.714 echte Calls; der Bridge-Turn pro Nutzung war teurer als 3.415 Tokens/Turn).
+Warum drei Dispatcher: siehe ``references/tool-usage-baseline.md``
+(1.714 echte Calls; 42 Einzel-Tools waeren teurer). Sie sind **deferred** — einen
+oeffentlichen Weg, Plugin-Tools eager zu setzen, gibt es nicht (Katalog-Regel 9);
+jeder Aufruf laeuft ueber den ``tool_call``-Bridge.
 Diese Tests halten die drei Eigenschaften fest, die die Fusion tragen:
 
 1. **Vollstaendigkeit** — jeder echte Op ist im Enum erreichbar (kein stiller Verlust).
@@ -97,8 +99,31 @@ def test_schema_budget_is_bounded(registered):
     assert total < 20_000, f"Dispatcher-Summe {total} chars ueberschreitet das Budget"
 
 
-def test_dispatchers_are_marked_eager():
-    assert scout.EAGER_TOOLS == ("analysis", "bughunt", "research")
+def test_dispatchers_are_not_forced_eager():
+    """Katalog-Regel 9: kein Rebind von Hermes-Core, also keine eager-Markierung."""
+    assert scout.EAGER_TOOLS == ()
+
+
+def test_plugin_never_writes_core_attributes():
+    """Regression: das Plugin darf kein Attribut eines Core-Moduls setzen.
+
+    Der frueher genutzte Rebind ``toolsets._HERMES_CORE_TOOLS = core`` hat
+    ``hermes plugins validate`` (Katalog-Regel 9) rot gemacht. Dieser Test haelt
+    den Rueckweg zu.
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(scout.__file__ or ".").resolve().parent
+    pattern = re.compile(r"^(?!\s*#).*\._?[A-Za-z_]*HERMES_CORE[A-Za-z_]*\s*=", re.M)
+    hits = [
+        f"{p.relative_to(root)}:{i}"
+        for p in root.rglob("*.py")
+        if ".git" not in p.parts and "tests" not in p.parts
+        for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1)
+        if pattern.match(line)
+    ]
+    assert hits == [], f"Core-Attribut wird geschrieben: {hits}"
 
 
 # ─── 2. Fehlerqualitaet (isolierter Dispatcher) ──────────────────────

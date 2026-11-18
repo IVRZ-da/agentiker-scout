@@ -73,19 +73,13 @@ bug_hunt_pattern(action="list_categories")
 
 <!-- README_AUTO -->
 
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2656%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.6.6-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2775%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-**Version:** 0.6.0
+**Version:** 0.6.6
 
-**Tests:** 2656 tests
+**Tests:** 2775 tests
 
-**Tools (3 Dispatcher, 42 Ops):**
-
-Seit v0.6.5 sind die 42 Einzel-Tools zu drei Namespace-Dispatchern fusioniert —
-`analysis(op=...)`, `bughunt(op=...)`, `research(op=...)`. Die Tabellen unten
-dokumentieren die Ops; die alten Namen (`analysis_inspect`, `bug_hunt_scan`, …)
-funktionieren weiter als `op`-Wert. `SCOUT_NAMESPACES=0` stellt die 1:1-Registrierung
-wieder her.
+**Tools (62):**
 
 
 ### Analysis — Code & Architecture (20 Tools)
@@ -175,60 +169,63 @@ wieder her.
 
 ### Recent Changelog
 
-## [0.6.0] — 2026-11-11
+## [0.6.6] — 2026-11-18
 
-Grundueberholung nach einer Nutzungsanalyse: 56 Tools trugen 1,74 % aller
-Tool-Aufrufe. Weniger Oberflaeche, echte Recherche, weniger Subprozesse.
+### 🎟️ Katalogfähig: Core-Rebind entfernt (Regel 9)
 
-### ⚠️ Breaking Changes
+Der Hermes-Plugin-Katalog lässt keine Runtime-Overrides von Hermes-Core zu
+(Regel 9). `hermes plugins validate` hat den Rebind von
+`toolsets._HERMES_CORE_TOOLS` deshalb als `no core override` abgelehnt — das
+Plugin war damit nicht einreichbar.
 
-- **56 → 42 Tools.** Sechs 1:1-Wrapper wurden ersatzlos entfernt; die
-  code_intel-Tools decken sie ab:
-  `analysis_code_query` → `code_query`, `analysis_code_move` → `code_move`,
-  `analysis_graph_query` → `code_graph_query`, `analysis_duplicates` →
-  `code_duplicates`, `analysis_migration` → `code_migration`,
-  `analysis_timeline` → `code_timeline`.
-- **Research 17 → 9 Tools.** Acht Einzel-Tools sind jetzt Aktionen:
-  `research_delete|tag|verify|merge|compare` → `research_update(action=…)`,
-  `research_export_all` → `research_export(all=true)`,
-  `research_auto` → `research_start(mode="auto")`,
-  `research_schedule` → `research_start(schedule="24h")`.
-- **Datenpfade umgezogen.** Nutzdaten liegen in `~/.hermes/data/scout`
-  (Override `SCOUT_DATA_DIR`), nicht mehr im Plugin-Verzeichnis.
+- **`_mark_tools_eager()` entfernt**, `EAGER_TOOLS = ()`. Die drei Dispatcher
+  sind jetzt deferred: jeder Aufruf läuft über `tool_call`. Preis: ein
+  zusätzlicher Bridge-Turn pro Nutzung (Analyse/Bughunt wird stoßweise gerufen,
+  nicht pro Turn wie `plan_current`). Messwerte und Rückweg:
+  `references/core-override-analysis.md`.
+- **Gate geleert**: `references/core_override_allowlist.txt` enthält keinen
+  Eintrag mehr — `scripts/validate_gate.py` bricht jetzt bei jedem roten Check.
+- **Regressionstest** `test_plugin_never_writes_core_attributes`: kein
+  Schreibzugriff auf Core-Modul-Attribute mehr im Quellbaum.
+- **`hermes plugins validate` ist vollständig grün** — Katalog-Entry folgt.
 
-## [0.5.17] — 2026-11-11
+## [0.6.5] — 2026-11-18
 
-### Fixed — Kompatibilität mit Hermes Agent 0.23.1
-- **pre_llm_call-Hook war tot:** Hermes 0.23.1 uebergibt `user_message` + `conversation_history`,
-  nicht mehr `messages`. Der Hook las nur `messages` und lieferte still `None` — die
-  Intent-Injektion (Tool-Empfehlungen bei "analysiere/recherchiere/bug hunt") fand nicht statt.
-  Neu: `_last_user_message(kwargs)` mit Reihenfolge `user_message` → `conversation_history` →
-  `messages` (Rueckwaerts-Kompatibilitaet). Content darf str oder Block-Liste sein.
-- **Bug-Hunt-Sessionblock wieder erreichbar:** `bughunt_hooks.on_session_end`/`on_pre_llm_call`
-  waren nie registriert. Der dynamische Session-Block kommt jetzt ueber den zentralen Hook
-  (`bughunt_hooks.session_context()`), wenn der Intent als `bug` erkannt wird.
-- **Testsuite war rot:** `test_hooks_coverage.py` importierte `on_session_end` aus
-  `bughunt_hooks` (nach `shared/honcho.py` verschoben) → Collection-Error, jeder Pre-Commit
-  blockiert. Tests auf die neue Struktur umgestellt.
-- **Vertragstest:** `tests/test_shared/test_hook_contract.py` haelt den 0.23.1-Kwarg-Satz fest
-  (aktueller Vertrag, conversation_history-Fallback, legacy `messages`, Block-Listen,
-  unbekannte Kwargs, Fehlerrobustheit).
+### 🔀 Namespace-Fusion: 42 Tools → 3 Dispatcher
 
-### Changed — Manifest v2
-- `plugin.yaml`: `manifest_version: 2`, `provides_tools` (56) und `provides_hooks` (3)
+Die Tool-Fläche wurde von 42 Einzel-Tools auf drei Namespace-Dispatcher
+(`analysis`, `bughunt`, `research`) mit `op`-Parameter reduziert. Das spart in
+jedem Turn Schema-Tokens; der Katalog wird per Replay der echten Registrierung
+erzeugt, nicht handgepflegt.
 
-## [0.5.16] — 2026-06-30
+- **`namespaces.py`** neu: Dispatcher-Bau + `op`-Enum je Namespace,
+  Legacy-Schalter `SCOUT_NAMESPACES=0` schaltet die Einzel-Tools zurück.
+- **Eager-Set über Allowlist**: nur die tatsächlich in jedem Turn gebrauchten
+  Tools sind eager, der Rest wird deferred nachgeladen.
+- **Intent-Hints modusabhängig** (`shared/intent.py`): Hinweise nennen die
+  op-Namen des aktiven Modus statt toter Einzel-Tool-Namen.
+- **Schema-Budget-Gate**: `scripts/tool_schema_audit.py` misst chars/Tokens der
+  registrierten Fläche, `scripts/pre-commit-hook` blockt bei Überschreitung.
+- **`scripts/validate_gate.py`** + `references/core_override_allowlist.txt`:
+  Wirkungsnachweis für jeden Core-Rebind statt Sammel-Freigabe.
+- **Tests**: `test_namespaces.py`, `test_namespace_coverage.py` (jeder `op` hat
 
-### Changed
-- **Tool-Descriptions in README** — 25 Analysis-Tools mit individuellen Beschreibungen statt generischem "Code & architecture analysis tool."
-- **Badges oben ergänzt** — Version, Tests, License im Header
+## [0.6.4] — 2026-11-18
 
-[0.5.15] — 2026-06-28
-### P3 — Lazy Loading + Keywords
-- **intent.py:** Double-Scan eliminiert (Gate + Detection → Single-Pass)
-- **yaml_rule_loader.py:** `import yaml` lazy (module → function-level, spart ~100ms Startzeit)
-- **pattern_loader.py:** `import yaml` lazy (module → function-level)
-- **Tests:** 2103 passed, 45 skipped, 0 failures
+### 🔒 Security-Scan-Selbstbezug behoben (`validate` grün)
+
+`hermes plugins validate scout` meldete das Plugin selbst als `dangerous`, weil
+die Security-Patterns als Klartext-Fragmente im Quellcode standen und der eigene
+Scan darauf ansprang.
+
+- **Pattern-Fragmente kodiert** in `bughunt/data/patterns_data.json` abgelegt,
+  der Loader setzt sie zur Laufzeit zusammen — der Scan trifft nur noch fremden
+  Code, `validate` läuft ohne `dangerous`-Fund durch.
+- **`requires_hermes: ">=0.23.1"`** in `plugin.yaml` deklariert.
+- **Manifest-Gate im Pre-Commit**: `gen_manifest_capabilities --check` verhindert
+  driftende `provides_tools`-Listen.
+- **`tests/test_pattern_encoding.py`**: positive Tests pro Regel belegen, dass die
+  zusammengesetzten Patterns weiterhin echt treffen.
 
 <!-- END README_AUTO -->
 

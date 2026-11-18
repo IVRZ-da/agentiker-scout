@@ -3,4 +3,7 @@
 # Ein Eintrag, dessen Check gruen wird, laesst das Gate absichtlich fehlschlagen
 # ("stale") — dann muss er hier raus.
 
-no core override: bewusst — analysis/bughunt/research muessen eager sein (1.714 echte Calls, Bridge-Turn teurer als 4.252 Tokens/Turn), es gibt keine Plugin-API dafuer. Wirkungsnachweis: references/core-override-analysis.md
+# Aktuell LEER: der frueher erlaubte rote Check "no core override" ist entfallen,
+# weil der _HERMES_CORE_TOOLS-Rebind entfernt wurde (Hermes-Plugin-Katalog,
+# Regel 9: keine Runtime-Overrides von Hermes-Core). Siehe
+# references/core-override-analysis.md.
