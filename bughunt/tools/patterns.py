@@ -6,10 +6,29 @@ from . import base  # noqa: F401
 
 
 def _pattern_list(args: dict, core) -> str:
-    """Default: Alle Patterns listen (optional gefiltert nach Kategorie)."""
+    """Default: Alle Patterns listen (optional gefiltert nach Kategorie).
+
+    Kompaktform als Default: die Vollform (inkl. ``scan_query``, ``fix_description``,
+    ``false_positive_notes`` je Pattern) sprengte mit ~69 KB den Kontext jedes
+    Aufrufs. Details gibt es per ``full=True`` oder ``action="detail"``.
+    """
     category = args.get("category", "")
     patterns = core.get_patterns_by_category(category) if category else core.list_all_patterns()
     patterns = [p.to_dict() if hasattr(p, 'to_dict') else p for p in patterns]
+    if not (args.get("full") or args.get("response_format") == "detailed"):
+        patterns = [
+            {
+                "pattern_id": p.get("pattern_id") or p.get("id"),
+                "name": p.get("name"),
+                "category": p.get("category"),
+                "severity": p.get("severity"),
+                "description": (p.get("description") or "")[:120],
+            }
+            for p in patterns
+        ]
+        return base._ok({"patterns": patterns, "count": len(patterns),
+                         "note": "Kurzform. Alle Felder eines Patterns: action='detail' "
+                                 "mit pattern_id, oder full=True fuer die ganze Liste."})
     return base._ok({"patterns": patterns, "count": len(patterns)})
 
 

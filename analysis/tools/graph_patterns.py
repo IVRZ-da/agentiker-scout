@@ -323,10 +323,10 @@ def _discover_python_patterns(
                         "suggested_fix": "Im except-Block mindestens logger.warning() verwenden.",
                     })
         except Exception as e:
-                    logger.debug("silent catch (except: pass) pattern discovery failed: %s", e)
+            logger.debug("silent catch (except: pass) pattern discovery failed: %s", e)
 
     # Mutable Default Args
-        q2 = r"def \\w+\\([^)]*=\\{\\s*\\}|def \\w+\\([^)]*=\\[\\s*\\]"
+    q2 = r"def \\w+\\([^)]*=\\{\\s*\\}|def \\w+\\([^)]*=\\[\\s*\\]"
     if q2 not in existing_queries:
         try:
             r = subprocess.run(

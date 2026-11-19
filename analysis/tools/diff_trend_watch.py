@@ -206,13 +206,8 @@ def analysis_watch_tool(args: dict, **kwargs) -> str:
     action = args.get("action", "create")
     name = args.get("name", "")
 
-    # Path-Validierung
-    path_error, resolved_path = _validate_and_resolve_path(path)
-    if path_error:
-        return fmt_err(f"{path_error} (path: {path})")
-    if not os.path.exists(resolved_path):
-        return fmt_err(f"Path not found: {resolved_path}")
-
+    # `list` und `remove` arbeiten ohne Pfad — die Pfad-Validierung lief vorher
+    # zuerst und liess beide Aktionen mit "Path is empty" scheitern.
     if action == "list":
         return fmt_ok({
             "tool": "analysis_watch",
@@ -229,6 +224,13 @@ def analysis_watch_tool(args: dict, **kwargs) -> str:
             "name": name,
             "note": f"Use `hermes cron remove {name}` to stop the watch.",
         })
+
+    # Path-Validierung (nur noch fuer action=create)
+    path_error, resolved_path = _validate_and_resolve_path(path)
+    if path_error:
+        return fmt_err(f"{path_error} (path: {path})")
+    if not os.path.exists(resolved_path):
+        return fmt_err(f"Path not found: {resolved_path}")
 
     # Map frequency to cron schedule
     schedule_map = {

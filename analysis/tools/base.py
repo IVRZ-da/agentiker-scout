@@ -145,6 +145,13 @@ def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -
         # umschreiben (code_security_scan -> code_review/op=security_scan).
         tool_name, args = resolve_tool_call(name, kwargs, registry_is_available())
 
+        # code_intel liefert ohne ``_raw`` ein rich-Panel (fuer Menschen). Das ist
+        # kein JSON, ``json.loads`` scheitert und die Aufrufer sehen leere Listen.
+        # ``_raw=True`` gibt es nur bei einem Teil der Tools -> Fallback unten.
+        wants_raw = "_raw" not in args
+        if wants_raw:
+            args["_raw"] = True
+
         # Dispatch in Thread mit Timeout
         future = _timeout_executor.submit(registry.dispatch, tool_name, args)
         try:
@@ -152,6 +159,13 @@ def _call_tool(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs: Any) -
         except FuturesTimeout:
             logger.warning("tool call %s timed out after %ds", tool_name, timeout)
             return {"error": f"timeout after {timeout}s", "tool": name}
+
+        if wants_raw and "unexpected keyword argument '_raw'" in str(result):
+            retry_args = {k: v for k, v in args.items() if k != "_raw"}
+            try:
+                result = registry.dispatch(tool_name, retry_args)
+            except Exception as e:  # noqa: BLE001
+                logger.debug("retry ohne _raw fuer %s fehlgeschlagen: %s", tool_name, e)
 
         if isinstance(result, str):
             try:
@@ -184,7 +198,12 @@ def _call_tool_direct(name: str, timeout: int = _DEFAULT_TOOL_TIMEOUT, **kwargs:
         from scout.shared.tool_alias import registry_is_available, resolve_tool_call
 
         tool_name, args = resolve_tool_call(name, kwargs, registry_is_available())
+        wants_raw = "_raw" not in args
+        if wants_raw:
+            args["_raw"] = True
         result = registry.dispatch(tool_name, args)
+        if wants_raw and "unexpected keyword argument '_raw'" in str(result):
+            result = registry.dispatch(tool_name, {k: v for k, v in args.items() if k != "_raw"})
         if isinstance(result, str):
             try:
                 return json.loads(result)
@@ -370,18 +389,33 @@ def _find_symbol_line(path: str, symbol: str) -> int:
 
 
 def _summarize_symbols(symbols: Any) -> List[Dict[str, Any]]:
-    """Extrahiert eine kompakte Symbol-Liste."""
-    if isinstance(symbols, list):
-        return [
-            {"name": s.get("name", "?"), "kind": s.get("kind", ""), "line": s.get("line", 0)}
-            for s in symbols[:50]
-        ]
+    """Extrahiert eine kompakte Symbol-Liste.
+
+    Drei Formen kommen an:
+      * Liste von Symbolen (Einzeldatei, aeltere code_intel-Version),
+      * ``{"symbols": [...]}`` (Einzeldatei),
+      * ``{"results": [{"path": ..., "symbols": [...]}]}`` (Verzeichnis-Scan).
+    Die dritte Form wurde vorher als "0 Symbole" ausgegeben, weil nur der
+    ``symbols``-Schluessel gelesen wurde.
+    """
+    entries = symbols
     if isinstance(symbols, dict):
-        return [
-            {"name": s.get("name", "?"), "kind": s.get("kind", ""), "line": s.get("line", 0)}
-            for s in symbols.get("symbols", [])[:50]
-        ]
-    return []
+        entries = symbols.get("symbols")
+        if entries is None:
+            entries = []
+            for block in symbols.get("results") or []:
+                if not isinstance(block, dict):
+                    continue
+                for symbol in block.get("symbols") or []:
+                    if isinstance(symbol, dict):
+                        entries.append({**symbol, "file": block.get("path", "")})
+    if not isinstance(entries, list):
+        return []
+    return [
+        {"name": s.get("name", "?"), "kind": s.get("kind", ""),
+         "line": s.get("line", 0), "file": s.get("file", "")}
+        for s in entries[:50] if isinstance(s, dict)
+    ]
 
 
 def _summarize_diagnostics(diag: Any) -> Dict[str, int]:

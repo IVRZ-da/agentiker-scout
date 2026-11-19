@@ -1342,6 +1342,11 @@
                   "description": "How to fix a match."
                 }
               }
+            },
+            "full": {
+              "type": "boolean",
+              "default": false,
+              "description": "action=list: alle Felder jedes Patterns (grosse Antwort)."
             }
           }
         }
@@ -1457,17 +1462,41 @@
             },
             "findings": {
               "type": "array",
+              "description": "Findings list. Pro Eintrag: {\"finding\": \"...\", \"sources\": [\"https://...\"]}. Alternativ werden title/detail/description als Text akzeptiert.",
               "items": {
-                "type": "object"
-              },
-              "description": "Findings list."
+                "type": "object",
+                "properties": {
+                  "finding": {
+                    "type": "string",
+                    "description": "Der Befund als Text."
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "URLs, aus denen der Befund stammt."
+                  }
+                }
+              }
             },
             "sources": {
               "type": "array",
+              "description": "Quellenliste. Pro Eintrag: {\"url\": \"https://...\", \"title\": \"...\"}.",
               "items": {
-                "type": "object"
-              },
-              "description": "Sources list."
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
             },
             "tags": {
               "type": "array",

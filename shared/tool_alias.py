@@ -140,13 +140,20 @@ def resolve_tool_call(
 
 
 def registry_is_available() -> Callable[[str], bool]:
-    """Praedikat gegen die echte Registry — wirft nie, meldet nur False."""
+    """Praedikat gegen lokale **und** Hermes-Registry — wirft nie, meldet nur False.
+
+    Der frueher hier benutzte ``registry.get_entry()`` kennt nur plugin-interne
+    Handler. Fuer ein Host-Tool wie ``code_search`` lieferte er deshalb immer
+    ``False`` — und ``resolve_tool_call`` schrieb nie auf den Namespace um.
+    """
 
     def _available(tool_name: str) -> bool:
         try:
-            from scout.shared.registry import registry
+            from scout.shared.registry import hermes_has_tool, registry
 
-            return registry.get_entry(tool_name) is not None
+            if registry.get_entry(tool_name) is not None:
+                return True
+            return hermes_has_tool(tool_name)
         except Exception:  # noqa: BLE001 — Import/Attributfehler = nicht verfuegbar
             return False
 

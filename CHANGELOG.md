@@ -1,5 +1,46 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.9] — 2026-11-19
+
+### 🐛 Live-Debug aller 42 Tools: stille Nullen, Alias-Totpunkt, UnboundLocal
+
+Alle 42 Ops wurden ueber die echte Registrierung aufgerufen
+(``scripts/debug_all_tools.py``) und zusaetzlich gegen echtes code_intel
+(``scripts/e2e_code_intel_probe.py``). Die Unit-Suite war gruen — diese Bugs
+kamen alle als *success mit leeren Feldern* zurueck.
+
+- **Alias-Layer war toter Code.** ``code_symbols`` & Co. wurden nur an 2 von
+  ~50 Stellen auf die Namespace-Dispatcher umgeschrieben, und
+  ``registry_is_available()`` fragte die lokale Registry — dort steht ein
+  Host-Tool nie, das Praedikat war also immer ``False``. Folge:
+  ``Unknown tool: code_symbols``, von den Analysis-Tools als 0 Symbole / 0
+  Findings ausgegeben. Jetzt zentral in ``Registry.dispatch()`` (deckt
+  ``_call_tool``, ``_call_tool_direct`` und direkte Dispatch-Aufrufe ab) plus
+  Fallback nach einem ``Unknown tool``; ``shared/tool_alias.py`` prueft die
+  echte Host-Registry.
+- **``_raw`` wird mitgesendet.** code_intel liefert ohne ``_raw`` ein rich-Panel
+  (kein JSON). ``_call_tool`` setzt es jetzt und faellt bei ``TypeError`` je
+  Tool zurueck.
+- **``_summarize_symbols``** kannte die Verzeichnis-Form
+  ``{"results": [{"path", "symbols"}]}`` nicht — jeder Verzeichnis-Scan meldete
+  0 Symbole.
+- **``graph_patterns.py``**: ``q2`` war im ``except``-Block von ``q1`` definiert
+  (Einrueckung) → ``UnboundLocalError: q2`` bei jedem pattern_discover.
+- **``analysis_watch``**: ``action=list``/``remove`` verlangten einen Pfad, weil
+  die Validierung vor der Action-Weiche lief.
+- **``research_save``**: ``title``/``detail`` wurden zu leeren Findings (nur
+  ``finding`` akzeptiert) — der Export zeigte "### 1." ohne Inhalt. Neue
+  ``_normalize_findings()``, Schema dokumentiert.
+- **``research_synthesize``**: verlangte *alle* Query-Woerter inkl. Stoppwoertern
+  ("bei", "der") → 0 lokale Treffer trotz passendem Ergebnis. Jetzt
+  Stoppwort-Filter + 60-%-Match.
+- **``bug_hunt_pattern(action=list)``**: 69 KB Vollform je Aufruf. Jetzt
+  Kurzform als Default, ``full=True`` fuer alle Felder.
+- **Dispatcher**: ``op`` wurde nur aus dem ``args``-dict gelesen; ein
+  kwargs-Aufruf lief in "Pflichtparameter 'op' fehlt".
+- **Tests**: ``tests/test_registry_alias_dispatch.py`` (7) und
+  ``tests/test_live_debug_regressions.py`` (9) neu.
+
 ## [0.6.8] — 2026-11-19
 
 ### 🔌 Hint folgt dem echten Bridge-Status

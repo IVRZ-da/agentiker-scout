@@ -269,6 +269,35 @@ def _enforce_max_results() -> None:
 # research_save
 # ---------------------------------------------------------------------------
 
+def _normalize_findings(findings) -> list[dict]:
+    """Findings auf ``{"finding": str, "sources": [str]}`` bringen.
+
+    Akzeptiert Liste, JSON-String und Einzel-Strings. Als Text wird das erste
+    gefuellte Feld aus finding/title/description/detail/text genommen — Modelle
+    liefern fast immer ``title``/``detail``, was vorher zu leeren Findings und
+    einem Export ohne Inhalte fuehrte.
+    """
+    if isinstance(findings, str):
+        try:
+            findings = json.loads(findings)
+        except (json.JSONDecodeError, TypeError):
+            findings = []
+    if not isinstance(findings, list):
+        return []
+    normalized: list[dict] = []
+    for f in findings:
+        if isinstance(f, dict):
+            text = (f.get("finding") or f.get("title") or f.get("description")
+                    or f.get("detail") or f.get("text") or "")
+            normalized.append({
+                "finding": str(text),
+                "sources": [str(s) for s in (f.get("sources") or [])],
+            })
+        elif isinstance(f, str):
+            normalized.append({"finding": f, "sources": []})
+    return normalized
+
+
 def research_save(args: dict, **kwargs) -> str:
     """
     Speichert die Ergebnisse einer Recherche.
@@ -302,24 +331,7 @@ def research_save(args: dict, **kwargs) -> str:
         return _err("status muss 'completed', 'partial' oder 'failed' sein")
 
     # findings als natives Array (Abwärtskompatibel: auch JSON-String)
-    findings = args.get("findings", [])
-    if isinstance(findings, str):
-        try:
-            findings = json.loads(findings)
-        except (json.JSONDecodeError, TypeError):
-            findings = []
-    if not isinstance(findings, list):
-        findings = []
-    normalized = []
-    for f in findings:
-        if isinstance(f, dict):
-            normalized.append({
-                "finding": str(f.get("finding", "")),
-                "sources": [str(s) for s in (f.get("sources") or [])],
-            })
-        elif isinstance(f, str):
-            normalized.append({"finding": f, "sources": []})
-    findings = normalized
+    findings = _normalize_findings(args.get("findings", []))
 
     # sources als natives Array (Abwärtskompatibel: auch JSON-String)
     sources = args.get("sources", [])

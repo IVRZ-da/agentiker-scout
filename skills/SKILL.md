@@ -180,6 +180,43 @@ zwei Severity-Buckets ohne eigene Regel entfallen)
   `bug_hunt_triage(finding_ids=[…], status="verified", notes="…")` in EINEM
   Call markieren — nicht 17 einzelne `bug_hunt_verify`-Aufrufe.
 
+### 🔴 Nach dem Hunt: Fix-Runde (Report → Plan → grüne Suite)
+
+Der Hunt ist die halbe Arbeit; die Fix-Runde hat eigene Fallen:
+
+- **Ein Task pro Datei, nicht pro Finding.** Fünf P1/P2 im selben Modul gehören in
+  EINEN Task (ein Verify-Lauf statt fünf), Reihenfolge P1 → P2 → P3, linear
+  `depends_on` — ein Agent, keine Parallelität auf derselben Datei.
+- **Verify = Typecheck && volle Suite**, als reine `&&`-Kette, nie mit Pipe auf
+  `tail` und nie mit `exit $?`-Mask. Monolithische Test-Skripte haben keinen
+  Filter — die volle Suite pro Task ist billiger als ein falsch-grüner Task.
+- **Retrybare Status im Mock belegen nichts.** Ein `failNext` mit 503/429 wird
+  vom Wiederhol-Loop des Clients verbraucht, der zweite Versuch gelingt, der Test
+  ist grün ohne den Pfad zu prüfen. „Dauerhaft kaputt" = nicht-wiederholbarer
+  Status (403); „Änderung kam an, meldete aber Fehler" = eigener Hook, der erst
+  schreibt und dann 503 antwortet.
+- **Fault-Injection braucht einen kalten Cache.** Ein injizierter Fehler wird nie
+  verbraucht, wenn ein Produktions-Cache (Label-, Namens-, ETag-, Plan-Cache) die
+  Antwort schon hält — der Test belegt dann den Cache, nicht den Fehlerpfad. Zwei
+  Auswege: frische Entität (neue ID/neuer Plan, damit der Cache-Key kalt ist) oder
+  die Service-Klasse direkt mit eigenem Client instanziieren
+  (`new UserDirectory(new GraphClient(...))`) — deren Cache ist leer und der Test
+  ist billiger als der MCP-Roundtrip. Und: der Fault-Key muss der Key-Bauart des
+  Test-Doubles entsprechen (oft `METHOD + pathname`, ohne Query und ohne
+  API-Präfix) — vorher die Key-Zeile im Mock lesen, sonst greift der Fault still
+  nicht.
+- **Paritäts-Checks mitpflegen.** Projekte prüfen automatisch README-Tabellen
+  gegen registrierte Schemas und `.env.example` gegen die Env-Schema-Keys. Ein
+  neues Feld oder eine neue Variable macht diese Prüfungen rot, obwohl der Fix
+  stimmt — Schema + `.env.example` + README-Tabelle gehören in denselben Task.
+- **Verhaltensändernde Sicherheitsfixes ankündigen.** `confirm`-Gates und
+  Datei-Allowlists brechen bestehende Tests und Erwartungen: Default sicher
+  wählen, Fehlermeldung nennt die Variable zum Freischalten, betroffenen Test
+  auf das neue Verhalten umschreiben, dem Nutzer die Änderung am Ende nennen.
+
+→ Ablauf, Test-Rezepte (Timeout, Body-Limit 413, Apply-then-Fail) und
+Abschlussbericht: [references/hunt-to-fix-round.md](references/hunt-to-fix-round.md)
+
 ### Web-Recherche (17)
 `research_start`, `research_save`, `research_search`, `research_status`, `research_cleanup`, `research_update` (Aktionen: patch/delete/tag/verify/merge/compare), `research_export` (`all=true` fuer alles), `research_synthesize`, `research_stats`
 
@@ -343,17 +380,68 @@ In `register(ctx)` wird die echte Hermes-Registry via `ctx.dispatch_tool` angebu
 KEIN `tools.registry`-Shim mehr: der zeigte frueher auf eine lokale Dummy-Registry,
 wodurch `honcho_search`, `honcho_reasoning`, `code_search_by_error` usw. wirkungslos waren.
 
-Zwei Fallen beim Aufruf fremder Plugins:
+Drei Fallen beim Aufruf fremder Plugins:
 
-- **Alte Einzelnamen existieren nicht mehr.** code_intel (ab 0.6.25) registriert nur
-  noch 7 Namespace-Dispatcher; `code_security_scan`, `code_symbols` usw. laufen in
-  ein "tool not registered" — je nach Aufrufer sichtbar oder still in
-  `except Exception: logger.debug` verschluckt. Deshalb geht jeder Aufruf durch
-  `shared/tool_alias.py::resolve_tool_call()` (Alias-Tabelle → Dispatcher + `op`,
-  Legacy-Fallback). Neue code_intel-Aufrufe immer ueber diese Schicht, nie am Alias
-  vorbei; die Tabelle wird per Test gegen `code_intel/namespaces.py` geprueft.
-- **code_intel-Tools liefern Rich-Panels, kein JSON.** `registry.dispatch("code_review", …)`
-  gibt einen formatierten String zurueck, der sich nicht als Findings-Liste parsen
-  laesst. Ergebnisse fremder Analyse-Tools daher nur als Beleg durchreichen, nicht
-  maschinell auswerten; was maschinell ausgewertet werden muss, laeuft in Scout selbst
-  (`shared/regex_scan.py`).
+- **Legacy-Namen gehoeren zentral in `Registry.dispatch()`, nicht an die Aufrufstellen.**
+  code_intel (ab 0.6.25) registriert nur noch 7 Namespace-Dispatcher; `code_symbols`
+  usw. laufen in `Unknown tool`. Ein Alias-Layer, den nur einzelne Aufrufer benutzen,
+  ist wirkungslos: er existierte, hing aber an 2 von ~50 Stellen — der Rest lieferte
+  `Unknown tool: code_symbols` und die Analysis-Tools gaben still leere Listen zurueck
+  („✅ success" mit `symbols: 0`). `dispatch()` muss deshalb selbst aufloesen:
+  Namen direkt probieren, bei aktivierten Namespaces auf `<dispatcher>` + `op`
+  umschreiben und nach einer `Unknown tool`-Antwort in die Gegenrichtung wiederholen.
+- **Das Verfuegbarkeits-Praedikat muss die Host-Registry fragen.**
+  `registry.get_entry()` kennt nur plugin-interne Handler; fuer ein Host-Tool wie
+  `code_search` liefert es immer `False` — dann schreibt `resolve_tool_call()` nie um.
+  Richtig ist `tools.registry.registry.get_entry(name)` (ohne expliziten Scope sucht sie
+  im aktuellen) **oder** die lokale Registry (`hermes_has_tool()`), nie nur letztere.
+- **`Unknown tool` kommt als String zurueck, nicht als Exception.** Jede
+  `except Exception: logger.debug(...)`-Kette schluckt ihn, und der Aufrufer sieht ein
+  leeres Ergebnis statt eines Fehlers. Nach einem Dispatch fremder Tools das Ergebnis
+  auf das Muster pruefen, bevor es als Daten weiterverarbeitet wird.
+
+### code_intel-Ergebnisse maschinell lesen
+
+- **`_raw=True` gibt JSON statt Rich-Panel.** Implementiert in `code_symbols_tool`,
+  `code_diagnostics_tool`, `code_references_tool`, `code_tests_for_symbol_tool` — die
+  `_handle_*`-Wrapper muessen den Parameter durchreichen. Taten sie nicht: der
+  `_raw`-Vertrag endete eine Ebene zu frueh, `json.loads` scheiterte am Panel-Text und
+  die Daten gingen verloren, nicht die Formatierung. `_call_tool` setzt `_raw` deshalb
+  selbst und wiederholt ohne den Parameter, wenn ein Tool ihn nicht kennt.
+- **Ein Ergebnis in 0–1 ms mit `status: ok` und leeren Feldern ist ein Fehler, kein
+  schneller Lauf.** Echte Analyse kostet Millisekunden bis Sekunden; die Laufzeit ist
+  das billigste Signal fuer „Backend nicht erreichbar / Dispatch ins Leere".
+- Weitere code_intel-Fallen (Panel-Format, fehlende Grammatiken, doppelte
+  Handler-Definitionen): Skill `agentiker-code-intel`.
+
+## Live-Debug aller Ops (nach jeder Aenderung an Dispatch oder Tool-Daten)
+
+`pytest` bleibt gruen, weil die Suite gegen Mocks laeuft. Die Fehler sitzen im
+Dispatch-Pfad und in der Datenform — die findet nur ein Aufruf ueber die echte
+Registrierung:
+
+1. `scripts/debug_all_tools.py` ruft jeden der 42 Ops mit Fixture-Argumenten ueber
+   `shared.tool_registry.collect()` auf und schreibt Status, Laufzeit, Ausgabegroesse
+   und Vorschau nach `/tmp/scout_debug_report.json`. `SCOUT_TIMEOUT` begrenzt einzelne
+   Ops, `analysis|bughunt|research` als Argument filtert auf eine Domain.
+2. `scripts/e2e_code_intel_probe.py` stellt den Hermes-Host nach
+   (`HostAdapter.dispatch_tool` + `HostRegistryView.get_entry`, dann
+   `registry.bind_context(host)`) und laesst die Analysis-Handler gegen echten
+   code_intel-Code laufen. Erwartung: Symbole > 0, Security-Findings > 0,
+   Architecture-/Performance-Sections gefuellt. Laeuft mit dem Hermes-Python, nicht
+   mit `/usr/bin/python3` (dort fehlen die Host-Module).
+3. Sequenz-Ops in Kette testen (`start → finding → list → triage → verify → report →
+   export → close` bzw. `research: start → save → update → status → search → stats →
+   export → synthesize → cleanup`). Einzelaufrufe mit erfundener `session_id` belegen
+   nur die Validierung, nicht den Pfad.
+4. Jeder Fund bekommt einen Regressionstest in `tests/test_live_debug_regressions.py`.
+   Die Bug-Klasse ist „✅ success mit leeren Feldern" — genau die faengt kein
+   bestehender Test. Schema-Drift separat: `tests/test_registry_drift.py`
+   (nach Schema-Aenderungen `scripts/gen_tool_registry.py` laufen lassen, sonst rot).
+5. Fremde Plugin-Aenderungen (z. B. `_raw`-Durchreichung in code_intel) in der
+   eigenen Suite nicht mitpruefen — dort laufen lassen und pre-existing Failures mit
+   `git stash push -- <dateien>` → Test → `git stash pop` belegen, statt sie dem
+   eigenen Fix anzulasten.
+
+Fixture-Argumente pro Op, die Bug-Klassen und das Host-Adapter-Muster:
+[references/live-debug-ops.md](references/live-debug-ops.md)

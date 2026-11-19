@@ -182,7 +182,12 @@ def build_dispatcher(domain: str, tools: list[Any], resolve: Callable[[Any], Cal
 
     def handler(args: dict | None = None, **kwargs) -> Any:
         args = dict(args or {})
+        # Hermes ruft Dispatcher-Handler je nach Pfad mit ``args``-dict *oder* als
+        # kwargs auf. Vorher wurde ``op`` nur im dict gesucht — ein kwargs-Aufruf
+        # lief deshalb immer in "Pflichtparameter 'op' fehlt".
         op = args.pop("op", None)
+        if op is None:
+            op = kwargs.pop("op", None)
         if not op:
             return _error(
                 f"Pflichtparameter 'op' fehlt. Verfuegbar: {', '.join(sorted(by_short))}",
@@ -203,6 +208,17 @@ def build_dispatcher(domain: str, tools: list[Any], resolve: Callable[[Any], Cal
             )
         if fn is None:
             return _error(f"Handler fuer {tool.name} nicht gefunden", domain)
+
+        # kwargs-Aufruf: die Parameter gehoeren in das args-dict, weil jeder
+        # Handler sie dort liest (``args.get("limit")``). Nur Keys uebernehmen,
+        # die das Ziel-Tool ueberhaupt kennt — Host-kwargs (parent_agent & Co.)
+        # haben dort nichts zu suchen.
+        if kwargs:
+            allowed = ((tool.schema or {}).get("parameters") or {}).get("properties") or {}
+            for key, value in kwargs.items():
+                if key in allowed:
+                    args.setdefault(key, value)
+            kwargs = {k: v for k, v in kwargs.items() if k not in allowed}
 
         required = ((tool.schema or {}).get("parameters") or {}).get("required") or []
         missing = [p for p in required if p not in args]

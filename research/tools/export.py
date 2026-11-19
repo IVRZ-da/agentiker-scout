@@ -249,17 +249,31 @@ def research_synthesize(args: dict, **kwargs) -> str:
     if reasoning_level not in ("low", "medium", "high"):
         reasoning_level = "medium"
 
-    # Lokale Ergebnisse als Fallback
+    # Lokale Ergebnisse als Fallback.
+    # Vorher galt: *alle* Woerter der Query muessen vorkommen — inklusive
+    # Stoppwoertern wie "bei"/"der". Damit fand eine Query wie
+    # "Plugin Registrierung bei Medusa" das passende Ergebnis nicht mehr.
     local_results = []
+    stopwords = {
+        "bei", "der", "die", "das", "und", "oder", "ein", "eine", "einer", "im",
+        "am", "an", "auf", "aus", "fuer", "für", "mit", "von", "zum", "zur", "den",
+        "dem", "des", "ist", "sind", "wie", "was", "wer", "the", "and", "or", "for",
+        "with", "from", "into", "that", "this", "how", "what",
+    }
+    terms = [
+        t for t in re.split(r"\W+", query.lower())
+        if len(t) > 2 and t not in stopwords
+    ]
+    needed = max(1, (len(terms) * 3 + 4) // 5) if terms else 0  # 60 % der Begriffe
     for f in sorted(RESULTS_DIR.glob("*.json"), reverse=True):
         data = _read_json(f)
-        if data:
-            searchable = json.dumps(data, ensure_ascii=False).lower()
-            terms = re.split(r'\s+', query.lower())
-            if all(term in searchable for term in terms if len(term) > 1):
-                local_results.append(data)
-                if len(local_results) >= 5:
-                    break
+        if not data:
+            continue
+        searchable = json.dumps(data, ensure_ascii=False).lower()
+        if not terms or sum(1 for term in terms if term in searchable) >= needed:
+            local_results.append(data)
+            if len(local_results) >= 5:
+                break
 
     return fmt_ok({
         "query": query,
