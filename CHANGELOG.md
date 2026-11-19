@@ -1,5 +1,23 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.8] — 2026-11-19
+
+### 🔌 Hint folgt dem echten Bridge-Status
+
+`tools.tool_search.enabled: off` setzt alle Plugin-Tools eager — dann existiert
+`tool_call` nicht mehr. Der Intent-Hint hatte den Bridge-Block aber an
+`namespaces_enabled()` gekoppelt (das nur die *Namensform* bestimmt) und nannte
+weiter `tool_call(...)`: ein toter Tool-Name im Prompt, bei jedem Code-/Bug-
+Intent.
+
+- `_tool_search_active()` fragt jetzt `should_activate(load_config_readonly(), …)` —
+  der Hint baut den Aufrufblock nur, wenn Hermes die Bridge tatsächlich aktiviert hat.
+- Der Cache-Key von `_contexts_for_mode()` enthält beide Dimensionen
+  (Namensform + Bridge-Status); ein Umschalten zur Laufzeit lässt keine toten
+  Namen stehen.
+- Test `test_eager_hints_have_no_bridge_payload` deckt den eager-Fall ab; die
+  bestehenden Hint-Tests mocken den Bridge-Status statt ihn zu erben.
+
 ## [0.6.7] — 2026-11-18
 
 ### 📉 Deferral-Kosten gesenkt: Hints liefern den fertigen Aufruf

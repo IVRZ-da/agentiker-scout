@@ -155,19 +155,43 @@ _PREAMBLE_ARGS: dict[str, tuple[str, str, str]] = {
 }
 
 
+def _tool_search_active() -> bool:
+    """True, wenn Hermes Plugin-Tools hinter die ``tool_call``-Bridge gelegt hat.
+
+    ``namespaces_enabled()`` beantwortet nur, wie die Tools *heissen* (drei Dispatcher
+    vs. 42 Einzelnamen) — nicht, ob sie direkt aufrufbar sind. Mit
+    ``tools.tool_search.enabled: off`` liegen alle Plugin-Tools eager im Tool-Set und
+    ``tool_call`` existiert gar nicht; ein Hint mit ``tool_call(...)`` verweist dann ins
+    Leere. Deshalb hier den echten Bridge-Status fragen statt zu raten.
+    """
+    try:
+        from tools.tool_search import load_config_readonly, should_activate
+
+        # deferrable_tokens > 0: „es gibt deferrierbare Tools" ist genau die Bedingung,
+        # unter der Hermes die Bridge baut (should_activate() prueft enabled == "off").
+        return bool(should_activate(load_config_readonly(), 1, None))
+    except Exception:  # Import/Config defekt: ohne Bridge-Hinweis ist der Schaden kleiner
+        return False
+
+
 def _build_contexts() -> dict[str, str]:
     """Hints fuer den aktiven Modus — bei Moduswechsel neu gebaut."""
+    # Zwei unabhaengige Schalter: ob die Tools hinter der Bridge liegen (tool_search) und
+    # wie sie heissen (SCOUT_NAMESPACES). Der fertige tool_call-Block nennt den
+    # Dispatcher-Namen — im Legacy-Modus existiert der nicht, dort also kein Block.
+    deferred = _tool_search_active()
     try:
         from scout.namespaces import namespaces_enabled
 
-        deferred = namespaces_enabled()
+        dispatch_names = namespaces_enabled()
     except Exception:  # Import defekt: Legacy-Form ist der sichere Default
-        deferred = False
+        dispatch_names = False
+    bridge = deferred and dispatch_names
 
     contexts: dict[str, str] = {}
     for key, (title, specs) in _INTENT_SPECS.items():
         head = f"[SCOUT] {title} erkannt. "
-        if deferred and key in _PREAMBLE_ARGS:
+        if bridge and key in _PREAMBLE_ARGS:
             head += _bridge_preamble(*_PREAMBLE_ARGS[key])
         contexts[key] = head + "Verfügbare Tools:\n" + "\n".join(_hint(*spec) for spec in specs)
     contexts.update({
@@ -210,15 +234,20 @@ def _contexts_for_mode() -> dict[str, str]:
         enabled = namespaces_enabled()
     except Exception:  # Import defekt: Legacy-Form ist die sicherere Annahme
         enabled = False
-    if _CONTEXT_CACHE is None or _CONTEXT_MODE is not enabled:
+    deferred = _tool_search_active()
+    mode = (enabled, deferred)
+    if _CONTEXT_CACHE is None or _CONTEXT_MODE != mode:
         _CONTEXT_CACHE = _build_contexts()
-        _CONTEXT_MODE = enabled
+        # Beide Dimensionen gehoeren in den Cache-Key: die Namensform (SCOUT_NAMESPACES)
+        # und der Bridge-Status (tools.tool_search.enabled). Aendert sich einer, sind die
+        # alten Hints tote Namen im Prompt.
+        _CONTEXT_MODE = mode
         _INTENT_CACHE.clear()
     return _CONTEXT_CACHE
 
 
 _CONTEXT_CACHE: dict[str, str] | None = None
-_CONTEXT_MODE: bool | None = None
+_CONTEXT_MODE: tuple[bool, bool] | None = None
 _INTENT_CONTEXTS: dict[str, str] = _build_contexts()
 
 

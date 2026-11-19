@@ -87,9 +87,18 @@ def _bridge_payload(context: str) -> dict:
     return _json.loads(match.group(1))
 
 
+def _reset_hint_cache() -> None:
+    """Hints sind modulweit gecacht — Tests muessen den Cache nach dem Mock leeren."""
+    intent._CONTEXT_CACHE = None
+    intent._CONTEXT_MODE = None
+    intent._INTENT_CACHE.clear()
+
+
 def test_deferred_hints_carry_a_callable_payload(monkeypatch):
-    """Seit v0.6.6 sind die Dispatcher deferred — der Hint muss den Aufruf mitliefern."""
+    """Bridge aktiv (Plugin-Tools deferred) — der Hint muss den Aufruf mitliefern."""
     monkeypatch.delenv(namespaces.NAMESPACES_ENV, raising=False)
+    monkeypatch.setattr(intent, "_tool_search_active", lambda: True)
+    _reset_hint_cache()
     contexts = intent._contexts_for_mode()
     for key, domain in (("code", "analysis"), ("bug", "bughunt"), ("research", "research")):
         payload = _bridge_payload(contexts[key])
@@ -98,9 +107,25 @@ def test_deferred_hints_carry_a_callable_payload(monkeypatch):
         assert isinstance(call["arguments"].get("op"), str) and call["arguments"]["op"]
 
 
+def test_eager_hints_have_no_bridge_payload(monkeypatch):
+    """``tools.tool_search.enabled: off`` — alle Tools eager, ``tool_call`` existiert nicht.
+
+    Der Hint darf dann keinen Aufrufblock nennen; ein toter Tool-Name im Prompt ist genau
+    der Fehler, den die Kopplung an ``namespaces_enabled()`` erzeugt hat.
+    """
+    monkeypatch.delenv(namespaces.NAMESPACES_ENV, raising=False)
+    monkeypatch.setattr(intent, "_tool_search_active", lambda: False)
+    _reset_hint_cache()
+    contexts = intent._contexts_for_mode()
+    for key in ("code", "bug", "research", "framework"):
+        assert "tool_call(" not in contexts[key], f"{key} nennt tool_call trotz eager-Set"
+
+
 def test_legacy_hints_have_no_bridge_payload(monkeypatch):
     """Im Legacy-Modus sind die 42 Einzel-Tools eager — kein Bridge-Muster nötig."""
     monkeypatch.setenv(namespaces.NAMESPACES_ENV, "0")
+    monkeypatch.setattr(intent, "_tool_search_active", lambda: False)
+    _reset_hint_cache()
     for key in ("code", "bug", "research"):
         assert "tool_call(" not in intent._contexts_for_mode()[key]
 
@@ -108,6 +133,8 @@ def test_legacy_hints_have_no_bridge_payload(monkeypatch):
 def test_mcp_hints_stay_bridge_free(monkeypatch):
     """db/web/debug zielen auf eager MCP-Tools — kein tool_call-Muster."""
     monkeypatch.delenv(namespaces.NAMESPACES_ENV, raising=False)
+    monkeypatch.setattr(intent, "_tool_search_active", lambda: True)
+    _reset_hint_cache()
     contexts = intent._contexts_for_mode()
     for key in ("db", "web"):
         assert "tool_call(" not in contexts[key]
