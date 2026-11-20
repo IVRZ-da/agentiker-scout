@@ -1,7 +1,7 @@
 # 🔍 agentiker-scout — Hermes Plugin
 
 > Unified analysis, bug-hunt, and web-research plugin with shared pattern pipeline.
-> 42 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
+> 50 tools across 3 domains — code analysis, vulnerability scanning, and autonomous web research.
 
 ## 📋 Table of Contents
 
@@ -73,13 +73,13 @@ bug_hunt_pattern(action="list_categories")
 
 <!-- README_AUTO -->
 
-[![Version](https://img.shields.io/badge/version-0.6.6-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2775%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.6.9-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2800%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-**Version:** 0.6.6
+**Version:** 0.6.9
 
-**Tests:** 2775 tests
+**Tests:** 2800 tests
 
-**Tools (62):**
+**Tools (50):**
 
 
 ### Analysis — Code & Architecture (20 Tools)
@@ -127,105 +127,89 @@ bug_hunt_pattern(action="list_categories")
 | `bug_hunt_stats` | Summarise a session: findings by severity, by status, by category and the top affected files. |
 
 
-### Research — Web Research & Synthesis (9 Tools)
+### Research — Web Research & Synthesis (17 Tools)
 
 | Tool | Description |
 |------|-------------|
-| `research_start` | Open a research session and either plan it or run it end to end. |
-| `research_save` | Store the result of a research session: summary, findings and sources. |
+| `research_auto` | Run a research end to end: search, page reads, finding extraction and save. |
 | `research_cleanup` | Remove stale research artefacts: orphaned plans (started but never saved) or all leftover files. |
-| `research_update` | Modify, delete, tag, verify, merge or compare stored research results. |
-| `research_search` | Full-text search across all stored research results (BM25 ranking, no external dependency). |
-| `research_status` | Show the state of one research session, or list all sessions with their status. |
-| `research_stats` | Aggregate numbers over the whole research store: sessions by status, total findings and sources, most used tags. |
+| `research_compare` | Compare two or three stored researches: status, counts, tags, shared and unique sources. |
+| `research_delete` | Delete a research with its plan and result files. |
 | `research_export` | Render one research result as markdown or plain text. |
+| `research_export_all` | Export every stored research into one document, newest first. |
+| `research_merge` | Merge several researches into one, de-duplicating findings and sources. |
+| `research_save` | Store the result of a research session: summary, findings and sources. |
+| `research_schedule` | Register a recurring research run with the Hermes cron scheduler. |
+| `research_search` | Full-text search across all stored research results (BM25 ranking, no external dependency). |
+| `research_start` | Open a research session and either plan it or run it end to end. |
+| `research_stats` | Aggregate numbers over the whole research store: sessions by status, total findings and sources, most used tags. |
+| `research_status` | Show the state of one research session, or list all sessions with their status. |
 | `research_synthesize` | Build a cross-cutting answer from several stored research results. |
-
-
-### analysis (20 Tools)
-
-| Tool | Description |
-|------|-------------|
-| `analysis_inspect` | One-shot deep dive into a file or directory: symbols, definitions, references, call hierarchy and diagnostics, weighted by depth 1-5. |
-| `analysis_report` | Assemble a structured analysis report from findings and recommendations, optionally persisting it. |
-| `analysis_architecture` | Map a project: workspace structure, dependency graph, hot paths, import cycles, complexity hotspots. |
-| `analysis_deadcode` | Find code nothing uses: unused imports, unused functions, orphaned error handlers. |
-| `analysis_performance` | Look for performance problems: complexity hotspots, diagnostics, hot paths, inlay hints. |
-| `analysis_security` | Security pass: runs the security pattern catalogue and error-handling checks over a path. |
-| `analysis_ask` | Ask a natural-language question about the codebase and answer it from stored analysis context. |
-| `analysis_diff` | Compare two analysis reports and show what changed between them. |
-| `analysis_trend` | Track how metrics developed across successive runs: finding counts, complexity, coverage. |
-| `analysis_watch` | Watch a path and report changes since the last run, so repeated checks stay cheap. |
-| `analysis_graph` | Render analysis results as a Mermaid diagram: dependency graph, cycles or summary view. |
-| `analysis_ui_gap` | Compare backend capabilities with frontend usage to find endpoints the UI never calls. |
-| `analysis_pattern_discover` | Find bug-shaped code that the shared pattern catalogue does not cover yet. |
-| `analysis_framework` | Identify the frameworks and tooling of a project with confidence scores. |
-| `analysis_dependency_risk` | Rate dependency risk for a file or project: outdated, unmaintained or heavily coupled dependencies. |
-| `analysis_diff_analysis` | Compare two git refs and show which symbols changed, with complexity delta and blast radius. |
-| `analysis_risk` | Rate the risk of a change or a file: dependency risk, test coverage, blast radius. |
-| `analysis_review` | Pre-commit style review: diff analysis plus review assistant plus a security pass. |
-| `analysis_test_insight` | Work out which tests cover a symbol, and optionally draft new ones. |
-| `analysis_ui_inspect` | Inspect rendered UI: DOM structure, selectors and accessibility issues for a route. |
+| `research_tag` | Manage the tags of a research: add, remove, set or clear. |
+| `research_update` | Modify, delete, tag, verify, merge or compare stored research results. |
+| `research_verify` | Check every source URL of a stored research and flag findings without a URL. |
 
 ### Recent Changelog
 
-## [0.6.6] — 2026-11-18
+## [0.6.9] — 2026-11-19
 
-### 🎟️ Katalogfähig: Core-Rebind entfernt (Regel 9)
+### 🐛 Live-Debug aller 42 Tools: stille Nullen, Alias-Totpunkt, UnboundLocal
 
-Der Hermes-Plugin-Katalog lässt keine Runtime-Overrides von Hermes-Core zu
-(Regel 9). `hermes plugins validate` hat den Rebind von
-`toolsets._HERMES_CORE_TOOLS` deshalb als `no core override` abgelehnt — das
-Plugin war damit nicht einreichbar.
+Alle 42 Ops wurden ueber die echte Registrierung aufgerufen
+(``scripts/debug_all_tools.py``) und zusaetzlich gegen echtes code_intel
+(``scripts/e2e_code_intel_probe.py``). Die Unit-Suite war gruen — diese Bugs
+kamen alle als *success mit leeren Feldern* zurueck.
 
-- **`_mark_tools_eager()` entfernt**, `EAGER_TOOLS = ()`. Die drei Dispatcher
-  sind jetzt deferred: jeder Aufruf läuft über `tool_call`. Preis: ein
-  zusätzlicher Bridge-Turn pro Nutzung (Analyse/Bughunt wird stoßweise gerufen,
-  nicht pro Turn wie `plan_current`). Messwerte und Rückweg:
-  `references/core-override-analysis.md`.
-- **Gate geleert**: `references/core_override_allowlist.txt` enthält keinen
-  Eintrag mehr — `scripts/validate_gate.py` bricht jetzt bei jedem roten Check.
-- **Regressionstest** `test_plugin_never_writes_core_attributes`: kein
-  Schreibzugriff auf Core-Modul-Attribute mehr im Quellbaum.
-- **`hermes plugins validate` ist vollständig grün** — Katalog-Entry folgt.
+- **Alias-Layer war toter Code.** ``code_symbols`` & Co. wurden nur an 2 von
+  ~50 Stellen auf die Namespace-Dispatcher umgeschrieben, und
+  ``registry_is_available()`` fragte die lokale Registry — dort steht ein
+  Host-Tool nie, das Praedikat war also immer ``False``. Folge:
+  ``Unknown tool: code_symbols``, von den Analysis-Tools als 0 Symbole / 0
+  Findings ausgegeben. Jetzt zentral in ``Registry.dispatch()`` (deckt
+  ``_call_tool``, ``_call_tool_direct`` und direkte Dispatch-Aufrufe ab) plus
+  Fallback nach einem ``Unknown tool``; ``shared/tool_alias.py`` prueft die
+  echte Host-Registry.
+- **``_raw`` wird mitgesendet.** code_intel liefert ohne ``_raw`` ein rich-Panel
+  (kein JSON). ``_call_tool`` setzt es jetzt und faellt bei ``TypeError`` je
 
-## [0.6.5] — 2026-11-18
+## [0.6.8] — 2026-11-19
 
-### 🔀 Namespace-Fusion: 42 Tools → 3 Dispatcher
+### 🔌 Hint folgt dem echten Bridge-Status
 
-Die Tool-Fläche wurde von 42 Einzel-Tools auf drei Namespace-Dispatcher
-(`analysis`, `bughunt`, `research`) mit `op`-Parameter reduziert. Das spart in
-jedem Turn Schema-Tokens; der Katalog wird per Replay der echten Registrierung
-erzeugt, nicht handgepflegt.
+`tools.tool_search.enabled: off` setzt alle Plugin-Tools eager — dann existiert
+`tool_call` nicht mehr. Der Intent-Hint hatte den Bridge-Block aber an
+`namespaces_enabled()` gekoppelt (das nur die *Namensform* bestimmt) und nannte
+weiter `tool_call(...)`: ein toter Tool-Name im Prompt, bei jedem Code-/Bug-
+Intent.
 
-- **`namespaces.py`** neu: Dispatcher-Bau + `op`-Enum je Namespace,
-  Legacy-Schalter `SCOUT_NAMESPACES=0` schaltet die Einzel-Tools zurück.
-- **Eager-Set über Allowlist**: nur die tatsächlich in jedem Turn gebrauchten
-  Tools sind eager, der Rest wird deferred nachgeladen.
-- **Intent-Hints modusabhängig** (`shared/intent.py`): Hinweise nennen die
-  op-Namen des aktiven Modus statt toter Einzel-Tool-Namen.
-- **Schema-Budget-Gate**: `scripts/tool_schema_audit.py` misst chars/Tokens der
-  registrierten Fläche, `scripts/pre-commit-hook` blockt bei Überschreitung.
-- **`scripts/validate_gate.py`** + `references/core_override_allowlist.txt`:
-  Wirkungsnachweis für jeden Core-Rebind statt Sammel-Freigabe.
-- **Tests**: `test_namespaces.py`, `test_namespace_coverage.py` (jeder `op` hat
+- `_tool_search_active()` fragt jetzt `should_activate(load_config_readonly(), …)` —
+  der Hint baut den Aufrufblock nur, wenn Hermes die Bridge tatsächlich aktiviert hat.
+- Der Cache-Key von `_contexts_for_mode()` enthält beide Dimensionen
+  (Namensform + Bridge-Status); ein Umschalten zur Laufzeit lässt keine toten
+  Namen stehen.
+- Test `test_eager_hints_have_no_bridge_payload` deckt den eager-Fall ab; die
+  bestehenden Hint-Tests mocken den Bridge-Status statt ihn zu erben.
 
-## [0.6.4] — 2026-11-18
+## [0.6.7] — 2026-11-18
 
-### 🔒 Security-Scan-Selbstbezug behoben (`validate` grün)
+### 📉 Deferral-Kosten gesenkt: Hints liefern den fertigen Aufruf
 
-`hermes plugins validate scout` meldete das Plugin selbst als `dangerous`, weil
-die Security-Patterns als Klartext-Fragmente im Quellcode standen und der eigene
-Scan darauf ansprang.
+Messung vor diesem Release (state.db, 102.695 Tool-Calls): die drei Dispatcher
+wurden seit der Fusion **0×** gerufen, die alten Einzel-Tools zuletzt am 16.11.
+mit 762 Calls. Ein Hint, der `bughunt(op="scan")` nennt, aber nicht sagt, wie
+das deferred Tool erreichbar ist, verweist ins Leere — das Modell weicht auf
+`read_file`/`terminal` aus (33.943 bzw. 21.195 Calls).
 
-- **Pattern-Fragmente kodiert** in `bughunt/data/patterns_data.json` abgelegt,
-  der Loader setzt sie zur Laufzeit zusammen — der Scan trifft nur noch fremden
-  Code, `validate` läuft ohne `dangerous`-Fund durch.
-- **`requires_hermes: ">=0.23.1"`** in `plugin.yaml` deklariert.
-- **Manifest-Gate im Pre-Commit**: `gen_manifest_capabilities --check` verhindert
-  driftende `provides_tools`-Listen.
-- **`tests/test_pattern_encoding.py`**: positive Tests pro Regel belegen, dass die
-  zusammengesetzten Patterns weiterhin echt treffen.
+- **`shared/intent.py`**: Die vier Intent-Contexts (`code`, `bug`, `research`,
+  `framework`) tragen im Namespace-Modus eine Präambel mit kopierbarem
+  `tool_call({"calls":[{...}]})`-Block samt Beispiel-op. Ein Turn statt drei
+  (`tool_search` → `tool_describe` → `tool_call`). Legacy-Modus und die
+  MCP-Contexts (`db`, `web`, `debug`) bleiben ohne Präambel — dort sind die
+  Tools eager.
+- **`shared/usage.py`** (neu): `post_tool_call`-Handler schreibt eine
+  JSONL-Zeile pro Scout-Aufruf (`ts`, `plugin`, `tool`, `op`, `session_id`,
+  `error`) nach `~/.hermes/logs/plugin-usage.jsonl`. Append-only, wirft nie.
+  Ohne diese Zahlen bleibt „wird kaum genutzt" Bauchgefühl.
 
 <!-- END README_AUTO -->
 

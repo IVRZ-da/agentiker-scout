@@ -28,13 +28,14 @@ dist/
 build/
 *.egg-info/
 
-# Generated data (sessions, plans, results)
-data/
+# Generated data (sessions, plans, results) — nur die Wurzel,
+# damit bughunt/data und research/data ihre Schemas behalten.
+/data/
 
 # Secrets
 **/secrets.*
 **/credentials.*
-data/sessions/
-data/patterns/
+/data/sessions/
+/data/patterns/
 
 **.honcho_cache.json

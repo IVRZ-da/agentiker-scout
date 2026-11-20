@@ -47,7 +47,9 @@ DOMAIN_PREFIXES: dict[str, tuple[str, ...]] = {
 
 # Deckel fuer die Kurzbeschreibung eines Ops im Dispatcher-Schema. Ohne Deckel kostet
 # die Aufzaehlung so viel wie die Einzelschemata, die sie ersetzt.
-_OP_DESC_LIMIT = 70
+# Kurz-Index in der Dispatcher-Beschreibung: der eigentliche Vertrag steht im
+# Schema. 45 Zeichen halten die eager-Summe unter dem 18k-Zeichen-Budget.
+_OP_DESC_LIMIT = 45
 _PROP_DESC_LIMIT = 80
 
 

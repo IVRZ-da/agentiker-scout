@@ -1,4 +1,4 @@
-"""Namespace-Fusion (T10): 42 Tools -> 3 Dispatcher mit ``op``-Enum.
+"""Namespace-Fusion (T10): 50 Tools -> 3 Dispatcher mit ``op``-Enum.
 
 Warum drei Dispatcher: siehe ``references/tool-usage-baseline.md``
 (1.714 echte Calls; 42 Einzel-Tools waeren teurer). Sie sind **deferred** — einen
@@ -71,7 +71,7 @@ def test_every_real_op_is_reachable(registered):
         offered.update(entry["schema"]["parameters"]["properties"]["op"]["enum"])
     missing = [namespaces.short_name(n) for n in real if namespaces.short_name(n) not in offered]
     assert not missing, f"Ops ohne Dispatcher-Eintrag: {missing}"
-    assert len(real) == 42
+    assert len(real) == 50
 
 
 def test_op_is_required_with_enum(registered):
@@ -94,7 +94,7 @@ def test_every_dispatcher_has_description(registered):
 
 
 def test_schema_budget_is_bounded(registered):
-    """42 Tools muessen unter 20.000 Zeichen (~5.000 Tokens) bleiben."""
+    """50 Tools muessen unter 20.000 Zeichen (~5.000 Tokens) bleiben."""
     total = sum(len(json.dumps(e["schema"], ensure_ascii=False)) for e in registered.tools.values())
     assert total < 20_000, f"Dispatcher-Summe {total} chars ueberschreitet das Budget"
 
@@ -204,7 +204,7 @@ def test_legacy_mode_registers_all_tools(monkeypatch):
     assert not namespaces.namespaces_enabled()
     ctx = StubCtx()
     scout.register(ctx)
-    assert len(ctx.tools) == 42, sorted(ctx.tools)[:5]
+    assert len(ctx.tools) == 50, sorted(ctx.tools)[:5]
     assert "analysis" not in ctx.tools
 
 
@@ -218,7 +218,7 @@ def test_namespaces_enabled_default_and_switches(monkeypatch):
 
 def test_catalog_replay_covers_all_domains():
     catalog = namespaces.build_catalog(collect())
-    assert {g: len(v) for g, v in catalog.items()} == {"analysis": 20, "bughunt": 13, "research": 9}
+    assert {g: len(v) for g, v in catalog.items()} == {"analysis": 20, "bughunt": 13, "research": 17}
 
 
 # ─── 4. Randfaelle der Schema-Union und der Registrierung ────────────

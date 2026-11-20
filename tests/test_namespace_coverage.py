@@ -56,7 +56,7 @@ def test_no_op_duplicated_within_a_namespace():
         ops = spec["schema"]["parameters"]["properties"]["op"]["enum"]
         assert len(ops) == len(set(ops)), f"{spec['name']}: doppelter op"
         total += len(ops)
-    assert total == 42
+    assert total == 50
 
 
 def test_each_domain_maps_to_its_own_prefix():

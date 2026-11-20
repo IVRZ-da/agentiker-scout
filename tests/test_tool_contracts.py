@@ -40,13 +40,13 @@ def test_linter_has_no_violations(lint_result: dict) -> None:
 
 
 def test_linter_sees_all_tools(lint_result: dict) -> None:
-    """42 Tools = 20 analysis + 13 bughunt + 9 research (Stand 0.6.0).
+    """50 Tools = 20 analysis + 13 bughunt + 17 research (Stand 0.6.9).
 
     Vorher 56: sechs 1:1-code_intel-Wrapper gestrichen, research von 17 auf 9
     konsolidiert (delete/tag/verify/merge/compare -> research_update(action=...),
     export_all -> research_export(all=true), auto/schedule -> P4).
     """
-    assert lint_result["tools"] == 42, lint_result["tools"]
+    assert lint_result["tools"] == 50, lint_result["tools"]
 
 
 def test_descriptions_are_substantial() -> None:

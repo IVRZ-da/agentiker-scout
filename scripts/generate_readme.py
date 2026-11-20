@@ -75,6 +75,10 @@ class ScoutReadmeGenerator(ReadmeGenerator):
                 "research": "Research — Web Research & Synthesis",
             }
             for domain, entries in registry.items():
+                if domain == "analysis":
+                    # Bereits oben aus analysis_tools.py gelesen — sonst
+                    # erscheinen die 20 Analysis-Tools doppelt im README.
+                    continue
                 label = DOMAIN_LABELS.get(domain, domain)
                 for entry in entries:
                     name = entry.get("name", "?")

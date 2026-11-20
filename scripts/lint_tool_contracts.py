@@ -46,6 +46,7 @@ ARG_FREE_OK = {
     "research_status",
     "research_search",
     "research_cleanup",
+    "research_export_all",
     "research_export",
     "analysis_trend",
 }

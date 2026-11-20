@@ -44,7 +44,7 @@ def registry_map():
 def test_collect_finds_all_domains(tools):
     domains = {tool.domain for tool in tools}
     assert domains == set(DOMAINS), domains
-    assert len(tools) == 42, f"erwartet 42 Tools, gefunden {len(tools)}"
+    assert len(tools) == 50, f"erwartet 50 Tools, gefunden {len(tools)}"
 
 
 def test_no_duplicate_names(tools):

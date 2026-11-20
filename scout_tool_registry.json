@@ -1385,12 +1385,12 @@
   ],
   "research": [
     {
-      "name": "research_start",
+      "name": "research_auto",
       "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_start",
+      "handler_name": "research_auto",
       "schema": {
-        "name": "research_start",
-        "description": "Open a research session and either plan it or run it end to end. mode=plan (default) returns research_id, the plan and step-by-step instructions; mode=auto executes search + parallel page reads + finding extraction and saves the result, returning research_id, findings, sources and gaps. Use it as the first call of any research task; pass schedule=24h for recurring monitoring. Next: research_export or research_status.",
+        "name": "research_auto",
+        "description": "Run a research end to end: search, page reads, finding extraction and save. Returns research_id, findings, sources and gaps.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -1411,23 +1411,188 @@
               "default": 10,
               "minimum": 1,
               "maximum": 50
-            },
-            "mode": {
-              "type": "string",
-              "enum": [
-                "plan",
-                "auto"
-              ],
-              "default": "plan",
-              "description": "plan returns a research plan plus next steps (the model drives the steps). auto runs the whole pass here — search, read, extract — and returns the findings with sources."
-            },
-            "schedule": {
-              "type": "string",
-              "description": "Optional interval (e.g. 24h, 7d) to register a recurring research run. Due runs are reported by research_schedule_due."
             }
           },
           "required": [
             "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_cleanup",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_cleanup",
+      "schema": {
+        "name": "research_cleanup",
+        "description": "Remove stale research artefacts: orphaned plans (started but never saved) or all leftover files. Returns the number of removed files per category. Use it before a release or when research_status reports orphans. Next: research_stats to confirm the store is tidy.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "plans",
+                "all"
+              ],
+              "description": "plans removes orphaned plans only, all removes every leftover artefact.",
+              "default": "plans"
+            },
+            "older_than_days": {
+              "type": "integer",
+              "description": "Age in days.",
+              "default": 30,
+              "minimum": 1
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "research_compare",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_compare",
+      "schema": {
+        "name": "research_compare",
+        "description": "Compare two or three stored researches: status, counts, tags, shared and unique sources. Returns a table per run. Next: research_merge.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ids to compare."
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": [
+            "research_ids"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_delete",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_delete",
+      "schema": {
+        "name": "research_delete",
+        "description": "Delete a research with its plan and result files. Returns the removed paths; the operation is not reversible. Next: research_status to list what is left.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            }
+          },
+          "required": [
+            "research_id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_export",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_export",
+      "schema": {
+        "name": "research_export",
+        "description": "Render one research result as markdown or plain text. Returns the formatted document plus its byte size. Use it when the user wants a readable write-up rather than a JSON record. Next: research_export_all for several results at once.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "text"
+              ],
+              "description": "markdown keeps headings and lists, text is plain.",
+              "default": "markdown"
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            },
+            "all": {
+              "type": "boolean",
+              "default": false,
+              "description": "Export every stored result into one document instead of one id."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "research_export_all",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_export_all",
+      "schema": {
+        "name": "research_export_all",
+        "description": "Export every stored research into one document, newest first. Returns the bundle as markdown or plain text. Next: research_cleanup.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "text"
+              ],
+              "description": "markdown keeps headings, text is plain.",
+              "default": "markdown"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "research_merge",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_merge",
+      "schema": {
+        "name": "research_merge",
+        "description": "Merge several researches into one, de-duplicating findings and sources. Returns the new research_id and the counts kept and dropped.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ids to merge (2 or more)."
+            },
+            "new_summary": {
+              "type": "string",
+              "description": "Summary for the merged result."
+            }
+          },
+          "required": [
+            "research_ids"
           ]
         }
       }
@@ -1514,32 +1679,274 @@
       }
     },
     {
-      "name": "research_cleanup",
-      "handler_module": "scout.research.tools.crud",
-      "handler_name": "research_cleanup",
+      "name": "research_schedule",
+      "handler_module": "scout.research.tools.schedule",
+      "handler_name": "research_schedule",
       "schema": {
-        "name": "research_cleanup",
-        "description": "Remove stale research artefacts: orphaned plans (started but never saved) or all leftover files. Returns the number of removed files per category. Use it before a release or when research_status reports orphans. Next: research_stats to confirm the store is tidy.",
+        "name": "research_schedule",
+        "description": "Register a recurring research run with the Hermes cron scheduler. Returns the job id and the next due time. Next: research_status to see stored runs.",
         "parameters": {
           "type": "object",
           "properties": {
-            "action": {
+            "query": {
+              "type": "string",
+              "description": "Research query (3-2000 chars)."
+            },
+            "name": {
+              "type": "string",
+              "description": "Job name; defaults to a slug of the query."
+            },
+            "interval": {
+              "type": "string",
+              "description": "Interval such as 24h or 7d.",
+              "default": "24h"
+            },
+            "max_sources": {
+              "type": "integer",
+              "description": "Max sources per run (1-50).",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_search",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_search",
+      "schema": {
+        "name": "research_search",
+        "description": "Full-text search across all stored research results (BM25 ranking, no external dependency). Returns matching results with id, query, summary excerpt and a relevance score. Use it to recall earlier research instead of repeating it. Next: research_status for details of a hit, or research_save to extend it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max results 1-50.",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 50
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags filter."
+            },
+            "status": {
+              "type": "string",
+              "description": "Only results with this status.",
+              "enum": [
+                "completed",
+                "partial",
+                "failed",
+                "planned"
+              ]
+            },
+            "date_from": {
+              "type": "string",
+              "description": "From date (ISO)."
+            },
+            "date_to": {
+              "type": "string",
+              "description": "To date (ISO)."
+            },
+            "response_format": {
               "type": "string",
               "enum": [
-                "plans",
-                "all"
+                "concise",
+                "detailed"
               ],
-              "description": "plans removes orphaned plans only, all removes every leftover artefact.",
-              "default": "plans"
-            },
-            "older_than_days": {
-              "type": "integer",
-              "description": "Age in days.",
-              "default": 30,
-              "minimum": 1
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
             }
           },
           "required": []
+        }
+      }
+    },
+    {
+      "name": "research_start",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_start",
+      "schema": {
+        "name": "research_start",
+        "description": "Open a research session and either plan it or run it end to end. mode=plan (default) returns research_id, the plan and step-by-step instructions; mode=auto executes search + parallel page reads + finding extraction and saves the result, returning research_id, findings, sources and gaps. Use it as the first call of any research task; pass schedule=24h for recurring monitoring. Next: research_export or research_status.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Research query (3-2000 chars)."
+            },
+            "depth": {
+              "type": "integer",
+              "description": "Depth (1-5).",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 5
+            },
+            "max_sources": {
+              "type": "integer",
+              "description": "Max sources (1-50).",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 50
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "plan",
+                "auto"
+              ],
+              "default": "plan",
+              "description": "plan returns a research plan plus next steps (the model drives the steps). auto runs the whole pass here — search, read, extract — and returns the findings with sources."
+            },
+            "schedule": {
+              "type": "string",
+              "description": "Optional interval (e.g. 24h, 7d) to register a recurring research run. Due runs are reported by research_schedule_due."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_stats",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_stats",
+      "schema": {
+        "name": "research_stats",
+        "description": "Aggregate numbers over the whole research store: sessions by status, total findings and sources, most used tags. Returns the aggregate counts. Use it to judge whether the store is worth searching before starting new research. Next: research_search to look inside it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "research_status",
+      "handler_module": "scout.research.tools.search",
+      "handler_name": "research_status",
+      "schema": {
+        "name": "research_status",
+        "description": "Show the state of one research session, or list all sessions with their status. Returns the plan/result record including status (planned, completed, partial, failed), counts and timestamps. Use it to check whether a session was finished, and to find sessions started but never saved. Next: research_save to complete it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "show_orphans": {
+              "type": "boolean",
+              "description": "Show orphaned plans.",
+              "default": false
+            },
+            "response_format": {
+              "type": "string",
+              "enum": [
+                "concise",
+                "detailed"
+              ],
+              "default": "detailed",
+              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "name": "research_synthesize",
+      "handler_module": "scout.research.tools.export",
+      "handler_name": "research_synthesize",
+      "schema": {
+        "name": "research_synthesize",
+        "description": "Build a cross-cutting answer from several stored research results. Returns the matching local results and an instruction block for combining them with honcho_reasoning. Use it when the user asks what the research collectively says, not for a single result. Next: research_merge if the combined answer should become one record.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Query."
+            },
+            "reasoning_level": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Reasoning depth.",
+              "default": "medium"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "research_tag",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_tag",
+      "schema": {
+        "name": "research_tag",
+        "description": "Manage the tags of a research: add, remove, set or clear. Returns the resulting tag list. Next: research_search with the tag filter.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "research_id": {
+              "type": "string",
+              "description": "Research ID."
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "add",
+                "remove",
+                "set",
+                "clear"
+              ],
+              "description": "How to apply the tags.",
+              "default": "add"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags to apply (ignored for clear)."
+            }
+          },
+          "required": [
+            "research_id"
+          ]
         }
       }
     },
@@ -1636,191 +2043,22 @@
       }
     },
     {
-      "name": "research_search",
-      "handler_module": "scout.research.tools.search",
-      "handler_name": "research_search",
+      "name": "research_verify",
+      "handler_module": "scout.research.tools.crud",
+      "handler_name": "research_verify",
       "schema": {
-        "name": "research_search",
-        "description": "Full-text search across all stored research results (BM25 ranking, no external dependency). Returns matching results with id, query, summary excerpt and a relevance score. Use it to recall earlier research instead of repeating it. Next: research_status for details of a hit, or research_save to extend it.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query."
-            },
-            "limit": {
-              "type": "integer",
-              "description": "Max results 1-50.",
-              "default": 5,
-              "minimum": 1,
-              "maximum": 50
-            },
-            "tags": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Tags filter."
-            },
-            "status": {
-              "type": "string",
-              "description": "Only results with this status.",
-              "enum": [
-                "completed",
-                "partial",
-                "failed",
-                "planned"
-              ]
-            },
-            "date_from": {
-              "type": "string",
-              "description": "From date (ISO)."
-            },
-            "date_to": {
-              "type": "string",
-              "description": "To date (ISO)."
-            },
-            "response_format": {
-              "type": "string",
-              "enum": [
-                "concise",
-                "detailed"
-              ],
-              "default": "detailed",
-              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "name": "research_status",
-      "handler_module": "scout.research.tools.search",
-      "handler_name": "research_status",
-      "schema": {
-        "name": "research_status",
-        "description": "Show the state of one research session, or list all sessions with their status. Returns the plan/result record including status (planned, completed, partial, failed), counts and timestamps. Use it to check whether a session was finished, and to find sessions started but never saved. Next: research_save to complete it.",
+        "name": "research_verify",
+        "description": "Check every source URL of a stored research and flag findings without a URL. Returns reachable and dead sources. Next: research_export.",
         "parameters": {
           "type": "object",
           "properties": {
             "research_id": {
               "type": "string",
               "description": "Research ID."
-            },
-            "show_orphans": {
-              "type": "boolean",
-              "description": "Show orphaned plans.",
-              "default": false
-            },
-            "response_format": {
-              "type": "string",
-              "enum": [
-                "concise",
-                "detailed"
-              ],
-              "default": "detailed",
-              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "name": "research_stats",
-      "handler_module": "scout.research.tools.search",
-      "handler_name": "research_stats",
-      "schema": {
-        "name": "research_stats",
-        "description": "Aggregate numbers over the whole research store: sessions by status, total findings and sources, most used tags. Returns the aggregate counts. Use it to judge whether the store is worth searching before starting new research. Next: research_search to look inside it.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "response_format": {
-              "type": "string",
-              "enum": [
-                "concise",
-                "detailed"
-              ],
-              "default": "detailed",
-              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "name": "research_export",
-      "handler_module": "scout.research.tools.export",
-      "handler_name": "research_export",
-      "schema": {
-        "name": "research_export",
-        "description": "Render one research result as markdown or plain text. Returns the formatted document plus its byte size. Use it when the user wants a readable write-up rather than a JSON record. Next: research_export_all for several results at once.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "research_id": {
-              "type": "string",
-              "description": "Research ID."
-            },
-            "format": {
-              "type": "string",
-              "enum": [
-                "markdown",
-                "text"
-              ],
-              "description": "markdown keeps headings and lists, text is plain.",
-              "default": "markdown"
-            },
-            "response_format": {
-              "type": "string",
-              "enum": [
-                "concise",
-                "detailed"
-              ],
-              "default": "detailed",
-              "description": "concise returns core fields only (~1/3 of the tokens); detailed returns everything."
-            },
-            "all": {
-              "type": "boolean",
-              "default": false,
-              "description": "Export every stored result into one document instead of one id."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "name": "research_synthesize",
-      "handler_module": "scout.research.tools.export",
-      "handler_name": "research_synthesize",
-      "schema": {
-        "name": "research_synthesize",
-        "description": "Build a cross-cutting answer from several stored research results. Returns the matching local results and an instruction block for combining them with honcho_reasoning. Use it when the user asks what the research collectively says, not for a single result. Next: research_merge if the combined answer should become one record.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Query."
-            },
-            "reasoning_level": {
-              "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ],
-              "description": "Reasoning depth.",
-              "default": "medium"
             }
           },
           "required": [
-            "query"
+            "research_id"
           ]
         }
       }

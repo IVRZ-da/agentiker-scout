@@ -97,10 +97,14 @@ research_save → findings → _auto_deduce_patterns() ────┘
 
 ## Tools (3 Dispatcher, 42 Ops)
 
-Seit v0.6.5 sind die 42 Einzel-Tools zu **drei Namespace-Dispatchern** fusioniert
+Seit v0.6.5 sind die 50 Einzel-Tools zu **drei Namespace-Dispatchern** fusioniert
 (Analogie zu code_intel v0.6.25). Jeder Dispatcher nimmt `op` plus die Parameter des
-gewählten Ops; die Dispatcher sind deferred (kein offizieller eager-Seam in Hermes)
-und kosten deshalb keine Schema-Tokens pro Turn — jeder Aufruf geht über `tool_call`.
+gewählten Ops. **Ob du sie direkt aufrufst oder über `tool_call`, entscheidet nicht das
+Plugin, sondern `tools.tool_search.enabled` in der config:** `off` = alle Plugin-Tools
+liegen eager im Set und werden direkt aufgerufen (`tool_call` existiert dann gar nicht),
+`auto`/`on` = deferred über die Bridge. Nie aus dem Plugin-Zustand auf die Aufrufart
+schliessen — erst den Schalter nachsehen, sonst stehen `tool_call`-Beispiele in einer
+Session, in der es das Tool nicht gibt (und umgekehrt).
 
 | Dispatcher | Ops | Aufgabe |
 |---|---:|---|
@@ -442,6 +446,12 @@ Registrierung:
    eigenen Suite nicht mitpruefen — dort laufen lassen und pre-existing Failures mit
    `git stash push -- <dateien>` → Test → `git stash pop` belegen, statt sie dem
    eigenen Fix anzulasten.
+
+- **`collect()` liefert `ToolDef`s, deren `.handler` bei den JSON-dominierten Domaenen
+  (bughunt, research) `None` ist** — dort steht die Registrierung in `handler_module` /
+  `handler_name`. Ein Harness, der nur `tool.handler` nimmt, meldet fuer jeden dieser Ops
+  "Handler nicht gefunden" und sieht wie ein Tool-Bug aus. Aufloesen mit
+  `tool.handler or getattr(importlib.import_module(tool.handler_module), tool.handler_name)`.
 
 Fixture-Argumente pro Op, die Bug-Klassen und das Host-Adapter-Muster:
 [references/live-debug-ops.md](references/live-debug-ops.md)
