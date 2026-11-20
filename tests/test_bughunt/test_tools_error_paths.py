@@ -6,6 +6,7 @@ bisher ungetestete Fehlerpfade ab.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -608,29 +609,31 @@ class TestBugHuntExportExtra:
     """bug_hunt_export: Output-Pfad und Error-Pfade."""
 
     def test_export_to_file(self, monkeypatch, tmp_path):
-        """Export mit output-Pfad (tests lines 632-639)."""
+        """Export mit relativem output-Pfad -> unter dem Export-Verzeichnis."""
+        from scout.shared import paths as _paths
+
         sessions, _ = _mock_core_full(monkeypatch)
         s = _create_session(sessions)
-        out_path = tmp_path / "reports" / "report.json"
         result = _ok(bug_hunt_export({
             "session_id": s.session_id,
-            "output": str(out_path),
+            "output": "reports/report.json",
         }))
-        assert result["output_path"] == str(out_path.resolve())
+        out_path = Path(result["output_path"])
+        assert out_path.parent == (_paths.EXPORTS_DIR / "reports").resolve()
         assert out_path.exists()
 
     def test_export_to_file_markdown(self, monkeypatch, tmp_path):
-        """Export als Markdown mit output-Pfad."""
+        """Export als Markdown mit relativem output-Pfad."""
         sessions, _ = _mock_core_full(monkeypatch)
         s = _create_session(sessions)
-        out_path = tmp_path / "report.md"
         result = _ok(bug_hunt_export({
             "session_id": s.session_id,
             "format": "markdown",
-            "output": str(out_path),
+            "output": "report.md",
         }))
-        assert result["output_path"] == str(out_path.resolve())
+        out_path = Path(result["output_path"])
         assert out_path.exists()
+        assert out_path.read_text(encoding="utf-8").strip()
 
     def test_export_output_write_permission_error(self, monkeypatch, tmp_path):
         """Export schlägt fehl wegen PermissionError."""

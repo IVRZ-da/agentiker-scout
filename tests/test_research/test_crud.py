@@ -715,7 +715,8 @@ class TestResearchVerify:
     def test_verify_with_sources(self, crud, rdir):
         """Verify mit Quellen (lines 546-588)."""
         rid = self._setup_result(crud, rdir)
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             mock_response = type("MockResponse", (), {
                 "status": 200,
                 "__enter__": lambda s: s,
@@ -730,7 +731,8 @@ class TestResearchVerify:
     def test_verify_http_error(self, crud, rdir):
         """HTTP-Fehler (lines 570-578)."""
         rid = self._setup_result(crud, rdir)
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             import urllib.error
             mock_urlopen.side_effect = urllib.error.HTTPError(
                 "https://example.com", 404, "Not Found", {}, None
@@ -742,7 +744,8 @@ class TestResearchVerify:
     def test_verify_url_error(self, crud, rdir):
         """URL-Error (lines 570-578)."""
         rid = self._setup_result(crud, rdir)
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             import urllib.error
             mock_urlopen.side_effect = urllib.error.URLError("Connection refused")
             verify_result = json.loads(crud.research_verify({"research_id": rid}))
@@ -752,7 +755,8 @@ class TestResearchVerify:
     def test_verify_generic_exception(self, crud, rdir):
         """Generische Exception (lines 579-586)."""
         rid = self._setup_result(crud, rdir)
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             mock_urlopen.side_effect = RuntimeError("Überraschung!")
             verify_result = json.loads(crud.research_verify({"research_id": rid}))
             assert "error" not in verify_result
@@ -765,7 +769,8 @@ class TestResearchVerify:
         data = json.loads(result_path.read_text())
         data["sources"].append({"url": "", "title": "Empty", "relevance": 0})
         result_path.write_text(json.dumps(data))
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             mock_response = type("MockResponse", (), {
                 "status": 200, "__enter__": lambda s: s, "__exit__": lambda *a: None,
             })()
@@ -780,7 +785,8 @@ class TestResearchVerify:
             "id": rid, "query": "String Source Test",
             "sources": ["https://example.com/string-source"],
         }))
-        with patch.object(crud.urllib.request, "urlopen") as mock_urlopen:
+        with patch.object(crud, "_safe_url_checker", return_value=lambda u: True), \
+             patch.object(crud._VERIFY_OPENER, "open") as mock_urlopen:
             mock_response = type("MockResponse", (), {
                 "status": 200, "__enter__": lambda s: s, "__exit__": lambda *a: None,
             })()

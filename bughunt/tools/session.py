@@ -202,12 +202,27 @@ def bug_hunt_export(args: dict, **kwargs) -> str:
         content = json.dumps(session.to_dict(), ensure_ascii=False, indent=2)
     result = {"session_id": session_id, "format": export_format, "content": content}
     if output:
+        # Review #157391 Punkt 2: der Pfad kam vom Modell und durfte ueberallhin
+        # schreiben (Shell-RCs, Hermes-Config). Jetzt nur unter EXPORTS_DIR;
+        # wer woanders speichern will, nimmt write_file mit dem gelieferten content.
         from pathlib import Path
+
+        from scout.shared import paths as _paths
+
         try:
-            p = Path(output)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding="utf-8")
-            result["output_path"] = str(p.resolve())
+            root = _paths.EXPORTS_DIR.resolve()
+            candidate = Path(output).expanduser()
+            if not candidate.is_absolute():
+                candidate = root / candidate
+            resolved = candidate.resolve()
+            if resolved != root and root not in resolved.parents:
+                return base._err(
+                    f"output muss unter {root} liegen (erhalten: {resolved}). "
+                    "Fuer andere Ziele den content mit write_file speichern."
+                )
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+            resolved.write_text(content, encoding="utf-8")
+            result["output_path"] = str(resolved)
         except Exception as e:
             return base._err(f"Export fehlgeschlagen: {e}")
     return base._ok(result)

@@ -1,5 +1,54 @@
 # Scout Plugin — CHANGELOG
 
+## [0.6.10] — 2026-11-20
+
+### 🔒 Hermes-Katalog-Review (PR #157391) — 4 Blocker + 2 Empfehlungen
+
+Alle vier blockierenden Punkte aus dem Review von `teknium1` (gegen `e4bce1dd`,
+v0.6.6) sind umgesetzt, dazu beide Empfehlungen.
+
+- **Schema-Dateien sind wieder im Repo** (Punkt 1): Das `.gitignore`-Muster `data/`
+  ignorierte auch `bughunt/data/` und `research/data/`. `collect()` sah damit nur die
+  analysis-Domäne — der research-Dispatcher hatte für Katalog-Nutzer keine Ops und
+  bughunt/research registrierten nicht. Muster auf `/data/` verengt (plus
+  `/data/sessions/`, `/data/patterns/`), beide `tool_schemas.json` versioniert.
+  `bughunt/data/patterns_data.json` war schon getrackt (Built-in-Patterns = Code).
+- **research-Domäne vervollständigt**: `research/data/tool_schemas.json` enthielt nur
+  9 der 17 Tools — `research_verify`, `_delete`, `_tag`, `_auto`, `_compare`,
+  `_merge`, `_export_all`, `_schedule` waren für den Dispatcher unsichtbar. Jetzt 50
+  Tools overall (20 analysis + 13 bughunt + 17 research), Registry und README
+  entsprechend neu erzeugt.
+- **`bug_hunt_export` ist confined** (Punkt 2): Der `output`-Pfad kam vom Modell und
+  wurde mit `mkdir(parents=True)` überall angelegt — inklusive Shell-RCs und
+  Hermes-Config. Jetzt nur unter `EXPORTS_DIR` (`shared/paths.py`), relative Pfade
+  werden dorthin aufgelöst, alles andere wird abgelehnt; wer ein anderes Ziel will,
+  speichert den mitgelieferten `content` per `write_file`.
+- **`research_verify` prüft nur öffentliche Ziele** (Punkt 3): Nur `http`/`https`,
+  jede URL durch Hermes' `tools.url_safety.is_safe_url` (lokaler Fallback mit
+  DNS-Auflösung für den Standalone-Betrieb), und Redirects werden **nicht** verfolgt
+  (`_NoRedirect`-Opener, 3xx → Status `redirect`). Vorher wurden `file://`,
+  LAN-Adressen und Cloud-Metadata-Endpunkte angefragt.
+- **Nutzdaten pro Profil** (Punkt 4): Die Wurzel war hartkodiert
+  `~/.hermes/data/scout`, alle Profile teilten einen Store und `HERMES_HOME` war
+  wirkungslos. Jetzt `get_hermes_home()/plugin-data/agentiker-scout`, mit einmaliger
+  Migration des alten Verzeichnisses (`migrate_legacy_root()`, nur ohne
+  `SCOUT_DATA_DIR`).
+- **grep-Muster sicher übergeben** (Empfehlung): `-e <pattern> -- <path>`, damit ein
+  gespeichertes Pattern, das mit `-` beginnt, nicht als grep-Option gilt.
+- **Dependency-Bounds angeglichen** (Empfehlung): `pyproject.toml` führt jetzt
+  dieselben Obergrenzen wie `plugin.yaml` (`PyYAML>=6.0,<7`, `packaging>=23.0,<27`).
+- **README-Generator**: Die analysis-Domäne wurde doppelt gezählt
+  (`analysis_tools.py` + Registry) — das README nannte 70 Tools und hatte den
+  Analysis-Abschnitt zweimal. Jetzt 50, ein Abschnitt.
+- **Schema-Budget**: `_OP_DESC_LIMIT` von 70 auf 45 Zeichen gesenkt, damit die
+  eager-Summe der drei Dispatcher unter dem 18.000-Zeichen-Gate bleibt
+  (16.557 Zeichen ≈ 4.139 Tokens).
+
+Tests: `2792 passed, 42 skipped`; neue Dateien `test_bughunt_export_confine.py`,
+`test_research_verify_url_safety.py`, `test_scout_paths_home.py`,
+`test_scanrunner_grep_e.py`; `hermes plugins validate` → `Validation passed`,
+`security scan: safe`.
+
 ## [0.6.9] — 2026-11-19
 
 ### 🐛 Live-Debug aller 42 Tools: stille Nullen, Alias-Totpunkt, UnboundLocal

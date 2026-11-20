@@ -2,9 +2,13 @@
 tools/crud.py — CRUD-Operationen: research_start, research_save, research_delete, research_cleanup.
 """
 
+import ipaddress
 import json
 import logging
+import re
+import socket
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from datetime import datetime, timedelta
@@ -729,6 +733,78 @@ def research_update(args: dict, **kwargs) -> str:
 # research_verify — Citation-Accuracy-Prüfung
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# URL-Sicherheit fuer research_verify (Review #157391 Punkt 3)
+# ---------------------------------------------------------------------------
+# Vorher wurde jede gespeicherte URL ungeprueft mit HEAD angefragt: file://,
+# LAN-Adressen und Cloud-Metadata-Endpunkte inklusive. Jetzt gilt dieselbe
+# Policy wie bei Hermes' eigenen URL-Tools (tools.url_safety.is_safe_url) und
+# Redirects werden nicht verfolgt, weil das Ziel sonst ungeprueft waere.
+
+_PRIVATE_HOSTNAMES = re.compile(
+    r"^(localhost|.*\.localhost|.*\.local|.*\.internal|metadata\.google\.internal"
+    r"|metadata\.goog|instance-data.*)$",
+    re.IGNORECASE,
+)
+
+
+def _ip_is_public(ip: ipaddress._BaseAddress) -> bool:
+    return not (
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+        or ip.is_multicast or ip.is_unspecified
+    )
+
+
+def _fallback_is_safe_url(url: str) -> bool:
+    """Ersatz fuer tools.url_safety.is_safe_url, wenn das Host-Modul fehlt."""
+    try:
+        parts = urllib.parse.urlsplit(url)
+        if parts.scheme.lower() not in ("http", "https"):
+            return False
+        host = (parts.hostname or "").strip().lower()
+        if not host or _PRIVATE_HOSTNAMES.match(host):
+            return False
+        try:
+            return _ip_is_public(ipaddress.ip_address(host))
+        except ValueError:
+            pass
+        try:
+            infos = socket.getaddrinfo(host, parts.port or 80, proto=socket.IPPROTO_TCP)
+        except OSError:
+            return False
+        return all(_ip_is_public(ipaddress.ip_address(info[4][0])) for info in infos)
+    except Exception:  # noqa: BLE001 - im Zweifel ablehnen
+        return False
+
+
+def _safe_url_checker():
+    """Hermes-Policy, falls importierbar — sonst der lokale Ersatz."""
+    try:
+        from tools.url_safety import is_safe_url  # oeffentliche Host-API
+    except Exception:  # noqa: BLE001 - Standalone-Betrieb
+        return _fallback_is_safe_url
+    return is_safe_url
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """3xx nicht verfolgen: das Ziel waere ungeprueft (SSRF ueber Redirect)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102
+        return None
+
+
+_VERIFY_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def _url_allowed(url: str) -> tuple[bool, str]:
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme.lower() not in ("http", "https"):
+        return False, f"Schema '{parts.scheme or '?'}' nicht erlaubt (nur http/https)"
+    if not _safe_url_checker()(url):
+        return False, "Ziel ist nicht oeffentlich erreichbar (privat/intern/metadata)"
+    return True, ""
+
+
 def research_verify(args: dict, **kwargs) -> str:
     """
     Prüft Quellen-URLs auf Erreichbarkeit und validiert Findings.
@@ -772,11 +848,17 @@ def research_verify(args: dict, **kwargs) -> str:
         if not url:
             continue
 
+        allowed, reason = _url_allowed(url)
+        if not allowed:
+            failed += 1
+            results.append({"url": url, "status": "refused", "error": reason})
+            continue
+
         try:
             req = urllib.request.Request(url, method="HEAD")
             req.add_header("User-Agent", "Mozilla/5.0 (compatible; DeepResearch/1.0)")
-            # Timeout nach 10 Sekunden
-            resp = urllib.request.urlopen(req, timeout=10)
+            # Kein Redirect-Following: das Ziel waere ungeprueft (SSRF).
+            resp = _VERIFY_OPENER.open(req, timeout=10)
             status = "ok" if resp.status < 400 else "error"
             if status == "ok":
                 verified += 1
@@ -790,9 +872,11 @@ def research_verify(args: dict, **kwargs) -> str:
         except (urllib.error.URLError, urllib.error.HTTPError) as e:
             code = getattr(e, "code", 0)
             failed += 1
+            redirect = code in (301, 302, 303, 307, 308)
             results.append({
                 "url": url,
-                "status": "error",
+                "status": "redirect" if redirect else "error",
+                "note": "Redirect nicht verfolgt (Ziel ungeprueft)" if redirect else "",
                 "http_code": code,
                 "error": str(e.reason) if hasattr(e, "reason") else str(e),
             })

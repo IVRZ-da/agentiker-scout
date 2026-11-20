@@ -27,22 +27,46 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 from pathlib import Path
 
 logger = logging.getLogger("scout.paths")
 
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
 
+#: Verzeichnisname unter ``<hermes-home>/plugin-data/``.
+PLUGIN_SLUG = "agentiker-scout"
+
+#: Alter Wurzelpfad (vor der Profil-Trennung) — nur noch fuer die Migration.
+LEGACY_ROOT = Path.home() / ".hermes" / "data" / "scout"
+
 #: Umgebungsvariable, die das Wurzelverzeichnis fuer Nutzdaten ueberschreibt.
 ENV_DATA_DIR = "SCOUT_DATA_DIR"
 
 
+def _hermes_home() -> Path:
+    """Hermes-Home aus dem Host, sonst der Default ``~/.hermes``."""
+    try:  # noqa: PLC0415 - Host-Modul, im Standalone-Betrieb nicht vorhanden
+        from hermes_constants import get_hermes_home
+    except Exception:  # noqa: BLE001 - kein Host = Default
+        return Path.home() / ".hermes"
+    try:
+        return Path(get_hermes_home())
+    except Exception:  # noqa: BLE001
+        return Path.home() / ".hermes"
+
+
 def resolve_data_root() -> Path:
-    """Wurzelverzeichnis fuer alle Nutzdaten (Env > XDG-Default)."""
+    """Wurzelverzeichnis fuer alle Nutzdaten (Env > plugin-data pro Profil).
+
+    Review #157391 Punkt 4: vorher hartkodiert ``~/.hermes/data/scout``, damit
+    teilten sich alle Hermes-Profile einen Store und ``HERMES_HOME`` war
+    wirkungslos.
+    """
     raw = os.environ.get(ENV_DATA_DIR, "").strip()
     if raw:
         return Path(raw).expanduser().resolve()
-    return (Path.home() / ".hermes" / "data" / "scout").resolve()
+    return (_hermes_home() / "plugin-data" / PLUGIN_SLUG).resolve()
 
 
 # Beim Import aufgeloest, damit Import-Zeit-Konstanten in den Domain-Modulen
@@ -54,6 +78,7 @@ DATA_ROOT: Path = resolve_data_root()
 # Bug-Hunt
 BUGHUNT_DIR: Path = DATA_ROOT / "bughunt"
 SESSIONS_DIR: Path = BUGHUNT_DIR / "sessions"
+EXPORTS_DIR: Path = BUGHUNT_DIR / "exports"
 PATTERNS_DIR: Path = BUGHUNT_DIR / "patterns"
 CUSTOM_PATTERNS_FILE: Path = PATTERNS_DIR / "custom_patterns.json"
 
@@ -77,6 +102,7 @@ def _all_dirs() -> tuple[Path, ...]:
     return (
         BUGHUNT_DIR,
         SESSIONS_DIR,
+        EXPORTS_DIR,
         PATTERNS_DIR,
         RESEARCH_DIR,
         PLANS_DIR,
@@ -85,8 +111,31 @@ def _all_dirs() -> tuple[Path, ...]:
     )
 
 
+def migrate_legacy_root() -> Path | None:
+    """Verschiebt ``~/.hermes/data/scout`` einmalig in die neue Wurzel.
+
+    Ohne Migration waeren nach dem Wechsel auf ``plugin-data`` alle bisherigen
+    Sessions und Recherchen unsichtbar. Laeuft nur, wenn kein
+    ``SCOUT_DATA_DIR`` gesetzt ist, die alte Wurzel existiert und die neue
+    noch nicht. Gibt das neue Verzeichnis zurueck, wenn verschoben wurde.
+    """
+    if os.environ.get(ENV_DATA_DIR, "").strip():
+        return None
+    if not LEGACY_ROOT.is_dir() or DATA_ROOT.exists() or LEGACY_ROOT == DATA_ROOT:
+        return None
+    try:
+        DATA_ROOT.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(LEGACY_ROOT), str(DATA_ROOT))
+    except OSError as exc:  # pragma: no cover - nur bei kaputten Rechten
+        logger.warning("scout: Migration von %s fehlgeschlagen: %s", LEGACY_ROOT, exc)
+        return None
+    logger.info("scout: Nutzdaten von %s nach %s verschoben", LEGACY_ROOT, DATA_ROOT)
+    return DATA_ROOT
+
+
 def ensure_dirs() -> list[Path]:
     """Legt alle Nutzdatenverzeichnisse an. Gibt die angelegten Pfade zurueck."""
+    migrate_legacy_root()
     created: list[Path] = []
     for path in _all_dirs():
         try:
@@ -102,6 +151,7 @@ def describe() -> dict[str, str]:
     return {
         "data_root": str(DATA_ROOT),
         "sessions": str(SESSIONS_DIR),
+        "exports": str(EXPORTS_DIR),
         "custom_patterns": str(CUSTOM_PATTERNS_FILE),
         "research_plans": str(PLANS_DIR),
         "research_results": str(RESULTS_DIR),
@@ -116,6 +166,7 @@ PATH_ATTRS = (
     "DATA_ROOT",
     "BUGHUNT_DIR",
     "SESSIONS_DIR",
+    "EXPORTS_DIR",
     "PATTERNS_DIR",
     "CUSTOM_PATTERNS_FILE",
     "RESEARCH_DIR",
@@ -134,12 +185,13 @@ def reload_paths() -> dict[str, Path]:
     muessen ihre Attribute danach selbst nachziehen — deshalb gibt es
     ``PATH_ATTRS`` als Namensliste.
     """
-    global DATA_ROOT, BUGHUNT_DIR, SESSIONS_DIR, PATTERNS_DIR, CUSTOM_PATTERNS_FILE
+    global DATA_ROOT, BUGHUNT_DIR, SESSIONS_DIR, EXPORTS_DIR, PATTERNS_DIR, CUSTOM_PATTERNS_FILE
     global RESEARCH_DIR, PLANS_DIR, RESULTS_DIR, RESEARCH_TRACKER_FILE, ANALYSIS_DIR
 
     DATA_ROOT = resolve_data_root()
     BUGHUNT_DIR = DATA_ROOT / "bughunt"
     SESSIONS_DIR = BUGHUNT_DIR / "sessions"
+    EXPORTS_DIR = BUGHUNT_DIR / "exports"
     PATTERNS_DIR = BUGHUNT_DIR / "patterns"
     CUSTOM_PATTERNS_FILE = PATTERNS_DIR / "custom_patterns.json"
     RESEARCH_DIR = DATA_ROOT / "research"

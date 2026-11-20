@@ -73,11 +73,11 @@ bug_hunt_pattern(action="list_categories")
 
 <!-- README_AUTO -->
 
-[![Version](https://img.shields.io/badge/version-0.6.9-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2800%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.6.10-blue.svg)]() [![Tests](https://img.shields.io/badge/tests-2834%20tests-green.svg)]() [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-**Version:** 0.6.9
+**Version:** 0.6.10
 
-**Tests:** 2800 tests
+**Tests:** 2834 tests
 
 **Tools (50):**
 
@@ -151,6 +151,27 @@ bug_hunt_pattern(action="list_categories")
 
 ### Recent Changelog
 
+## [0.6.10] — 2026-11-20
+
+### 🔒 Hermes-Katalog-Review (PR #157391) — 4 Blocker + 2 Empfehlungen
+
+Alle vier blockierenden Punkte aus dem Review von `teknium1` (gegen `e4bce1dd`,
+v0.6.6) sind umgesetzt, dazu beide Empfehlungen.
+
+- **Schema-Dateien sind wieder im Repo** (Punkt 1): Das `.gitignore`-Muster `data/`
+  ignorierte auch `bughunt/data/` und `research/data/`. `collect()` sah damit nur die
+  analysis-Domäne — der research-Dispatcher hatte für Katalog-Nutzer keine Ops und
+  bughunt/research registrierten nicht. Muster auf `/data/` verengt (plus
+  `/data/sessions/`, `/data/patterns/`), beide `tool_schemas.json` versioniert.
+  `bughunt/data/patterns_data.json` war schon getrackt (Built-in-Patterns = Code).
+- **research-Domäne vervollständigt**: `research/data/tool_schemas.json` enthielt nur
+  9 der 17 Tools — `research_verify`, `_delete`, `_tag`, `_auto`, `_compare`,
+  `_merge`, `_export_all`, `_schedule` waren für den Dispatcher unsichtbar. Jetzt 50
+  Tools overall (20 analysis + 13 bughunt + 17 research), Registry und README
+  entsprechend neu erzeugt.
+- **`bug_hunt_export` ist confined** (Punkt 2): Der `output`-Pfad kam vom Modell und
+  wurde mit `mkdir(parents=True)` überall angelegt — inklusive Shell-RCs und
+
 ## [0.6.9] — 2026-11-19
 
 ### 🐛 Live-Debug aller 42 Tools: stille Nullen, Alias-Totpunkt, UnboundLocal
@@ -189,27 +210,6 @@ Intent.
   Namen stehen.
 - Test `test_eager_hints_have_no_bridge_payload` deckt den eager-Fall ab; die
   bestehenden Hint-Tests mocken den Bridge-Status statt ihn zu erben.
-
-## [0.6.7] — 2026-11-18
-
-### 📉 Deferral-Kosten gesenkt: Hints liefern den fertigen Aufruf
-
-Messung vor diesem Release (state.db, 102.695 Tool-Calls): die drei Dispatcher
-wurden seit der Fusion **0×** gerufen, die alten Einzel-Tools zuletzt am 16.11.
-mit 762 Calls. Ein Hint, der `bughunt(op="scan")` nennt, aber nicht sagt, wie
-das deferred Tool erreichbar ist, verweist ins Leere — das Modell weicht auf
-`read_file`/`terminal` aus (33.943 bzw. 21.195 Calls).
-
-- **`shared/intent.py`**: Die vier Intent-Contexts (`code`, `bug`, `research`,
-  `framework`) tragen im Namespace-Modus eine Präambel mit kopierbarem
-  `tool_call({"calls":[{...}]})`-Block samt Beispiel-op. Ein Turn statt drei
-  (`tool_search` → `tool_describe` → `tool_call`). Legacy-Modus und die
-  MCP-Contexts (`db`, `web`, `debug`) bleiben ohne Präambel — dort sind die
-  Tools eager.
-- **`shared/usage.py`** (neu): `post_tool_call`-Handler schreibt eine
-  JSONL-Zeile pro Scout-Aufruf (`ts`, `plugin`, `tool`, `op`, `session_id`,
-  `error`) nach `~/.hermes/logs/plugin-usage.jsonl`. Append-only, wirft nie.
-  Ohne diese Zahlen bleibt „wird kaum genutzt" Bauchgefühl.
 
 <!-- END README_AUTO -->
 

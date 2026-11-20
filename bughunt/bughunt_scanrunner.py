@@ -59,7 +59,10 @@ def run_grep_scan(scan_query: str, scan_file_glob: str,
             else:
                 include_flag = ["--include", pattern]
 
-        cmd = ["grep", "-rnI", *include_flag, *build_exclude_flags(), scan_query, project_root]
+        # Review #157391 (Empfehlung): "-e <muster>" + "--" vor dem Pfad, damit ein
+        # gespeichertes Pattern, das mit "-" beginnt, nicht als grep-Option gilt.
+        cmd = ["grep", "-rnI", *include_flag, *build_exclude_flags(),
+               "-e", scan_query, "--", project_root]
         logger.debug("Scan-Runner: %s", " ".join(str(c) for c in cmd))
 
         proc = subprocess.run(
